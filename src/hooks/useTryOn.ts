@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TryOnResult {
   images: string[];
@@ -14,42 +14,28 @@ interface UseTryOnReturn {
   result: TryOnResult | null;
 }
 
-// Your Supabase Edge Function URL
-const TRYON_FUNCTION_URL = 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1/tryon';
-
 export const useTryOn = (): UseTryOnReturn => {
-  const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryOnResult | null>(null);
 
   const generateTryOn = async (productId: string): Promise<TryOnResult | null> => {
-    if (!session?.access_token) {
-      setError('Not authenticated');
-      return null;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(TRYON_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ productId }),
+      // Use supabase.functions.invoke which handles auth automatically
+      const { data, error: fnError } = await supabase.functions.invoke('tryon', {
+        body: { productId },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      if (fnError) {
+        throw new Error(fnError.message || 'Edge function error');
       }
 
-      const data: TryOnResult = await response.json();
-      setResult(data);
-      return data;
+      const tryOnData: TryOnResult = data;
+      setResult(tryOnData);
+      return tryOnData;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate try-on';
       setError(message);
