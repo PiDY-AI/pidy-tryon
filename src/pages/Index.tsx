@@ -5,16 +5,18 @@ import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
 import { useMeasurements } from '@/hooks/useMeasurements';
 import { useTryOn } from '@/hooks/useTryOn';
+import { useAuth } from '@/hooks/useAuth';
 import { sampleProducts } from '@/data/products';
 import { calculateSize } from '@/utils/sizeCalculator';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, RefreshCw, ShoppingBag, Loader2 } from 'lucide-react';
+import { Sparkles, User, RefreshCw, ShoppingBag, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
   const { measurements, isLoaded, saveMeasurements, clearMeasurements } = useMeasurements();
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
+  const { signOut, user } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -97,12 +99,27 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground">AI-Powered Fitting</p>
               </div>
             </div>
-            {measurements && (
-              <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                <User className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {measurements && (
+                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+                  <User className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              )}
+              {user && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={async () => {
+                    await signOut();
+                    toast.success('Signed out successfully');
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              )}
+            </div>
           </div>
         </header>
 
