@@ -14,8 +14,8 @@ interface UseTryOnReturn {
   result: TryOnResult | null;
 }
 
-// Configure your backend API URL here
-const API_BASE_URL = 'https://your-backend-api.com'; // TODO: Replace with your actual API URL
+// Your Supabase Edge Function URL
+const TRYON_FUNCTION_URL = 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1/tryon';
 
 export const useTryOn = (): UseTryOnReturn => {
   const { session } = useAuth();
@@ -33,7 +33,7 @@ export const useTryOn = (): UseTryOnReturn => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/tryon`, {
+      const response = await fetch(TRYON_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
