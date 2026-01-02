@@ -4,29 +4,50 @@ import { MeasurementForm } from '@/components/MeasurementForm';
 import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
 import { useMeasurements } from '@/hooks/useMeasurements';
+import { useTryOn } from '@/hooks/useTryOn';
 import { sampleProducts } from '@/data/products';
 import { calculateSize } from '@/utils/sizeCalculator';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, RefreshCw, ShoppingBag } from 'lucide-react';
+import { Sparkles, User, RefreshCw, ShoppingBag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
   const { measurements, isLoaded, saveMeasurements, clearMeasurements } = useMeasurements();
+  const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const handleTryOn = (product: Product) => {
+  const handleTryOn = async (product: Product) => {
     if (!measurements) {
       toast.error('Please enter your measurements first');
       setShowForm(true);
       return;
     }
+    
     setSelectedProduct(product);
-    const result = calculateSize(measurements);
-    setTryOnResult(result);
-    toast.success(`Analyzing fit for ${product.name}...`);
+    toast.info(`Calling backend for ${product.name}...`);
+    
+    // Call the edge function
+    const backendResult = await generateTryOn(product.id);
+    
+    if (backendResult) {
+      // Use backend result if available
+      const result: TryOnResultType = {
+        recommendedSize: backendResult.recommendedSize || calculateSize(measurements).recommendedSize,
+        fitScore: backendResult.fitScore || calculateSize(measurements).fitScore,
+        fitNotes: calculateSize(measurements).fitNotes,
+        images: backendResult.images,
+      };
+      setTryOnResult(result);
+      toast.success(`Backend responded! Recommended: ${result.recommendedSize}`);
+    } else {
+      // Fallback to local calculation if backend fails
+      const localResult = calculateSize(measurements);
+      setTryOnResult(localResult);
+      toast.error('Backend call failed, using local calculation');
+    }
   };
 
   const handleCloseTryOn = () => {

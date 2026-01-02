@@ -19,4 +19,5 @@ export interface TryOnResult {
   recommendedSize: string;
   fitScore: number;
   fitNotes: string[];
+  images?: string[]; // Generated try-on images from backend
 }
