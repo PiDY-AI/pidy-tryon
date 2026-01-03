@@ -6,17 +6,18 @@ import { TryOnResult } from '@/components/TryOnResult';
 import { useMeasurements } from '@/hooks/useMeasurements';
 import { useTryOn } from '@/hooks/useTryOn';
 import { useAuth } from '@/hooks/useAuth';
-import { sampleProducts } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import { calculateSize } from '@/utils/sizeCalculator';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, RefreshCw, ShoppingBag, LogOut } from 'lucide-react';
+import { Sparkles, User, RefreshCw, ShoppingBag, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
   const { measurements, isLoaded, saveMeasurements, clearMeasurements } = useMeasurements();
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user } = useAuth();
+  const { products, isLoading: isProductsLoading, error: productsError } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -215,21 +216,35 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
-                {sampleProducts.map((product, index) => (
-                  <div 
-                    key={product.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <ProductCard 
-                      product={product} 
-                      onTryOn={handleTryOn}
-                      isSelected={selectedProduct?.id === product.id}
-                    />
-                  </div>
-                ))}
-              </div>
+              {isProductsLoading ? (
+                <div className="col-span-2 flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : productsError ? (
+                <div className="col-span-2 text-center py-12 text-destructive">
+                  Failed to load products: {productsError}
+                </div>
+              ) : products.length === 0 ? (
+                <div className="col-span-2 text-center py-12 text-muted-foreground">
+                  No products found
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {products.map((product, index) => (
+                    <div 
+                      key={product.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <ProductCard 
+                        product={product} 
+                        onTryOn={handleTryOn}
+                        isSelected={selectedProduct?.id === product.id}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
