@@ -21,7 +21,7 @@ export const useProducts = (): UseProductsReturn => {
     try {
       const { data, error: fetchError } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, category, images, sizes')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -29,14 +29,23 @@ export const useProducts = (): UseProductsReturn => {
       }
 
       // Map database columns to Product interface
-      const mappedProducts: Product[] = (data || []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category || 'Uncategorized',
-        image: item.image_url || item.image || '',
-        price: item.price || 0,
-        sizes: item.sizes || ['S', 'M', 'L', 'XL'],
-      }));
+      const mappedProducts: Product[] = (data || []).map((item) => {
+        // images is a jsonb array - get first image for preview
+        const imagesArray = item.images as string[] | null;
+        const previewImage = imagesArray && imagesArray.length > 0 ? imagesArray[0] : '';
+        
+        // sizes is a jsonb array
+        const sizesArray = item.sizes as string[] | null;
+
+        return {
+          id: item.id,
+          name: item.name || 'Unnamed Product',
+          category: item.category || 'Uncategorized',
+          image: previewImage,
+          price: 0, // Not in your schema, using default
+          sizes: sizesArray || ['S', 'M', 'L', 'XL'],
+        };
+      });
 
       setProducts(mappedProducts);
     } catch (err) {
