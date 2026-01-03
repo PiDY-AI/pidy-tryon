@@ -31,19 +31,40 @@ export const useProducts = (): UseProductsReturn => {
       // Map database columns to Product interface
       const mappedProducts: Product[] = (data || []).map((item) => {
         // images is a jsonb array - get first image for preview
-        const imagesArray = item.images as string[] | null;
-        const previewImage = imagesArray && imagesArray.length > 0 ? imagesArray[0] : '';
+        let imagesArray: string[] = [];
+        if (Array.isArray(item.images)) {
+          imagesArray = item.images;
+        } else if (typeof item.images === 'string') {
+          try {
+            imagesArray = JSON.parse(item.images);
+          } catch {
+            imagesArray = [];
+          }
+        }
+        const previewImage = imagesArray.length > 0 ? imagesArray[0] : '';
         
-        // sizes is a jsonb array
-        const sizesArray = item.sizes as string[] | null;
+        // sizes is a jsonb array - ensure it's parsed correctly
+        let sizesArray: string[] = ['S', 'M', 'L', 'XL'];
+        if (Array.isArray(item.sizes)) {
+          sizesArray = item.sizes;
+        } else if (typeof item.sizes === 'string') {
+          try {
+            const parsed = JSON.parse(item.sizes);
+            if (Array.isArray(parsed)) {
+              sizesArray = parsed;
+            }
+          } catch {
+            sizesArray = ['S', 'M', 'L', 'XL'];
+          }
+        }
 
         return {
           id: item.id,
           name: item.name || 'Unnamed Product',
           category: item.category || 'Uncategorized',
           image: previewImage,
-          price: 0, // Not in your schema, using default
-          sizes: sizesArray || ['S', 'M', 'L', 'XL'],
+          price: 0,
+          sizes: sizesArray,
         };
       });
 
