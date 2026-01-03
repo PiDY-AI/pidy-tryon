@@ -21,7 +21,7 @@ export const useProducts = (): UseProductsReturn => {
     try {
       const { data, error: fetchError } = await supabase
         .from('products')
-        .select('id, name, category, images, sizes')
+        .select('product_id, name, category, images, sizes')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -59,7 +59,7 @@ export const useProducts = (): UseProductsReturn => {
         }
 
         return {
-          id: item.id,
+          id: item.product_id,
           name: item.name || 'Unnamed Product',
           category: item.category || 'Uncategorized',
           image: previewImage,
