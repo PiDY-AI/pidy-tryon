@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { MeasurementForm } from '@/components/MeasurementForm';
 import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
+import { TryOnLoading } from '@/components/TryOnLoading';
 import { useMeasurements } from '@/hooks/useMeasurements';
 import { useTryOn } from '@/hooks/useTryOn';
 import { useAuth } from '@/hooks/useAuth';
@@ -209,8 +210,11 @@ const Index = () => {
                 </div>
               )}
 
+              {/* Try-On Loading */}
+              {isTryOnLoading && <TryOnLoading />}
+
               {/* Try-On Result */}
-              {tryOnResult && measurements && (
+              {!isTryOnLoading && tryOnResult && measurements && (
                 <TryOnResult 
                   result={tryOnResult} 
                   product={selectedProduct}
@@ -295,8 +299,11 @@ const Index = () => {
                   )}
                 </div>
 
+                {/* Try-On Loading */}
+                {isTryOnLoading && <TryOnLoading />}
+
                 {/* Try-On Result */}
-                {selectedProduct && tryOnResult && measurements && (
+                {!isTryOnLoading && selectedProduct && tryOnResult && measurements && (
                   <TryOnResult 
                     result={tryOnResult} 
                     product={selectedProduct}
