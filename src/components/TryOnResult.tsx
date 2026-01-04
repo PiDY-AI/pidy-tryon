@@ -1,15 +1,14 @@
-import { TryOnResult as TryOnResultType, Product, Measurements } from '@/types/measurements';
+import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
 import { CheckCircle, AlertCircle, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface TryOnResultProps {
   result: TryOnResultType;
   product: Product;
-  measurements: Measurements;
   onClose: () => void;
 }
 
-export const TryOnResult = ({ result, product, measurements, onClose }: TryOnResultProps) => {
+export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Perfect Fit', color: 'text-green-400', bg: 'bg-green-400/20' };
     if (score >= 70) return { label: 'Good Fit', color: 'text-primary', bg: 'bg-primary/20' };
@@ -73,22 +72,6 @@ export const TryOnResult = ({ result, product, measurements, onClose }: TryOnRes
               className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${result.fitScore}%` }}
             />
-          </div>
-        </div>
-
-        {/* Your measurements */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="glass-card p-3 rounded-lg">
-            <p className="text-xs text-muted-foreground">Chest</p>
-            <p className="font-semibold text-foreground">{measurements.chest}cm</p>
-          </div>
-          <div className="glass-card p-3 rounded-lg">
-            <p className="text-xs text-muted-foreground">Waist</p>
-            <p className="font-semibold text-foreground">{measurements.waist}cm</p>
-          </div>
-          <div className="glass-card p-3 rounded-lg">
-            <p className="text-xs text-muted-foreground">Hips</p>
-            <p className="font-semibold text-foreground">{measurements.hips}cm</p>
           </div>
         </div>
 
