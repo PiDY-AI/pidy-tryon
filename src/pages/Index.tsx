@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MeasurementForm } from '@/components/MeasurementForm';
 import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
 import { TryOnLoading } from '@/components/TryOnLoading';
@@ -12,7 +11,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { calculateSize } from '@/utils/sizeCalculator';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, RefreshCw, ShoppingBag, LogOut, Loader2 } from 'lucide-react';
+import { Sparkles, User, ShoppingBag, LogOut, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -20,13 +19,12 @@ const Index = () => {
   const productId = searchParams.get('productId');
   const embedMode = searchParams.get('embed') === 'true' || !!productId;
   
-  const { measurements, isLoaded, saveMeasurements, clearMeasurements } = useMeasurements();
-  const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
+  const { measurements, isLoading: isMeasurementsLoading, error: measurementsError } = useMeasurements();
+  const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
   const { signOut, user } = useAuth();
   const { products, isLoading: isProductsLoading, error: productsError } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
-  const [showForm, setShowForm] = useState(false);
 
   // Auto-select product from URL parameter
   useEffect(() => {
@@ -40,19 +38,16 @@ const Index = () => {
 
   const handleTryOn = async (product: Product) => {
     if (!measurements) {
-      toast.error('Please enter your measurements first');
-      setShowForm(true);
+      toast.error('No measurements found. Please complete your body scan first.');
       return;
     }
     
     setSelectedProduct(product);
-    toast.info(`Calling backend for ${product.name}...`);
+    setTryOnResult(null);
     
-    // Call the edge function
     const backendResult = await generateTryOn(product.id);
     
     if (backendResult) {
-      // Use backend result if available
       const result: TryOnResultType = {
         recommendedSize: backendResult.recommendedSize || calculateSize(measurements).recommendedSize,
         fitScore: backendResult.fitScore || calculateSize(measurements).fitScore,
@@ -60,9 +55,8 @@ const Index = () => {
         images: backendResult.images,
       };
       setTryOnResult(result);
-      toast.success(`Backend responded! Recommended: ${result.recommendedSize}`);
+      toast.success(`Recommended size: ${result.recommendedSize}`);
     } else {
-      // Fallback to local calculation if backend fails
       const localResult = calculateSize(measurements);
       setTryOnResult(localResult);
       toast.error('Backend call failed, using local calculation');
@@ -74,24 +68,10 @@ const Index = () => {
     setTryOnResult(null);
   };
 
-  const handleSaveMeasurements = (data: typeof measurements) => {
-    if (data) {
-      saveMeasurements(data);
-      setShowForm(false);
-      toast.success('Measurements saved!');
-    }
-  };
-
-  const handleClearMeasurements = () => {
-    clearMeasurements();
-    setShowForm(true);
-    toast.info('Measurements cleared');
-  };
-
-  if (!isLoaded) {
+  if (isMeasurementsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-primary">Loading...</div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -118,12 +98,6 @@ const Index = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {measurements && (
-                  <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                    <User className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                )}
                 {user && (
                   <Button 
                     variant="ghost" 
@@ -143,6 +117,16 @@ const Index = () => {
         )}
 
         <main className={embedMode ? "p-4" : "container py-8"}>
+          {/* Show error if no measurements */}
+          {measurementsError && (
+            <div className="glass-card rounded-xl p-6 mb-6 border-destructive/50">
+              <div className="flex items-center gap-3 text-destructive">
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm">{measurementsError}</p>
+              </div>
+            </div>
+          )}
+
           {/* Embed mode - show only selected product */}
           {embedMode && selectedProduct ? (
             <div className="space-y-6">
@@ -166,15 +150,8 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Measurements form or display */}
-              {!measurements || showForm ? (
-                <div className="glass-card rounded-xl p-4">
-                  <MeasurementForm 
-                    initialValues={measurements} 
-                    onSubmit={handleSaveMeasurements} 
-                  />
-                </div>
-              ) : (
+              {/* Measurements display */}
+              {measurements && (
                 <div className="glass-card rounded-xl p-4 space-y-4">
                   <div className="grid grid-cols-3 gap-2 text-center text-sm">
                     <div>
@@ -193,7 +170,7 @@ const Index = () => {
                   <Button 
                     className="w-full" 
                     onClick={() => handleTryOn(selectedProduct)}
-                    disabled={isTryOnLoading}
+                    disabled={isTryOnLoading || !measurements}
                   >
                     {isTryOnLoading ? (
                       <>
@@ -234,67 +211,47 @@ const Index = () => {
           ) : (
             /* Regular mode - show full interface */
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left sidebar - Measurements */}
+              {/* Left sidebar - Profile & Results */}
               <div className="lg:col-span-1 space-y-6">
                 <div className="glass-card rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center relative pulse-ring">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h2 className="font-semibold text-foreground">Your Profile</h2>
-                        <p className="text-xs text-muted-foreground">Body measurements</p>
-                      </div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center relative pulse-ring">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-foreground">Your Profile</h2>
+                      <p className="text-xs text-muted-foreground">Body measurements</p>
                     </div>
                   </div>
 
-                  {!measurements || showForm ? (
-                    <MeasurementForm 
-                      initialValues={measurements} 
-                      onSubmit={handleSaveMeasurements} 
-                    />
+                  {measurements ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="glass-card p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">Height</p>
+                        <p className="text-lg font-semibold text-foreground">{measurements.height}cm</p>
+                      </div>
+                      <div className="glass-card p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">Weight</p>
+                        <p className="text-lg font-semibold text-foreground">{measurements.weight}kg</p>
+                      </div>
+                      <div className="glass-card p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">Chest</p>
+                        <p className="text-lg font-semibold text-foreground">{measurements.chest}cm</p>
+                      </div>
+                      <div className="glass-card p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">Waist</p>
+                        <p className="text-lg font-semibold text-foreground">{measurements.waist}cm</p>
+                      </div>
+                      <div className="glass-card p-3 rounded-lg text-center col-span-2">
+                        <p className="text-xs text-muted-foreground">Hips</p>
+                        <p className="text-lg font-semibold text-foreground">{measurements.hips}cm</p>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="glass-card p-3 rounded-lg text-center">
-                          <p className="text-xs text-muted-foreground">Height</p>
-                          <p className="text-lg font-semibold text-foreground">{measurements.height}cm</p>
-                        </div>
-                        <div className="glass-card p-3 rounded-lg text-center">
-                          <p className="text-xs text-muted-foreground">Weight</p>
-                          <p className="text-lg font-semibold text-foreground">{measurements.weight}kg</p>
-                        </div>
-                        <div className="glass-card p-3 rounded-lg text-center">
-                          <p className="text-xs text-muted-foreground">Chest</p>
-                          <p className="text-lg font-semibold text-foreground">{measurements.chest}cm</p>
-                        </div>
-                        <div className="glass-card p-3 rounded-lg text-center">
-                          <p className="text-xs text-muted-foreground">Waist</p>
-                          <p className="text-lg font-semibold text-foreground">{measurements.waist}cm</p>
-                        </div>
-                        <div className="glass-card p-3 rounded-lg text-center col-span-2">
-                          <p className="text-xs text-muted-foreground">Hips</p>
-                          <p className="text-lg font-semibold text-foreground">{measurements.hips}cm</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => setShowForm(true)}
-                        >
-                          Edit
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={handleClearMeasurements}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="text-center py-6 text-muted-foreground">
+                      <AlertCircle className="w-8 h-8 mx-auto mb-2 text-destructive" />
+                      <p className="text-sm">No measurements found</p>
+                      <p className="text-xs mt-1">Complete your body scan to continue</p>
                     </div>
                   )}
                 </div>
