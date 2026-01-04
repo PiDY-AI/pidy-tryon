@@ -22,14 +22,24 @@ export const TryOnResult = ({ result, product, measurements, onClose }: TryOnRes
   return (
     <div className="glass-card rounded-2xl overflow-hidden animate-scale-in">
       <div className="relative">
-        <div className="aspect-video bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
-          <div className="text-center z-10 animate-float">
-            <Sparkles className="w-12 h-12 text-primary mx-auto mb-3" />
-            <p className="text-lg font-medium text-foreground">Virtual Try-On Complete</p>
-            <p className="text-sm text-muted-foreground mt-1">{product.name}</p>
+        {result.images && result.images.length > 0 ? (
+          <div className="aspect-[3/4] bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
+            <img 
+              src={result.images[0]} 
+              alt={`Virtual try-on of ${product.name}`}
+              className="w-full h-full object-contain"
+            />
           </div>
-        </div>
+        ) : (
+          <div className="aspect-video bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
+            <div className="text-center z-10 animate-float">
+              <Sparkles className="w-12 h-12 text-primary mx-auto mb-3" />
+              <p className="text-lg font-medium text-foreground">Virtual Try-On Complete</p>
+              <p className="text-sm text-muted-foreground mt-1">{product.name}</p>
+            </div>
+          </div>
+        )}
         <Button 
           variant="ghost" 
           size="icon" 
