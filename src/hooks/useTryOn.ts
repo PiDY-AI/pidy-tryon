@@ -5,6 +5,7 @@ interface TryOnResult {
   images: string[];
   recommendedSize?: string;
   fitScore?: number;
+  prompt?: string;
 }
 
 interface UseTryOnReturn {

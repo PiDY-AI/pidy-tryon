@@ -96,6 +96,16 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           </div>
         </div>
 
+        {/* Prompt used */}
+        {result.prompt && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Generation Prompt</p>
+            <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic">
+              {result.prompt}
+            </p>
+          </div>
+        )}
+
         <Button className="w-full" size="lg">
           Add to Cart - Size {result.recommendedSize}
         </Button>
