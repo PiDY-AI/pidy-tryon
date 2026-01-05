@@ -45,6 +45,7 @@ const Index = () => {
         fitScore: backendResult.fitScore || 85,
         fitNotes: ['Based on your body scan'],
         images: backendResult.images,
+        prompt: backendResult.prompt,
       };
       setTryOnResult(result);
       toast.success(`Recommended size: ${result.recommendedSize}`);
