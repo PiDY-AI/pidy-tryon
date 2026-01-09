@@ -75,20 +75,20 @@ const Index = () => {
   // Embed mode - show floating button that expands
   if (embedMode) {
     return (
-      <>
+      <div className={`${!isExpanded ? 'h-[80px] flex items-center justify-start p-3' : ''}`}>
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
         
         {!isExpanded ? (
-          // Compact floating button
+          // Compact floating button - positioned at top-left of container
           <button
             onClick={handleExpandAndTryOn}
             disabled={isProductsLoading || !selectedProduct}
-            className="group flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group flex items-center gap-3 bg-gradient-to-r from-zinc-800 to-zinc-900 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700"
           >
-            <Sparkles className="w-5 h-5" />
-            <span className="font-medium">Try On</span>
+            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <span className="font-medium text-sm">Try On</span>
           </button>
         ) : (
           // Expanded panel
@@ -154,7 +154,7 @@ const Index = () => {
             </div>
           </div>
         )}
-      </>
+      </div>
     );
   }
 
