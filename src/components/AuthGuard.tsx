@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Sparkles } from 'lucide-react';
 
@@ -10,6 +10,14 @@ interface AuthGuardProps {
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  
+  // In embed mode (productId present), skip auth guard - let the page handle auth on interaction
+  const isEmbedMode = !!searchParams.get('productId');
+  
+  if (isEmbedMode) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
@@ -26,8 +34,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
   if (!user) {
     // Preserve query params (like productId) when redirecting to auth
-    const searchParams = new URLSearchParams(location.search);
-    const redirectPath = searchParams.toString() ? `/auth?${searchParams.toString()}` : '/auth';
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.toString() ? `/auth?${params.toString()}` : '/auth';
     return <Navigate to={redirectPath} replace />;
   }
 
