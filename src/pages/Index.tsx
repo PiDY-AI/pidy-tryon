@@ -59,10 +59,14 @@ const Index = () => {
   const handleCloseTryOn = () => {
     setIsExpanded(false);
     setTryOnResult(null);
+    // Notify parent window
+    window.parent.postMessage({ type: 'tryon-collapse' }, '*');
   };
 
   const handleExpandAndTryOn = () => {
     setIsExpanded(true);
+    // Notify parent window
+    window.parent.postMessage({ type: 'tryon-expand' }, '*');
     if (selectedProduct) {
       handleTryOn(selectedProduct);
     }
