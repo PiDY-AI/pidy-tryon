@@ -9,17 +9,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ShoppingBag, LogOut, Loader2 } from 'lucide-react';
+import { Sparkles, ShoppingBag, LogOut, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
-  const embedMode = searchParams.get('embed') === 'true' || !!productId;
+  const embedMode = !!productId;
+  
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
   const { signOut, user } = useAuth();
-  const { products, isLoading: isProductsLoading, error: productsError } = useProducts();
+  const { products, isLoading: isProductsLoading } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
 
@@ -55,62 +57,52 @@ const Index = () => {
   };
 
   const handleCloseTryOn = () => {
-    setSelectedProduct(null);
+    setIsExpanded(false);
     setTryOnResult(null);
   };
 
-  return (
-    <>
-      <Helmet>
-        <title>Virtual Try-On | AI-Powered Size Recommendations</title>
-        <meta name="description" content="Experience our virtual try-on widget. Get personalized size recommendations based on your body scan." />
-      </Helmet>
-      
-      <div className="min-h-screen bg-background">
-        {/* Header - hidden in embed mode */}
-        {!embedMode && (
-          <header className="border-b border-border/50">
-            <div className="container py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h1 className="font-semibold text-foreground">Virtual Try-On</h1>
-                  <p className="text-xs text-muted-foreground">AI-Powered Fitting</p>
-                </div>
-              </div>
-              {user && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={async () => {
-                    await signOut();
-                    toast.success('Signed out successfully');
-                  }}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
-              )}
-            </div>
-          </header>
-        )}
+  const handleExpandAndTryOn = () => {
+    setIsExpanded(true);
+    if (selectedProduct) {
+      handleTryOn(selectedProduct);
+    }
+  };
 
-        <main className={embedMode ? "p-4" : "container py-8"}>
-          {/* Embed mode - show only selected product */}
-          {embedMode && selectedProduct ? (
-            <div className="space-y-6">
-              {/* Compact header for embed */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <span className="font-medium text-foreground">{selectedProduct.name}</span>
-                </div>
+  // Embed mode - show floating button that expands
+  if (embedMode) {
+    return (
+      <>
+        <Helmet>
+          <title>Virtual Try-On</title>
+        </Helmet>
+        
+        {!isExpanded ? (
+          // Compact floating button
+          <button
+            onClick={handleExpandAndTryOn}
+            disabled={isProductsLoading || !selectedProduct}
+            className="group flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="w-5 h-5" />
+            <span className="font-medium">Try On</span>
+          </button>
+        ) : (
+          // Expanded panel
+          <div className="w-[380px] max-h-[600px] overflow-y-auto bg-background border border-border rounded-2xl shadow-2xl animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="font-medium text-foreground">
+                  {selectedProduct?.name || 'Virtual Try-On'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
                 {user && (
                   <Button 
                     variant="ghost" 
-                    size="sm" 
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={async () => {
                       await signOut();
                       toast.success('Signed out');
@@ -119,135 +111,163 @@ const Index = () => {
                     <LogOut className="w-4 h-4" />
                   </Button>
                 )}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleCloseTryOn}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
+            </div>
 
-              {/* Try On Button */}
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={() => handleTryOn(selectedProduct)}
-                disabled={isTryOnLoading}
-              >
-                {isTryOnLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Try On
-                  </>
-                )}
-              </Button>
-
+            {/* Content */}
+            <div className="p-4 space-y-4">
               {/* Try-On Loading */}
               {isTryOnLoading && <TryOnLoading />}
 
               {/* Try-On Result */}
-              {!isTryOnLoading && tryOnResult && (
+              {!isTryOnLoading && tryOnResult && selectedProduct && (
                 <TryOnResult 
                   result={tryOnResult} 
                   product={selectedProduct}
                   onClose={handleCloseTryOn}
                 />
               )}
-            </div>
-          ) : embedMode && !selectedProduct ? (
-            <div className="flex items-center justify-center py-12">
-              {isProductsLoading ? (
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              ) : (
-                <p className="text-muted-foreground">Product not found</p>
+
+              {/* Retry button if result shown */}
+              {!isTryOnLoading && tryOnResult && selectedProduct && (
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => handleTryOn(selectedProduct)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
               )}
             </div>
-          ) : (
-            /* Regular mode - show full interface */
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left sidebar - Results */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* Try-On Loading */}
-                {isTryOnLoading && <TryOnLoading />}
+          </div>
+        )}
+      </>
+    );
+  }
 
-                {/* Try-On Result */}
-                {!isTryOnLoading && selectedProduct && tryOnResult && (
-                  <TryOnResult 
-                    result={tryOnResult} 
-                    product={selectedProduct}
-                    onClose={handleCloseTryOn}
-                  />
-                )}
-
-                {/* Empty state */}
-                {!isTryOnLoading && !tryOnResult && (
-                  <div className="glass-card rounded-2xl p-6 text-center">
-                    <Sparkles className="w-12 h-12 text-primary/50 mx-auto mb-4" />
-                    <h3 className="font-semibold text-foreground mb-2">Ready to Try On</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Select a product to see how it looks on you
-                    </p>
-                  </div>
-                )}
+  // Regular mode - full interface
+  return (
+    <>
+      <Helmet>
+        <title>Virtual Try-On | AI-Powered Size Recommendations</title>
+        <meta name="description" content="Experience our virtual try-on widget. Get personalized size recommendations based on your body scan." />
+      </Helmet>
+      
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border/50">
+          <div className="container py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-primary" />
               </div>
-
-              {/* Main content - Products */}
-              <div className="lg:col-span-2">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                      <Sparkles className="w-6 h-6 text-primary" />
-                      <span className="text-gradient">Try On Collection</span>
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Select an item to see your personalized fit
-                    </p>
-                  </div>
-                </div>
-
-                {isProductsLoading ? (
-                  <div className="col-span-2 flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
-                ) : productsError ? (
-                  <div className="col-span-2 text-center py-12 text-destructive">
-                    Failed to load products: {productsError}
-                  </div>
-                ) : products.length === 0 ? (
-                  <div className="col-span-2 text-center py-12 text-muted-foreground">
-                    No products found
-                  </div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    {products.map((product, index) => (
-                      <div 
-                        key={product.id}
-                        className="animate-fade-in"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <ProductCard 
-                          product={product} 
-                          onTryOn={handleTryOn}
-                          isSelected={selectedProduct?.id === product.id}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div>
+                <h1 className="font-semibold text-foreground">Virtual Try-On</h1>
+                <p className="text-xs text-muted-foreground">AI-Powered Fitting</p>
               </div>
             </div>
-          )}
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={async () => {
+                  await signOut();
+                  toast.success('Signed out successfully');
+                }}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
+          </div>
+        </header>
+
+        <main className="container py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Left sidebar - Results */}
+            <div className="lg:col-span-1 space-y-6">
+              {isTryOnLoading && <TryOnLoading />}
+
+              {!isTryOnLoading && selectedProduct && tryOnResult && (
+                <TryOnResult 
+                  result={tryOnResult} 
+                  product={selectedProduct}
+                  onClose={() => {
+                    setSelectedProduct(null);
+                    setTryOnResult(null);
+                  }}
+                />
+              )}
+
+              {!isTryOnLoading && !tryOnResult && (
+                <div className="glass-card rounded-2xl p-6 text-center">
+                  <Sparkles className="w-12 h-12 text-primary/50 mx-auto mb-4" />
+                  <h3 className="font-semibold text-foreground mb-2">Ready to Try On</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Select a product to see how it looks on you
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Main content - Products */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                    <span className="text-gradient">Try On Collection</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select an item to see your personalized fit
+                  </p>
+                </div>
+              </div>
+
+              {isProductsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No products found
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {products.map((product, index) => (
+                    <div 
+                      key={product.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <ProductCard 
+                        product={product} 
+                        onTryOn={handleTryOn}
+                        isSelected={selectedProduct?.id === product.id}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </main>
 
-        {/* Footer - hidden in embed mode */}
-        {!embedMode && (
-          <footer className="border-t border-border/50 py-6 mt-12">
-            <div className="container text-center">
-              <p className="text-sm text-muted-foreground">
-                Virtual Try-On Widget
-              </p>
-            </div>
-          </footer>
-        )}
+        <footer className="border-t border-border/50 py-6 mt-12">
+          <div className="container text-center">
+            <p className="text-sm text-muted-foreground">
+              Virtual Try-On Widget
+            </p>
+          </div>
+        </footer>
       </div>
     </>
   );
