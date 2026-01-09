@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const productId = searchParams.get('productId');
   const embedMode = !!productId;
   
@@ -64,6 +65,13 @@ const Index = () => {
   };
 
   const handleExpandAndTryOn = () => {
+    // In embed mode, check auth first
+    if (embedMode && !user) {
+      // Redirect to auth with productId preserved
+      navigate(`/auth?productId=${productId}&embed=true`);
+      return;
+    }
+    
     setIsExpanded(true);
     // Notify parent window
     window.parent.postMessage({ type: 'tryon-expand' }, '*');

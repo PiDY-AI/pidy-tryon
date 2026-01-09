@@ -40,9 +40,15 @@ const Auth = () => {
             });
           }
         } else {
-          // Preserve productId when redirecting
+          // Preserve productId and embed mode when redirecting
           const productId = searchParams.get('productId');
-          navigate(productId ? `/?productId=${productId}` : '/');
+          const embedMode = searchParams.get('embed');
+          let redirectPath = '/';
+          if (productId) {
+            redirectPath = `/?productId=${productId}`;
+            if (embedMode) redirectPath += '&embed=true';
+          }
+          navigate(redirectPath);
         }
       } else {
         const { error } = await signUp(email, password);
