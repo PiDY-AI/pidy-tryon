@@ -40,15 +40,23 @@ const Auth = () => {
             });
           }
         } else {
-          // Preserve productId and embed mode when redirecting
-          const productId = searchParams.get('productId');
-          const embedMode = searchParams.get('embed');
-          let redirectPath = '/';
-          if (productId) {
-            redirectPath = `/?productId=${productId}`;
-            if (embedMode) redirectPath += '&embed=true';
+          // Check if this is a popup window
+          const isPopup = searchParams.get('popup');
+          if (isPopup && window.opener) {
+            // Notify the opener and close popup
+            window.opener.postMessage({ type: 'tryon-auth-success' }, '*');
+            window.close();
+          } else {
+            // Regular redirect
+            const productId = searchParams.get('productId');
+            const embedMode = searchParams.get('embed');
+            let redirectPath = '/';
+            if (productId) {
+              redirectPath = `/?productId=${productId}`;
+              if (embedMode) redirectPath += '&embed=true';
+            }
+            navigate(redirectPath);
           }
-          navigate(redirectPath);
         }
       } else {
         const { error } = await signUp(email, password);
