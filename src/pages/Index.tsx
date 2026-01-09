@@ -21,7 +21,7 @@ const Index = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
-  const { signOut, user } = useAuth();
+  const { signOut, user, loading: authLoading } = useAuth();
   const { products, isLoading: isProductsLoading } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
@@ -78,6 +78,11 @@ const Index = () => {
   };
 
   const handleExpandAndTryOn = () => {
+    // Wait for auth to finish loading before checking
+    if (authLoading) {
+      return;
+    }
+    
     // In embed mode, check auth first
     if (embedMode && !user) {
       // Open auth in a popup window
@@ -113,11 +118,11 @@ const Index = () => {
           // Compact floating button - positioned at top-left of container
           <button
             onClick={handleExpandAndTryOn}
-            disabled={isProductsLoading || !selectedProduct}
+            disabled={isProductsLoading || authLoading || !selectedProduct}
             className="group flex items-center gap-3 bg-gradient-to-r from-zinc-800 to-zinc-900 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700"
           >
             <Sparkles className="w-5 h-5 text-cyan-400" />
-            <span className="font-medium text-sm">Try On</span>
+            <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
           </button>
         ) : (
           // Expanded panel
