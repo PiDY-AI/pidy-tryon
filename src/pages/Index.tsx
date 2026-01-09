@@ -36,6 +36,19 @@ const Index = () => {
     }
   }, [productId, products, selectedProduct]);
 
+  // Listen for auth success from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'tryon-auth-success') {
+        // Reload to get fresh auth state, then auto-expand
+        window.location.reload();
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleTryOn = async (product: Product) => {
     setSelectedProduct(product);
     setTryOnResult(null);
@@ -67,8 +80,16 @@ const Index = () => {
   const handleExpandAndTryOn = () => {
     // In embed mode, check auth first
     if (embedMode && !user) {
-      // Redirect to auth with productId preserved
-      navigate(`/auth?productId=${productId}&embed=true`);
+      // Open auth in a popup window
+      const width = 450;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      window.open(
+        `/auth?productId=${productId}&popup=true`,
+        'tryon-auth',
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
       return;
     }
     
