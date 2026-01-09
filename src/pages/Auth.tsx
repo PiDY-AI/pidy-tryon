@@ -24,7 +24,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error, session } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast({
@@ -43,8 +43,21 @@ const Auth = () => {
           // Check if this is a popup window
           const isPopup = searchParams.get('popup');
           if (isPopup && window.opener) {
-            // Notify the opener and close popup
-            window.opener.postMessage({ type: 'tryon-auth-success' }, '*');
+            const access_token = session?.access_token;
+            const refresh_token = session?.refresh_token;
+
+            if (access_token && refresh_token) {
+              window.opener.postMessage(
+                { type: 'tryon-auth-session', access_token, refresh_token },
+                window.location.origin
+              );
+            } else {
+              window.opener.postMessage(
+                { type: 'tryon-auth-success' },
+                window.location.origin
+              );
+            }
+
             window.close();
           } else {
             // Regular redirect

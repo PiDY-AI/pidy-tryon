@@ -7,6 +7,7 @@ import { TryOnLoading } from '@/components/TryOnLoading';
 import { useTryOn } from '@/hooks/useTryOn';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
+import { supabase } from '@/integrations/supabase/client';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
 import { Sparkles, ShoppingBag, LogOut, Loader2, X } from 'lucide-react';
@@ -19,6 +20,7 @@ const Index = () => {
   const embedMode = !!productId;
   
   const [isExpanded, setIsExpanded] = useState(false);
+  const [pendingAutoTryOn, setPendingAutoTryOn] = useState(false);
   
   const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
@@ -38,13 +40,23 @@ const Index = () => {
 
   // Listen for auth success from popup
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'tryon-auth-success') {
-        // Reload to get fresh auth state, then auto-expand
-        window.location.reload();
+    const handleMessage = async (event: MessageEvent) => {
+      // Only accept messages from our own origin
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === 'tryon-auth-session') {
+        const { access_token, refresh_token } = event.data || {};
+
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+        }
+
+        setIsExpanded(true);
+        window.parent.postMessage({ type: 'tryon-expand' }, '*');
+        setPendingAutoTryOn(true);
       }
     };
-    
+
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
@@ -69,6 +81,17 @@ const Index = () => {
       toast.error('Try-on generation failed. Please try again.');
     }
   };
+
+  // After popup login, auto-run try-on once auth + product are ready
+  useEffect(() => {
+    if (!pendingAutoTryOn) return;
+    if (authLoading) return;
+    if (!user) return;
+    if (!selectedProduct) return;
+
+    setPendingAutoTryOn(false);
+    handleTryOn(selectedProduct);
+  }, [pendingAutoTryOn, authLoading, user, selectedProduct]);
 
   const handleCloseTryOn = () => {
     setIsExpanded(false);
@@ -119,9 +142,9 @@ const Index = () => {
           <button
             onClick={handleExpandAndTryOn}
             disabled={isProductsLoading || authLoading || !selectedProduct}
-            className="group flex items-center gap-3 bg-gradient-to-r from-zinc-800 to-zinc-900 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700"
+            className="group flex items-center gap-3 bg-foreground text-background px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border border-border"
           >
-            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <Sparkles className="w-5 h-5 text-primary" />
             <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
           </button>
         ) : (
