@@ -132,19 +132,19 @@ const Index = () => {
   // Embed mode - show floating button that expands
   if (embedMode) {
     return (
-      <div className={`${!isExpanded ? 'h-[80px] flex items-center justify-start p-3' : ''}`}>
+      <div className={!isExpanded ? 'inline-block' : ''}>
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
         
         {!isExpanded ? (
-          // Compact floating button - positioned at top-left of container
+          // Compact button - no container background
           <button
             onClick={handleExpandAndTryOn}
             disabled={isProductsLoading || authLoading || !selectedProduct}
-            className="group flex items-center gap-3 bg-foreground text-background px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border border-border"
+            className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Sparkles className="w-4 h-4 text-cyan-400" />
             <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
           </button>
         ) : (
