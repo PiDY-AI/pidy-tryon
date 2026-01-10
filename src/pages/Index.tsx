@@ -24,6 +24,7 @@ const Index = () => {
   const [pendingAutoTryOn, setPendingAutoTryOn] = useState(false);
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
+  const [tryOnSequence, setTryOnSequence] = useState(0);
   
   const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
@@ -67,6 +68,8 @@ const Index = () => {
   const handleTryOn = async (product: Product) => {
     setSelectedProduct(product);
     setTryOnResult(null);
+    setDoorOpened(false);
+    setTryOnSequence((v) => v + 1);
     
     const backendResult = await generateTryOn(product.id);
     
@@ -198,6 +201,7 @@ const Index = () => {
             {/* Content with door animation */}
             <div className="flex-1 overflow-hidden">
               <TrialRoomDoor 
+                key={tryOnSequence}
                 isOpening={showDoorAnimation} 
                 isLoading={isTryOnLoading}
                 onDoorOpened={handleDoorOpened}
@@ -286,6 +290,7 @@ const Index = () => {
               {(isTryOnLoading || tryOnResult) && (
                 <div className="h-[500px] rounded-2xl overflow-hidden border border-border">
                   <TrialRoomDoor 
+                    key={tryOnSequence}
                     isOpening={isTryOnLoading || !!tryOnResult} 
                     isLoading={isTryOnLoading}
                     onDoorOpened={() => setDoorOpened(true)}

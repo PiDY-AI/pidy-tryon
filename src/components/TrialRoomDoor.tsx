@@ -9,12 +9,12 @@ interface TrialRoomDoorProps {
 }
 
 const loadingMessages = [
-  { text: "Analyzing your style...", emoji: "✨" },
-  { text: "Scanning measurements...", emoji: "📐" },
-  { text: "Finding your perfect fit...", emoji: "👔" },
-  { text: "AI magic in progress...", emoji: "🪄" },
-  { text: "Crafting your look...", emoji: "🎨" },
-  { text: "Almost there...", emoji: "⏳" },
+  "Generating your best fit...",
+  "Matching size chart to your body...",
+  "Simulating drape and fit...",
+  "Refining details...",
+  "Preparing your try-on image...",
+  "Almost ready...",
 ];
 
 export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: TrialRoomDoorProps) => {
@@ -53,7 +53,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
     if (phase === 'waiting') {
       const interval = setInterval(() => {
         setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
-      }, 3000);
+      }, 3500);
       return () => clearInterval(interval);
     }
   }, [phase]);
@@ -71,7 +71,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
   const showWaitingOverlay = phase === 'doors-closing' || phase === 'waiting';
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-[hsl(220,20%,8%)] to-[hsl(220,20%,12%)]">
+    <div className="relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-muted to-background">
       {/* Room interior with spotlight */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center_top,hsl(var(--primary)/0.2),transparent_70%)]" />
@@ -82,7 +82,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
 
       {/* Walking person silhouette - elegant glowing version */}
       {showPerson && (
-        <div className="absolute inset-0 z-15 flex items-end justify-center pb-8">
+        <div className="absolute inset-0 z-20 flex items-end justify-center pb-8 pointer-events-none">
           <div className="silhouette-walk">
             {/* Glowing silhouette */}
             <svg width="60" height="100" viewBox="0 0 60 100" className="drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]">
@@ -111,12 +111,12 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
 
       {/* Left door */}
       <div 
-        className={`absolute top-0 left-0 w-1/2 h-full origin-left transition-transform duration-600 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
-          doorsOpen ? '-rotate-y-100' : 'rotate-y-0'
+        className={`absolute top-0 left-0 w-1/2 h-full origin-left transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
+          doorsOpen ? '-rotate-y-105' : 'rotate-y-0'
         }`}
-        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms' }}
+        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms', backfaceVisibility: 'hidden' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-[hsl(220,20%,12%)] to-[hsl(220,20%,16%)] border-r border-primary/20 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary to-muted border-r border-primary/20 shadow-2xl">
           <div className="absolute top-8 bottom-8 left-6 right-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
           <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
         </div>
@@ -124,12 +124,12 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
 
       {/* Right door */}
       <div 
-        className={`absolute top-0 right-0 w-1/2 h-full origin-right transition-transform duration-600 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
-          doorsOpen ? 'rotate-y-100' : 'rotate-y-0'
+        className={`absolute top-0 right-0 w-1/2 h-full origin-right transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
+          doorsOpen ? 'rotate-y-105' : 'rotate-y-0'
         }`}
-        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms' }}
+        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms', backfaceVisibility: 'hidden' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-l from-[hsl(220,20%,12%)] to-[hsl(220,20%,16%)] border-l border-primary/20 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-l from-secondary to-muted border-l border-primary/20 shadow-2xl">
           <div className="absolute top-8 bottom-8 right-6 left-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
           <div className="absolute left-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
         </div>
@@ -164,9 +164,8 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
                 style={{ transform: `translateY(-${messageIndex * 28}px)` }}
               >
                 {loadingMessages.map((msg, i) => (
-                  <p key={i} className="h-7 text-base font-medium text-foreground flex items-center justify-center gap-2">
-                    <span>{msg.emoji}</span>
-                    <span>{msg.text}</span>
+                  <p key={i} className="h-7 text-base font-medium text-foreground flex items-center justify-center">
+                    {msg}
                   </p>
                 ))}
               </div>
