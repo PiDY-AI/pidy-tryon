@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
 import { TryOnLoading } from '@/components/TryOnLoading';
+import { TrialRoomDoor } from '@/components/TrialRoomDoor';
 import { useTryOn } from '@/hooks/useTryOn';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
@@ -21,6 +22,8 @@ const Index = () => {
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingAutoTryOn, setPendingAutoTryOn] = useState(false);
+  const [showDoorAnimation, setShowDoorAnimation] = useState(false);
+  const [doorOpened, setDoorOpened] = useState(false);
   
   const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
@@ -96,6 +99,8 @@ const Index = () => {
   const handleCloseTryOn = () => {
     setIsExpanded(false);
     setTryOnResult(null);
+    setShowDoorAnimation(false);
+    setDoorOpened(false);
     // Notify parent window
     window.parent.postMessage({ type: 'tryon-collapse' }, '*');
   };
@@ -122,11 +127,18 @@ const Index = () => {
     }
     
     setIsExpanded(true);
+    setShowDoorAnimation(true);
+    setDoorOpened(false);
+    setTryOnResult(null);
     // Notify parent window
     window.parent.postMessage({ type: 'tryon-expand' }, '*');
     if (selectedProduct) {
       handleTryOn(selectedProduct);
     }
+  };
+
+  const handleDoorOpened = () => {
+    setDoorOpened(true);
   };
 
   // Embed mode - show floating button that expands
@@ -148,10 +160,10 @@ const Index = () => {
             <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
           </button>
         ) : (
-          // Expanded panel - fixed height with internal scroll
-          <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl animate-fade-in overflow-hidden">
+          // Expanded panel with door animation
+          <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
             {/* Header - sticky */}
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/50 bg-background">
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/50 bg-background z-10">
               <div className="flex items-center gap-2 min-w-0">
                 <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="font-medium text-foreground text-sm truncate">
@@ -183,31 +195,47 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Content - scrollable */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Try-On Loading */}
-              {isTryOnLoading && <TryOnLoading />}
+            {/* Content with door animation */}
+            <div className="flex-1 overflow-hidden">
+              <TrialRoomDoor 
+                isOpening={showDoorAnimation} 
+                isLoading={isTryOnLoading}
+                onDoorOpened={handleDoorOpened}
+              >
+                {/* Scrollable content inside the room */}
+                <div className="h-full overflow-y-auto p-4 space-y-4">
+                  {/* Try-On Result with reveal animation */}
+                  {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                    <div className="animate-reveal-up">
+                      <TryOnResult 
+                        result={tryOnResult} 
+                        product={selectedProduct}
+                        onClose={handleCloseTryOn}
+                      />
+                    </div>
+                  )}
 
-              {/* Try-On Result */}
-              {!isTryOnLoading && tryOnResult && selectedProduct && (
-                <TryOnResult 
-                  result={tryOnResult} 
-                  product={selectedProduct}
-                  onClose={handleCloseTryOn}
-                />
-              )}
-
-              {/* Retry button if result shown */}
-              {!isTryOnLoading && tryOnResult && selectedProduct && (
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => handleTryOn(selectedProduct)}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Try Again
-                </Button>
-              )}
+                  {/* Retry button if result shown */}
+                  {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                    <Button 
+                      className="w-full animate-reveal-up" 
+                      variant="outline"
+                      onClick={() => {
+                        setShowDoorAnimation(false);
+                        setDoorOpened(false);
+                        setTimeout(() => {
+                          setShowDoorAnimation(true);
+                          handleTryOn(selectedProduct);
+                        }, 100);
+                      }}
+                      style={{ animationDelay: '0.2s' }}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  )}
+                </div>
+              </TrialRoomDoor>
             </div>
           </div>
         )}
