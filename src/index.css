@@ -248,4 +248,46 @@
       background-position: 100% 50%;
     }
   }
+
+  /* Walking animation */
+  @keyframes walk-bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  .animate-walk {
+    animation: walk-bounce 0.4s ease-in-out infinite;
+  }
+
+  @keyframes leg-left {
+    0%, 100% {
+      transform: rotate(-10deg);
+    }
+    50% {
+      transform: rotate(10deg);
+    }
+  }
+
+  @keyframes leg-right {
+    0%, 100% {
+      transform: rotate(10deg);
+    }
+    50% {
+      transform: rotate(-10deg);
+    }
+  }
+
+  .animate-leg-left {
+    transform-origin: top center;
+    animation: leg-left 0.4s ease-in-out infinite;
+  }
+
+  .animate-leg-right {
+    transform-origin: top center;
+    animation: leg-right 0.4s ease-in-out infinite;
+  }
 }
