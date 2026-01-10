@@ -239,17 +239,59 @@
     animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Progress bar animation */
-  @keyframes progress {
+  /* Silhouette walking animation */
+  .silhouette-walk {
+    animation: walk-in 1.4s ease-out forwards;
+    position: relative;
+  }
+
+  @keyframes walk-in {
     0% {
-      width: 0%;
+      transform: translateX(-150px) scale(0.6);
+      opacity: 0;
     }
-    50% {
-      width: 70%;
+    30% {
+      opacity: 1;
     }
     100% {
-      width: 100%;
+      transform: translateX(0) scale(1);
+      opacity: 0;
     }
+  }
+
+  @keyframes leg-swing-left {
+    0%, 100% {
+      transform: rotate(-8deg);
+    }
+    50% {
+      transform: rotate(8deg);
+    }
+  }
+
+  @keyframes leg-swing-right {
+    0%, 100% {
+      transform: rotate(8deg);
+    }
+    50% {
+      transform: rotate(-8deg);
+    }
+  }
+
+  .animate-leg-swing-left {
+    transform-origin: center top;
+    animation: leg-swing-left 0.5s ease-in-out infinite;
+  }
+
+  .animate-leg-swing-right {
+    transform-origin: center top;
+    animation: leg-swing-right 0.5s ease-in-out infinite;
+  }
+
+  /* Progress animation */
+  @keyframes progress {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
   }
 
   .animate-progress {
