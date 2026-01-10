@@ -281,19 +281,32 @@ const Index = () => {
 
         <main className="container py-8">
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left sidebar - Results */}
-            <div className="lg:col-span-1 space-y-6">
-              {isTryOnLoading && <TryOnLoading />}
-
-              {!isTryOnLoading && selectedProduct && tryOnResult && (
-                <TryOnResult 
-                  result={tryOnResult} 
-                  product={selectedProduct}
-                  onClose={() => {
-                    setSelectedProduct(null);
-                    setTryOnResult(null);
-                  }}
-                />
+            {/* Left sidebar - Results with Door Animation */}
+            <div className="lg:col-span-1">
+              {(isTryOnLoading || tryOnResult) && (
+                <div className="h-[500px] rounded-2xl overflow-hidden border border-border">
+                  <TrialRoomDoor 
+                    isOpening={isTryOnLoading || !!tryOnResult} 
+                    isLoading={isTryOnLoading}
+                    onDoorOpened={() => setDoorOpened(true)}
+                  >
+                    <div className="h-full overflow-y-auto p-4">
+                      {!isTryOnLoading && selectedProduct && tryOnResult && doorOpened && (
+                        <div className="animate-reveal-up">
+                          <TryOnResult 
+                            result={tryOnResult} 
+                            product={selectedProduct}
+                            onClose={() => {
+                              setSelectedProduct(null);
+                              setTryOnResult(null);
+                              setDoorOpened(false);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </TrialRoomDoor>
+                </div>
               )}
 
               {!isTryOnLoading && !tryOnResult && (
