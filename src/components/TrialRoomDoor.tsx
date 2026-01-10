@@ -9,50 +9,56 @@ interface TrialRoomDoorProps {
 }
 
 const loadingMessages = [
-  "Entering fitting room...",
-  "Analyzing your measurements...",
-  "Finding your perfect size...",
-  "Generating virtual preview...",
-  "AI styling in progress...",
-  "Almost ready...",
+  { text: "Analyzing your style...", emoji: "✨" },
+  { text: "Scanning measurements...", emoji: "📐" },
+  { text: "Finding your perfect fit...", emoji: "👔" },
+  { text: "AI magic in progress...", emoji: "🪄" },
+  { text: "Crafting your look...", emoji: "🎨" },
+  { text: "Almost there...", emoji: "⏳" },
 ];
 
 export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: TrialRoomDoorProps) => {
-  const [phase, setPhase] = useState<'idle' | 'closing' | 'waiting' | 'opening' | 'open'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'doors-open' | 'walking' | 'doors-closing' | 'waiting' | 'reveal' | 'open'>('idle');
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
     if (isOpening && phase === 'idle') {
-      // Doors close first (person entering)
-      setPhase('closing');
-      const closeTimer = setTimeout(() => setPhase('waiting'), 800);
-      return () => clearTimeout(closeTimer);
+      // Sequence: doors open -> person walks in -> doors close -> waiting
+      setPhase('doors-open');
+      
+      const timers = [
+        setTimeout(() => setPhase('walking'), 600),
+        setTimeout(() => setPhase('doors-closing'), 2000),
+        setTimeout(() => setPhase('waiting'), 2600),
+      ];
+      
+      return () => timers.forEach(clearTimeout);
     }
   }, [isOpening, phase]);
 
-  // When loading completes, open the door
+  // When loading completes, reveal
   useEffect(() => {
     if (!isLoading && phase === 'waiting') {
-      setPhase('opening');
-      const openTimer = setTimeout(() => {
+      setPhase('reveal');
+      const timer = setTimeout(() => {
         setPhase('open');
         onDoorOpened?.();
       }, 800);
-      return () => clearTimeout(openTimer);
+      return () => clearTimeout(timer);
     }
   }, [isLoading, phase, onDoorOpened]);
 
-  // Cycle through messages while waiting
+  // Cycle messages
   useEffect(() => {
-    if (phase === 'waiting' || phase === 'closing') {
+    if (phase === 'waiting') {
       const interval = setInterval(() => {
         setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
-      }, 3500);
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [phase]);
 
-  // Reset when not opening
+  // Reset
   useEffect(() => {
     if (!isOpening) {
       setPhase('idle');
@@ -60,92 +66,133 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
     }
   }, [isOpening]);
 
-  const isDoorClosed = phase === 'closing' || phase === 'waiting';
-  const isDoorOpen = phase === 'opening' || phase === 'open';
+  const doorsOpen = phase === 'doors-open' || phase === 'walking' || phase === 'reveal' || phase === 'open';
+  const showPerson = phase === 'walking';
+  const showWaitingOverlay = phase === 'doors-closing' || phase === 'waiting';
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-muted to-background">
-      {/* Room interior (visible when door is open) */}
+    <div className="relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-[hsl(220,20%,8%)] to-[hsl(220,20%,12%)]">
+      {/* Room interior with spotlight */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center_top,hsl(var(--primary)/0.2),transparent_70%)]" />
         <div className={`absolute inset-0 transition-opacity duration-500 ${phase === 'open' ? 'opacity-100' : 'opacity-0'}`}>
           {children}
         </div>
       </div>
 
-      {/* Left door panel */}
+      {/* Walking person silhouette - elegant glowing version */}
+      {showPerson && (
+        <div className="absolute inset-0 z-15 flex items-end justify-center pb-8">
+          <div className="silhouette-walk">
+            {/* Glowing silhouette */}
+            <svg width="60" height="100" viewBox="0 0 60 100" className="drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]">
+              {/* Head */}
+              <circle cx="30" cy="12" r="10" fill="hsl(var(--primary))" opacity="0.9" />
+              {/* Body */}
+              <ellipse cx="30" cy="45" rx="14" ry="22" fill="hsl(var(--primary))" opacity="0.7" />
+              {/* Left leg */}
+              <ellipse cx="22" cy="82" rx="6" ry="18" fill="hsl(var(--primary))" opacity="0.6" className="animate-leg-swing-left" />
+              {/* Right leg */}
+              <ellipse cx="38" cy="82" rx="6" ry="18" fill="hsl(var(--primary))" opacity="0.6" className="animate-leg-swing-right" />
+              {/* Glow effect */}
+              <circle cx="30" cy="50" r="35" fill="url(#silhouetteGlow)" />
+              <defs>
+                <radialGradient id="silhouetteGlow">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+            </svg>
+            {/* Shadow on floor */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-black/40 rounded-full blur-md" />
+          </div>
+        </div>
+      )}
+
+      {/* Left door */}
       <div 
-        className={`absolute top-0 left-0 w-1/2 h-full origin-left transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
-          isDoorOpen ? '-rotate-y-105' : 'rotate-y-0'
+        className={`absolute top-0 left-0 w-1/2 h-full origin-left transition-transform duration-600 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
+          doorsOpen ? '-rotate-y-100' : 'rotate-y-0'
         }`}
-        style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-[hsl(220,20%,14%)] to-[hsl(220,20%,18%)] border-r border-border/30 shadow-xl">
-          {/* Elegant panel insets */}
-          <div className="absolute top-6 bottom-6 left-4 right-2 border border-primary/10 rounded-lg bg-gradient-to-b from-primary/5 to-transparent" />
-          {/* Handle */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-gradient-to-b from-primary/80 to-primary/40 rounded-full shadow-lg" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[hsl(220,20%,12%)] to-[hsl(220,20%,16%)] border-r border-primary/20 shadow-2xl">
+          <div className="absolute top-8 bottom-8 left-6 right-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
+          <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
         </div>
       </div>
 
-      {/* Right door panel */}
+      {/* Right door */}
       <div 
-        className={`absolute top-0 right-0 w-1/2 h-full origin-right transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
-          isDoorOpen ? 'rotate-y-105' : 'rotate-y-0'
+        className={`absolute top-0 right-0 w-1/2 h-full origin-right transition-transform duration-600 ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
+          doorsOpen ? 'rotate-y-100' : 'rotate-y-0'
         }`}
-        style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-l from-[hsl(220,20%,14%)] to-[hsl(220,20%,18%)] border-l border-border/30 shadow-xl">
-          {/* Elegant panel insets */}
-          <div className="absolute top-6 bottom-6 right-4 left-2 border border-primary/10 rounded-lg bg-gradient-to-b from-primary/5 to-transparent" />
-          {/* Handle */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-gradient-to-b from-primary/80 to-primary/40 rounded-full shadow-lg" />
+        <div className="absolute inset-0 bg-gradient-to-l from-[hsl(220,20%,12%)] to-[hsl(220,20%,16%)] border-l border-primary/20 shadow-2xl">
+          <div className="absolute top-8 bottom-8 right-6 left-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
         </div>
       </div>
 
-      {/* Overlay content on closed door */}
-      {isDoorClosed && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center">
-          {/* Fitting room sign */}
-          <div className="mb-6 px-4 py-1.5 border border-primary/30 rounded-full bg-primary/10 backdrop-blur-sm">
-            <span className="text-[10px] font-semibold tracking-[0.25em] text-primary uppercase">Fitting Room</span>
-          </div>
-          
-          {/* Animated icon */}
-          <div className="relative w-16 h-16 mb-6">
-            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-30" />
-            <div className="absolute inset-0 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-primary animate-pulse" />
+      {/* Waiting overlay on closed doors */}
+      {showWaitingOverlay && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center animate-fade-in">
+          {/* Trial room badge */}
+          <div className="mb-8 relative">
+            <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
+            <div className="relative px-6 py-2 border border-primary/40 rounded-full bg-background/50 backdrop-blur-sm">
+              <span className="text-xs font-bold tracking-[0.3em] text-primary">FITTING ROOM</span>
             </div>
           </div>
           
-          {/* Loading message with smooth transition */}
-          <div className="h-5 overflow-hidden mb-5 px-4">
-            <div 
-              className="transition-transform duration-500 ease-out"
-              style={{ transform: `translateY(-${messageIndex * 20}px)` }}
-            >
-              {loadingMessages.map((msg, i) => (
-                <p key={i} className="h-5 text-xs text-muted-foreground flex items-center justify-center">
-                  {msg}
-                </p>
-              ))}
+          {/* Animated rings */}
+          <div className="relative w-24 h-24 mb-8">
+            <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-[ping_2s_ease-out_infinite]" />
+            <div className="absolute inset-2 rounded-full border-2 border-primary/40 animate-[ping_2s_ease-out_infinite_0.3s]" />
+            <div className="absolute inset-4 rounded-full border-2 border-primary/50 animate-[ping_2s_ease-out_infinite_0.6s]" />
+            <div className="absolute inset-0 rounded-full bg-primary/10 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
             </div>
           </div>
           
-          {/* Progress bar */}
-          <div className="w-32 h-1 bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-primary/60 rounded-full animate-progress" />
+          {/* Tagline messages */}
+          <div className="text-center space-y-3 px-6">
+            <div className="h-7 overflow-hidden">
+              <div 
+                className="transition-transform duration-700 ease-out"
+                style={{ transform: `translateY(-${messageIndex * 28}px)` }}
+              >
+                {loadingMessages.map((msg, i) => (
+                  <p key={i} className="h-7 text-base font-medium text-foreground flex items-center justify-center gap-2">
+                    <span>{msg.emoji}</span>
+                    <span>{msg.text}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">This may take a moment...</p>
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="mt-8 flex gap-1.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-primary/40 animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
           </div>
         </div>
       )}
 
       {/* Door frame */}
       <div className="absolute inset-0 pointer-events-none z-30">
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-border/40" />
-        <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-border/40" />
-        <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-border/40" />
-        <div className="absolute top-0 right-0 bottom-0 w-1.5 bg-border/40" />
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-border/50 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-border/50 to-transparent" />
+        <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-r from-border/50 to-transparent" />
+        <div className="absolute top-0 right-0 bottom-0 w-2 bg-gradient-to-l from-border/50 to-transparent" />
       </div>
     </div>
   );
