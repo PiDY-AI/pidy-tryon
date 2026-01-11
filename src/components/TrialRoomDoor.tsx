@@ -20,11 +20,13 @@ const loadingMessages = [
 export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: TrialRoomDoorProps) => {
   const [phase, setPhase] = useState<'idle' | 'doors-open' | 'walking' | 'doors-closing' | 'waiting' | 'reveal' | 'open'>('idle');
   const [messageIndex, setMessageIndex] = useState(0);
+  const [apiReady, setApiReady] = useState(false);
 
   useEffect(() => {
     if (isOpening && phase === 'idle') {
       // Sequence: doors open -> person walks in -> doors close -> waiting
       setPhase('doors-open');
+      setApiReady(false);
       
       const timers = [
         setTimeout(() => setPhase('walking'), 600),
@@ -36,9 +38,16 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
     }
   }, [isOpening, phase]);
 
-  // When loading completes, reveal
+  // Track when API is ready
   useEffect(() => {
-    if (!isLoading && phase === 'waiting') {
+    if (!isLoading && isOpening) {
+      setApiReady(true);
+    }
+  }, [isLoading, isOpening]);
+
+  // When loading completes AND we're in waiting phase, reveal
+  useEffect(() => {
+    if (apiReady && phase === 'waiting') {
       setPhase('reveal');
       const timer = setTimeout(() => {
         setPhase('open');
@@ -46,7 +55,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, phase, onDoorOpened]);
+  }, [apiReady, phase, onDoorOpened]);
 
   // Cycle messages
   useEffect(() => {
