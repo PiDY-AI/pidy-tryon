@@ -18,7 +18,7 @@ export interface Product {
 export interface TryOnResult {
   recommendedSize: string;
   fitScore: number;
-  fitNotes: string[];
+  fitNotes?: string[];
   images?: string[];
   prompt?: string;
 }
