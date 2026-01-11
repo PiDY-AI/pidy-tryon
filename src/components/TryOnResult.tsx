@@ -11,7 +11,10 @@ interface TryOnResultProps {
 
 export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const imageUrl = result.images?.[0];
+  const imageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
 
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Perfect Fit', color: 'text-green-400', bg: 'bg-green-400/20' };
@@ -25,16 +28,24 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   return (
     <div className="glass-card rounded-2xl overflow-hidden animate-scale-in">
       <div className="relative">
-        {imageUrl && !imageFailed ? (
+        {imageSrc && !imageFailed ? (
           <div className="aspect-[3/4] bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
             <img 
-              src={imageUrl}
+              src={imageSrc}
               alt={`Virtual try-on of ${product.name}`}
               className="w-full h-full object-contain"
-              loading="lazy"
-              referrerPolicy="no-referrer"
+              loading="eager"
+              crossOrigin="anonymous"
+              onLoad={() => setImageLoaded(true)}
               onError={() => setImageFailed(true)}
             />
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-sm border border-border text-xs text-muted-foreground">
+                  Loading image...
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="aspect-video bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
