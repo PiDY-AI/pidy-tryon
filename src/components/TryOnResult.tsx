@@ -76,25 +76,27 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         </div>
 
         {/* Fit notes */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">Fit Notes</p>
+        {result.fitNotes && result.fitNotes.length > 0 && (
           <div className="space-y-2">
-            {result.fitNotes.map((note, index) => (
-              <div 
-                key={index} 
-                className="flex items-start gap-2 text-sm animate-slide-in-right"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {result.fitScore >= 70 ? (
-                  <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
-                )}
-                <span className="text-muted-foreground">{note}</span>
-              </div>
-            ))}
+            <p className="text-sm font-medium text-foreground">Fit Notes</p>
+            <div className="space-y-2">
+              {result.fitNotes.map((note, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-start gap-2 text-sm animate-slide-in-right"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {result.fitScore >= 70 ? (
+                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                  )}
+                  <span className="text-muted-foreground">{note}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Prompt used */}
         {result.prompt && (
