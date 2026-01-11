@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
 import { CheckCircle, AlertCircle, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
 
   const imageUrl = result.images?.[0];
   const imageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
+
+  useEffect(() => {
+    // Reset between results so a previous failure/loading state doesn't stick
+    setImageFailed(false);
+    setImageLoaded(false);
+  }, [imageSrc]);
 
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Perfect Fit', color: 'text-green-400', bg: 'bg-green-400/20' };
@@ -36,8 +42,15 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
               className="w-full h-full object-contain"
               loading="eager"
               crossOrigin="anonymous"
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageFailed(true)}
+              onLoad={() => {
+                console.log('[TryOnResult] image loaded:', imageSrc);
+                setImageLoaded(true);
+              }}
+              onError={() => {
+                console.error('[TryOnResult] image failed to load:', imageSrc);
+                setImageFailed(true);
+                setImageLoaded(false);
+              }}
             />
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
