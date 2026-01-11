@@ -72,6 +72,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
     if (!isOpening) {
       setPhase('idle');
       setMessageIndex(0);
+      setApiReady(false);
     }
   }, [isOpening]);
 

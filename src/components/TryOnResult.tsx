@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
 import { CheckCircle, AlertCircle, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,9 @@ interface TryOnResultProps {
 }
 
 export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageUrl = result.images?.[0];
+
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Perfect Fit', color: 'text-green-400', bg: 'bg-green-400/20' };
     if (score >= 70) return { label: 'Good Fit', color: 'text-primary', bg: 'bg-primary/20' };
@@ -21,12 +25,15 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   return (
     <div className="glass-card rounded-2xl overflow-hidden animate-scale-in">
       <div className="relative">
-        {result.images && result.images.length > 0 ? (
+        {imageUrl && !imageFailed ? (
           <div className="aspect-[3/4] bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
             <img 
-              src={result.images[0]} 
+              src={imageUrl}
               alt={`Virtual try-on of ${product.name}`}
               className="w-full h-full object-contain"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImageFailed(true)}
             />
           </div>
         ) : (
@@ -34,8 +41,15 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
             <div className="text-center z-10 animate-float">
               <Sparkles className="w-12 h-12 text-primary mx-auto mb-3" />
-              <p className="text-lg font-medium text-foreground">Virtual Try-On Complete</p>
+              <p className="text-lg font-medium text-foreground">
+                {imageFailed ? 'Image failed to load' : 'Virtual Try-On Complete'}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">{product.name}</p>
+              {imageFailed && imageUrl && (
+                <p className="text-[10px] text-muted-foreground mt-2 break-all max-w-[260px] mx-auto">
+                  {imageUrl}
+                </p>
+              )}
             </div>
           </div>
         )}
