@@ -22,19 +22,31 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
   const [messageIndex, setMessageIndex] = useState(0);
   const [apiReady, setApiReady] = useState(false);
 
+  // Start sequence when opening begins
   useEffect(() => {
     if (isOpening && phase === 'idle') {
-      // Sequence: doors open -> person walks in -> doors close -> waiting
-      setPhase('doors-open');
       setApiReady(false);
-      
-      const timers = [
-        setTimeout(() => setPhase('walking'), 600),
-        setTimeout(() => setPhase('doors-closing'), 2000),
-        setTimeout(() => setPhase('waiting'), 2600),
-      ];
-      
-      return () => timers.forEach(clearTimeout);
+      setPhase('doors-open');
+    }
+  }, [isOpening, phase]);
+
+  // Phase progression (split into step-based timers to be resilient in React 18 dev/StrictMode)
+  useEffect(() => {
+    if (!isOpening) return;
+
+    if (phase === 'doors-open') {
+      const t = setTimeout(() => setPhase('walking'), 600);
+      return () => clearTimeout(t);
+    }
+
+    if (phase === 'walking') {
+      const t = setTimeout(() => setPhase('doors-closing'), 1400);
+      return () => clearTimeout(t);
+    }
+
+    if (phase === 'doors-closing') {
+      const t = setTimeout(() => setPhase('waiting'), 600);
+      return () => clearTimeout(t);
     }
   }, [isOpening, phase]);
 
@@ -49,13 +61,20 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
   useEffect(() => {
     if (apiReady && phase === 'waiting') {
       setPhase('reveal');
+    }
+  }, [apiReady, phase]);
+
+  // Once in reveal phase, open doors after a short delay
+  useEffect(() => {
+    if (phase === 'reveal') {
       const timer = setTimeout(() => {
         setPhase('open');
         onDoorOpened?.();
       }, 800);
+
       return () => clearTimeout(timer);
     }
-  }, [apiReady, phase, onDoorOpened]);
+  }, [phase, onDoorOpened]);
 
   // Cycle messages
   useEffect(() => {
