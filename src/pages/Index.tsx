@@ -11,7 +11,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ShoppingBag, LogOut, Loader2, X } from 'lucide-react';
+import { ShoppingBag, LogOut, Loader2, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import pidyLogo from '@/assets/pidy-logo.png';
 
@@ -160,7 +160,7 @@ const Index = () => {
             disabled={isProductsLoading || authLoading || !selectedProduct}
             className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <img src={pidyLogo} alt="PIDY" className="w-4 h-4" />
             <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
           </button>
         ) : (
@@ -169,7 +169,7 @@ const Index = () => {
             {/* Header - sticky */}
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/50 bg-background z-10">
               <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
+                <img src={pidyLogo} alt="PIDY" className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium text-foreground text-sm truncate">
                   {selectedProduct?.name || 'Virtual Try-On'}
                 </span>
@@ -235,7 +235,7 @@ const Index = () => {
                       }}
                       style={{ animationDelay: '0.2s' }}
                     >
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <RotateCcw className="w-4 h-4 mr-2" />
                       Try Again
                     </Button>
                   )}
@@ -331,7 +331,7 @@ const Index = () => {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                    <Sparkles className="w-6 h-6 text-primary" />
+                    <img src={pidyLogo} alt="PIDY" className="w-6 h-6" />
                     <span className="text-gradient">Try On Collection</span>
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">

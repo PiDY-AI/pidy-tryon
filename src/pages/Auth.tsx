@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
+import pidyLogo from '@/assets/pidy-logo.png';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -117,7 +118,7 @@ const Auth = () => {
           {/* Logo/Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-              <Sparkles className="w-8 h-8 text-primary" />
+              <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Virtual Try-On</h1>
             <p className="text-muted-foreground mt-2">
