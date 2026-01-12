@@ -1,7 +1,34 @@
 import { useEffect, useState } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
-import { CheckCircle, AlertCircle, Sparkles, X } from 'lucide-react';
+import { CheckCircle, AlertCircle, Sparkles, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+const PromptSection = ({ prompt }: { prompt: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const truncatedPrompt = prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt;
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="space-y-2">
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <span>Generation Prompt</span>
+          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </CollapsibleTrigger>
+        {!isOpen && (
+          <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic truncate">
+            {truncatedPrompt}
+          </p>
+        )}
+        <CollapsibleContent>
+          <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic">
+            {prompt}
+          </p>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+};
 
 interface TryOnResultProps {
   result: TryOnResultType;
@@ -136,19 +163,10 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           </div>
         )}
 
-        {/* Prompt used */}
+        {/* Prompt used - expandable */}
         {result.prompt && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Generation Prompt</p>
-            <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic">
-              {result.prompt}
-            </p>
-          </div>
+          <PromptSection prompt={result.prompt} />
         )}
-
-        <Button className="w-full" size="lg">
-          Add to Cart - Size {result.recommendedSize}
-        </Button>
       </div>
     </div>
   );
