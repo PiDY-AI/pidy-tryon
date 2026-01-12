@@ -174,9 +174,7 @@ const Index = () => {
           <title>Virtual Try-On</title>
         </Helmet>
         
-        {/* Expanded panel with door animation */}
-          // Expanded panel with door animation
-          <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
             {/* Header - sticky */}
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/50 bg-background z-10">
               <div className="flex items-center gap-2 min-w-0">
