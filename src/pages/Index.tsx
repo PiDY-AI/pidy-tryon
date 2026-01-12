@@ -132,12 +132,21 @@ const Index = () => {
   };
 
   const handleStartTryOn = () => {
-    if (!selectedProduct) return;
+    if (!selectedProduct || !user) return;
     setShowDoorAnimation(true);
     setDoorOpened(false);
     setTryOnResult(null);
     handleTryOn(selectedProduct);
   };
+
+  // Reset door animation state when user signs out
+  useEffect(() => {
+    if (!user && !authLoading) {
+      setShowDoorAnimation(false);
+      setDoorOpened(false);
+      setTryOnResult(null);
+    }
+  }, [user, authLoading]);
 
   const handleOpenAuthPopup = () => {
     const width = 450;
