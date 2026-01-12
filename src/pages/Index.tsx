@@ -23,7 +23,6 @@ const Index = () => {
   const embedMode = !!productId;
   
   const [isExpanded, setIsExpanded] = useState(false);
-  const [pendingAutoTryOn, setPendingAutoTryOn] = useState(false);
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
@@ -34,13 +33,32 @@ const Index = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
 
-  // Auto-select product from URL parameter
+  // Auto-select product from URL parameter (embed-safe)
+  // In real brand embeds, the productId may not exist in our products table.
+  // We still allow the flow by creating a lightweight placeholder product.
   useEffect(() => {
-    if (productId && products.length > 0 && !selectedProduct) {
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        setSelectedProduct(product);
+    if (!productId) return;
+
+    const fromDb = products.find((p) => p.id === productId);
+
+    if (fromDb) {
+      // Prefer real product details when available
+      if (!selectedProduct || selectedProduct.id !== fromDb.id || selectedProduct.name !== fromDb.name) {
+        setSelectedProduct(fromDb);
       }
+      return;
+    }
+
+    // Fallback placeholder so the widget never blanks/locks up
+    if (!selectedProduct) {
+      setSelectedProduct({
+        id: productId,
+        name: 'Selected item',
+        category: 'Item',
+        image: '',
+        price: 0,
+        sizes: ['S', 'M', 'L', 'XL'],
+      });
     }
   }, [productId, products, selectedProduct]);
 
@@ -57,10 +75,9 @@ const Index = () => {
           await supabase.auth.setSession({ access_token, refresh_token });
         }
 
-        setIsExpanded(true);
-        window.parent.postMessage({ type: 'tryon-expand' }, '*');
-        setPendingAutoTryOn(true);
-      }
+         setIsExpanded(true);
+         window.parent.postMessage({ type: 'tryon-expand' }, '*');
+       }
     };
 
     window.addEventListener('message', handleMessage);
@@ -90,16 +107,9 @@ const Index = () => {
     }
   };
 
-  // After popup login, auto-run try-on once auth + product are ready
-  useEffect(() => {
-    if (!pendingAutoTryOn) return;
-    if (authLoading) return;
-    if (!user) return;
-    if (!selectedProduct) return;
+  // After popup login, we intentionally do NOT auto-start the try-on.
+  // The user will tap the door to begin (better UX + predictable animation).
 
-    setPendingAutoTryOn(false);
-    handleTryOn(selectedProduct);
-  }, [pendingAutoTryOn, authLoading, user, selectedProduct]);
 
   const handleCloseTryOn = () => {
     setIsExpanded(false);
@@ -129,8 +139,11 @@ const Index = () => {
     const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const url = `/auth?productId=${encodeURIComponent(productId ?? '')}&popup=true`;
+
     window.open(
-      `/auth?productId=${productId}&popup=true`,
+      url,
       'tryon-auth',
       `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
     );
@@ -152,8 +165,8 @@ const Index = () => {
           // Compact button - no container background
           <button
             onClick={handleExpandAndTryOn}
-            disabled={isProductsLoading || !selectedProduct}
             className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
           >
             <img src={pidyLogo} alt="PIDY" className="w-4 h-4" />
             <span className="font-medium text-sm">Try On</span>
