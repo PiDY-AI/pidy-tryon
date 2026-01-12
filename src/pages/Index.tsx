@@ -152,11 +152,11 @@ const Index = () => {
           // Compact button - no container background
           <button
             onClick={handleExpandAndTryOn}
-            disabled={isProductsLoading || authLoading || !selectedProduct}
+            disabled={isProductsLoading || !selectedProduct}
             className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <img src={pidyLogo} alt="PIDY" className="w-4 h-4" />
-            <span className="font-medium text-sm">{authLoading ? 'Loading...' : 'Try On'}</span>
+            <span className="font-medium text-sm">Try On</span>
           </button>
         ) : (
           // Expanded panel with door animation
