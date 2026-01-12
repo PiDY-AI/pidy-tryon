@@ -13,6 +13,7 @@ import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
 import { Sparkles, ShoppingBag, LogOut, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import pidyLogo from '@/assets/pidy-logo.png';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -316,8 +317,8 @@ const Index = () => {
 
               {!isTryOnLoading && !tryOnResult && (
                 <div className="glass-card rounded-2xl p-6 text-center">
-                  <Sparkles className="w-12 h-12 text-primary/50 mx-auto mb-4" />
-                  <h3 className="font-semibold text-foreground mb-2">Ready to Try On</h3>
+                  <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="font-semibold text-foreground mb-2">Pidy Room</h3>
                   <p className="text-sm text-muted-foreground">
                     Select a product to see how it looks on you
                   </p>
