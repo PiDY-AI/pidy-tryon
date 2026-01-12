@@ -183,29 +183,19 @@ const Index = () => {
                   {selectedProduct?.name || 'Virtual Try-On'}
                 </span>
               </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {user && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={async () => {
-                      await signOut();
-                      toast.success('Signed out');
-                    }}
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                )}
+              {user && (
                 <Button 
                   variant="ghost" 
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  onClick={handleCloseTryOn}
+                  onClick={async () => {
+                    await signOut();
+                    toast.success('Signed out');
+                  }}
                 >
-                  <X className="w-4 h-4" />
+                  <LogOut className="w-4 h-4" />
                 </Button>
-              </div>
+              )}
             </div>
 
             {/* Content - show sign-in, door button, or try-on animation */}
