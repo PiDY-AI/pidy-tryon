@@ -9,7 +9,7 @@ interface TryOnResult {
 }
 
 interface UseTryOnReturn {
-  generateTryOn: (productId: string, accessTokenOverride?: string) => Promise<TryOnResult | null>;
+  generateTryOn: (productId: string, selectedSize: string, accessTokenOverride?: string) => Promise<TryOnResult | null>;
   isLoading: boolean;
   error: string | null;
   result: TryOnResult | null;
@@ -22,6 +22,7 @@ export const useTryOn = (): UseTryOnReturn => {
 
   const generateTryOn = async (
     productId: string,
+    selectedSize: string,
     accessTokenOverride?: string
   ): Promise<TryOnResult | null> => {
     setIsLoading(true);
@@ -44,7 +45,7 @@ export const useTryOn = (): UseTryOnReturn => {
 
       // Invoke edge function with explicit Authorization header
       const { data, error: fnError } = await supabase.functions.invoke('tryon', {
-        body: { productId },
+        body: { productId, size: selectedSize },
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
