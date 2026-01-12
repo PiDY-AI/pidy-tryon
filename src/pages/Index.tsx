@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, LogOut, Loader2, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogoBlack from '@/assets/pidy-logo-black.png';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -110,35 +111,29 @@ const Index = () => {
   };
 
   const handleExpandAndTryOn = () => {
-    // Wait for auth to finish loading before checking
-    if (authLoading) {
-      return;
-    }
-    
-    // In embed mode, check auth first
-    if (embedMode && !user) {
-      // Open auth in a popup window
-      const width = 450;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      window.open(
-        `/auth?productId=${productId}&popup=true`,
-        'tryon-auth',
-        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-      );
-      return;
-    }
-    
+    // Just expand the panel - don't auto-start try-on
     setIsExpanded(true);
+    window.parent.postMessage({ type: 'tryon-expand' }, '*');
+  };
+
+  const handleStartTryOn = () => {
+    if (!selectedProduct) return;
     setShowDoorAnimation(true);
     setDoorOpened(false);
     setTryOnResult(null);
-    // Notify parent window
-    window.parent.postMessage({ type: 'tryon-expand' }, '*');
-    if (selectedProduct) {
-      handleTryOn(selectedProduct);
-    }
+    handleTryOn(selectedProduct);
+  };
+
+  const handleOpenAuthPopup = () => {
+    const width = 450;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    window.open(
+      `/auth?productId=${productId}&popup=true`,
+      'tryon-auth',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
   };
 
   const handleDoorOpened = () => {
@@ -199,48 +194,128 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Content with door animation */}
+            {/* Content - show sign-in, door button, or try-on animation */}
             <div className="flex-1 overflow-hidden">
-              <TrialRoomDoor 
-                key={tryOnSequence}
-                isOpening={showDoorAnimation} 
-                isLoading={isTryOnLoading}
-                onDoorOpened={handleDoorOpened}
-              >
-                {/* Scrollable content inside the room */}
-                <div className="h-full overflow-y-auto p-4 space-y-4">
-                  {/* Try-On Result with reveal animation */}
-                  {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
-                    <div className="animate-reveal-up">
-                      <TryOnResult 
-                        result={tryOnResult} 
-                        product={selectedProduct}
-                        onClose={handleCloseTryOn}
-                      />
+              {authLoading ? (
+                // Loading state
+                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse">
+                      <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
                     </div>
-                  )}
-
-                  {/* Retry button if result shown */}
-                  {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
-                    <Button 
-                      className="w-full animate-reveal-up" 
-                      variant="outline"
-                      onClick={() => {
-                        setShowDoorAnimation(false);
-                        setDoorOpened(false);
-                        setTimeout(() => {
-                          setShowDoorAnimation(true);
-                          handleTryOn(selectedProduct);
-                        }, 100);
-                      }}
-                      style={{ animationDelay: '0.2s' }}
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Try Again
-                    </Button>
-                  )}
+                    <p className="text-muted-foreground text-sm">Loading...</p>
+                  </div>
                 </div>
-              </TrialRoomDoor>
+              ) : !user ? (
+                // Sign-in screen
+                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background p-6">
+                  <div className="text-center max-w-xs">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Welcome to Pidy</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Sign in to try on this item and get your perfect size recommendation
+                    </p>
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={handleOpenAuthPopup}
+                    >
+                      Sign In to Try On
+                    </Button>
+                  </div>
+                </div>
+              ) : !showDoorAnimation ? (
+                // Door with PIDY logo - click to start
+                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background p-6">
+                  <button 
+                    onClick={handleStartTryOn}
+                    className="group relative w-48 h-72 cursor-pointer transition-transform duration-300 hover:scale-105"
+                    disabled={!selectedProduct}
+                  >
+                    {/* Door frame */}
+                    <div className="absolute inset-0 rounded-lg border-4 border-primary/30 bg-gradient-to-b from-secondary to-muted shadow-2xl overflow-hidden">
+                      {/* Door panels */}
+                      <div className="absolute top-4 bottom-4 left-4 right-4 rounded border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent" />
+                      
+                      {/* Door handle */}
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 w-2 h-10 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
+                      
+                      {/* PIDY Room sign */}
+                      <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 border border-primary/40 rounded-full bg-background/50 backdrop-blur-sm">
+                        <span className="text-[10px] font-bold tracking-[0.2em] text-primary">PIDY ROOM</span>
+                      </div>
+                      
+                      {/* Center logo */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 group-hover:bg-primary/30 transition-colors" />
+                          <img 
+                            src={pidyLogoBlack} 
+                            alt="PIDY" 
+                            className="relative w-20 h-auto opacity-80 group-hover:opacity-100 transition-opacity" 
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Tap to enter text */}
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
+                        <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                          Tap to enter
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Glow effect on hover */}
+                    <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                      <div className="absolute inset-0 bg-primary/10 blur-xl rounded-lg" />
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                // Door animation and try-on
+                <TrialRoomDoor 
+                  key={tryOnSequence}
+                  isOpening={showDoorAnimation} 
+                  isLoading={isTryOnLoading}
+                  onDoorOpened={handleDoorOpened}
+                >
+                  {/* Scrollable content inside the room */}
+                  <div className="h-full overflow-y-auto p-4 space-y-4">
+                    {/* Try-On Result with reveal animation */}
+                    {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                      <div className="animate-reveal-up">
+                        <TryOnResult 
+                          result={tryOnResult} 
+                          product={selectedProduct}
+                          onClose={handleCloseTryOn}
+                        />
+                      </div>
+                    )}
+
+                    {/* Retry button if result shown */}
+                    {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                      <Button 
+                        className="w-full animate-reveal-up" 
+                        variant="outline"
+                        onClick={() => {
+                          setShowDoorAnimation(false);
+                          setDoorOpened(false);
+                          setTimeout(() => {
+                            setShowDoorAnimation(true);
+                            handleTryOn(selectedProduct);
+                          }, 100);
+                        }}
+                        style={{ animationDelay: '0.2s' }}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                    )}
+                  </div>
+                </TrialRoomDoor>
+              )}
             </div>
           </div>
         )}
