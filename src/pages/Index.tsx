@@ -32,6 +32,30 @@ const Index = () => {
   const { products, isLoading: isProductsLoading } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
+  const [hasSessionToken, setHasSessionToken] = useState(false);
+
+  const isAuthed = !!user && hasSessionToken;
+
+  // Cross-check session presence (iframe/popup storage can be flaky)
+  useEffect(() => {
+    if (authLoading) return;
+
+    let cancelled = false;
+    const check = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!cancelled) {
+        setHasSessionToken(!!session?.access_token);
+      }
+    };
+
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
@@ -69,8 +93,28 @@ const Index = () => {
       if (event.origin === window.location.origin && event.data?.type === 'tryon-auth-session') {
         const { access_token, refresh_token } = event.data || {};
 
-        if (access_token && refresh_token) {
-          await supabase.auth.setSession({ access_token, refresh_token });
+        if (!access_token || !refresh_token) {
+          toast.error('Auth session missing! Please sign in again.');
+          return;
+        }
+
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (error) {
+          toast.error(error.message || 'Failed to apply session. Please sign in again.');
+          return;
+        }
+
+        // Verify that the session is now available in THIS iframe context
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const ok = !!session?.access_token;
+        setHasSessionToken(ok);
+
+        if (!ok) {
+          toast.error('Auth session missing! Please sign in again.');
+          return;
         }
 
         setIsExpanded(true);
