@@ -139,29 +139,19 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
         </div>
       )}
 
-      {/* Left door */}
+      {/* Single door - swings from left edge */}
       <div 
-        className={`absolute top-0 left-0 w-1/2 h-full origin-left transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
+        className={`absolute top-0 left-0 w-full h-full origin-left transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
           doorsOpen ? '-rotate-y-105' : 'rotate-y-0'
         }`}
         style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms', backfaceVisibility: 'hidden' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-secondary to-muted border-r border-primary/20 shadow-2xl">
-          <div className="absolute top-8 bottom-8 left-6 right-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
-          <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
-        </div>
-      </div>
-
-      {/* Right door */}
-      <div 
-        className={`absolute top-0 right-0 w-1/2 h-full origin-right transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] z-10 ${
-          doorsOpen ? 'rotate-y-105' : 'rotate-y-0'
-        }`}
-        style={{ transformStyle: 'preserve-3d', transitionDuration: '600ms', backfaceVisibility: 'hidden' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-l from-secondary to-muted border-l border-primary/20 shadow-2xl">
-          <div className="absolute top-8 bottom-8 right-6 left-3 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
-          <div className="absolute left-5 top-1/2 -translate-y-1/2 w-2 h-14 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary via-muted to-secondary border-r border-primary/20 shadow-2xl">
+          {/* Decorative panels */}
+          <div className="absolute top-6 bottom-6 left-8 right-8 rounded-lg border border-primary/15 bg-gradient-to-b from-primary/5 to-transparent" />
+          <div className="absolute top-16 bottom-16 left-16 right-16 rounded-lg border border-primary/10 bg-gradient-to-b from-primary/3 to-transparent" />
+          {/* Door handle on right side */}
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 w-2.5 h-16 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.5)]" />
         </div>
       </div>
 
