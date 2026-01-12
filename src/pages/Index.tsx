@@ -62,22 +62,27 @@ const Index = () => {
     }
   }, [productId, products, selectedProduct]);
 
-  // Listen for auth success from popup
+  // Listen for messages from parent (brand website) and auth popup
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      // Only accept messages from our own origin
-      if (event.origin !== window.location.origin) return;
-
-      if (event.data?.type === 'tryon-auth-session') {
+      // Handle auth success from popup (same origin)
+      if (event.origin === window.location.origin && event.data?.type === 'tryon-auth-session') {
         const { access_token, refresh_token } = event.data || {};
 
         if (access_token && refresh_token) {
           await supabase.auth.setSession({ access_token, refresh_token });
         }
 
-         setIsExpanded(true);
-         window.parent.postMessage({ type: 'tryon-expand' }, '*');
-       }
+        setIsExpanded(true);
+        window.parent.postMessage({ type: 'tryon-expand' }, '*');
+        return;
+      }
+
+      // Handle expand command from parent (brand website's "Try On" button)
+      if (event.data?.type === 'tryon-expand' || event.data?.type === 'pidy-expand') {
+        setIsExpanded(true);
+        window.parent.postMessage({ type: 'tryon-expand' }, '*');
+      }
     };
 
     window.addEventListener('message', handleMessage);
@@ -153,25 +158,15 @@ const Index = () => {
     setDoorOpened(true);
   };
 
-  // Embed mode - show floating button that expands
+  // Embed mode - wait for parent to trigger expansion via postMessage
   if (embedMode) {
     return (
-      <div className={!isExpanded ? 'inline-block' : ''}>
+      <div className={!isExpanded ? 'hidden' : ''}>
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
         
-        {!isExpanded ? (
-          // Compact button - no container background
-          <button
-            onClick={handleExpandAndTryOn}
-            className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            type="button"
-          >
-            <img src={pidyLogo} alt="PIDY" className="w-4 h-4" />
-            <span className="font-medium text-sm">Try On</span>
-          </button>
-        ) : (
+        {!isExpanded ? null : (
           // Expanded panel with door animation
           <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
             {/* Header - sticky */}
