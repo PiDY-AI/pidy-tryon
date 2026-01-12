@@ -200,7 +200,7 @@ const Index = () => {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                   onClick={handleCloseTryOn}
                 >
                   <X className="w-4 h-4" />
