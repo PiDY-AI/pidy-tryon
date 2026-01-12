@@ -33,8 +33,10 @@ const Index = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [hasSessionToken, setHasSessionToken] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
-  const isAuthed = !!user && hasSessionToken;
+  // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
+  const isAuthed = !!authToken || hasSessionToken;
 
   // Cross-check session presence (iframe/popup storage can be flaky)
   useEffect(() => {
@@ -48,6 +50,7 @@ const Index = () => {
 
       if (!cancelled) {
         setHasSessionToken(!!session?.access_token);
+        setAuthToken(session?.access_token ?? null);
       }
     };
 
@@ -104,7 +107,10 @@ const Index = () => {
           return;
         }
 
-        // Verify that the session is now available in THIS iframe context
+        // Keep an in-memory token as source of truth for backend calls (works even if storage is blocked)
+        setAuthToken(access_token);
+
+        // Verify that the session is now available in THIS iframe context (best-effort)
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -113,8 +119,10 @@ const Index = () => {
         setHasSessionToken(ok);
 
         if (!ok) {
-          toast.error('Auth session missing! Please sign in again.');
-          return;
+          // Don't hard-fail here: we can still proceed using the in-memory token.
+          toast.message('Signed in (limited)', {
+            description: 'Your browser blocked embedded storage. Try-on will still work for this session.',
+          });
         }
 
         setIsExpanded(true);
@@ -138,9 +146,9 @@ const Index = () => {
     setTryOnResult(null);
     setDoorOpened(false);
     setTryOnSequence((v) => v + 1);
-    
-    const backendResult = await generateTryOn(product.id);
-    
+
+    const backendResult = await generateTryOn(product.id, authToken ?? undefined);
+
     if (backendResult) {
       const result: TryOnResultType = {
         recommendedSize: backendResult.recommendedSize || 'M',
@@ -176,16 +184,31 @@ const Index = () => {
   };
 
   const handleStartTryOn = () => {
-    if (!selectedProduct || !user) return;
+    if (!selectedProduct) return;
+
+    // Treat "no token" as signed out (common in iframe storage-partitioning edge cases)
+    if (!isAuthed) {
+      toast.error('Please sign in again to start try-on.');
+      setHasSessionToken(false);
+      setAuthToken(null);
+      setShowDoorAnimation(false);
+      setDoorOpened(false);
+      setTryOnResult(null);
+      handleOpenAuthPopup();
+      return;
+    }
+
     setShowDoorAnimation(true);
     setDoorOpened(false);
     setTryOnResult(null);
     handleTryOn(selectedProduct);
   };
 
-  // Reset door animation state when user signs out
+  // Reset door animation + auth-token state when user signs out
   useEffect(() => {
     if (!user && !authLoading) {
+      setHasSessionToken(false);
+      setAuthToken(null);
       setShowDoorAnimation(false);
       setDoorOpened(false);
       setTryOnResult(null);
@@ -236,7 +259,7 @@ const Index = () => {
                   {selectedProduct?.name || 'Virtual Try-On'}
                 </span>
               </div>
-              {user && (
+              {isAuthed && (
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -245,6 +268,8 @@ const Index = () => {
                     const { error } = await signOut();
 
                     // Ensure the signed-out UI shows immediately in embed mode
+                    setHasSessionToken(false);
+                    setAuthToken(null);
                     setShowDoorAnimation(false);
                     setDoorOpened(false);
                     setTryOnResult(null);
@@ -274,7 +299,7 @@ const Index = () => {
                     <p className="text-muted-foreground text-sm">Loading...</p>
                   </div>
                 </div>
-              ) : !user ? (
+              ) : !isAuthed ? (
                 // Sign-in screen
                 <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background p-6">
                   <div className="text-center max-w-xs">

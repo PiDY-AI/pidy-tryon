@@ -47,17 +47,20 @@ const Auth = () => {
             const access_token = session?.access_token;
             const refresh_token = session?.refresh_token;
 
-            if (access_token && refresh_token) {
-              window.opener.postMessage(
-                { type: 'tryon-auth-session', access_token, refresh_token },
-                window.location.origin
-              );
-            } else {
-              window.opener.postMessage(
-                { type: 'tryon-auth-success' },
-                window.location.origin
-              );
+            if (!access_token || !refresh_token) {
+              toast({
+                title: 'Session not available',
+                description:
+                  "We couldn't create a session token. If you just signed up, confirm your email first, then try again.",
+                variant: 'destructive',
+              });
+              return;
             }
+
+            window.opener.postMessage(
+              { type: 'tryon-auth-session', access_token, refresh_token },
+              window.location.origin
+            );
 
             window.close();
           } else {

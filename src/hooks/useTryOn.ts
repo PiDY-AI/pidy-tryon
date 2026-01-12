@@ -9,7 +9,7 @@ interface TryOnResult {
 }
 
 interface UseTryOnReturn {
-  generateTryOn: (productId: string) => Promise<TryOnResult | null>;
+  generateTryOn: (productId: string, accessTokenOverride?: string) => Promise<TryOnResult | null>;
   isLoading: boolean;
   error: string | null;
   result: TryOnResult | null;
@@ -20,17 +20,24 @@ export const useTryOn = (): UseTryOnReturn => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryOnResult | null>(null);
 
-  const generateTryOn = async (productId: string): Promise<TryOnResult | null> => {
+  const generateTryOn = async (
+    productId: string,
+    accessTokenOverride?: string
+  ): Promise<TryOnResult | null> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Ensure we have a valid session token (iframes/popup flows can be flaky)
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // Prefer an explicit token (popup -> iframe storage can be unreliable)
+      let accessToken = accessTokenOverride;
 
-      const accessToken = session?.access_token;
+      if (!accessToken) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        accessToken = session?.access_token;
+      }
+
       if (!accessToken) {
         throw new Error('Auth session missing! Please sign in again.');
       }
