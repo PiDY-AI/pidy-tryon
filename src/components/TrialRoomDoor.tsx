@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import pidyLogo from '@/assets/pidy-logo.png';
 
 interface TrialRoomDoorProps {
   isOpening: boolean;
@@ -209,7 +209,7 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
             <div className="absolute inset-2 rounded-full border-2 border-primary/40 animate-[ping_2s_ease-out_infinite_0.3s]" />
             <div className="absolute inset-4 rounded-full border-2 border-primary/50 animate-[ping_2s_ease-out_infinite_0.6s]" />
             <div className="absolute inset-0 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+              <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain animate-pulse" />
             </div>
           </div>
           
