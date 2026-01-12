@@ -50,6 +50,14 @@ export const useAuth = () => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+
+    // In some embedded/iframe contexts, auth change events can be delayed.
+    // Optimistically clear local auth state so the UI updates immediately.
+    if (!error) {
+      setSession(null);
+      setUser(null);
+    }
+
     return { error };
   };
 

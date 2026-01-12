@@ -198,7 +198,18 @@ const Index = () => {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                   onClick={async () => {
-                    await signOut();
+                    const { error } = await signOut();
+
+                    // Ensure the signed-out UI shows immediately in embed mode
+                    setShowDoorAnimation(false);
+                    setDoorOpened(false);
+                    setTryOnResult(null);
+
+                    if (error) {
+                      toast.error(error.message || 'Sign out failed');
+                      return;
+                    }
+
                     toast.success('Signed out');
                   }}
                 >
