@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Sparkles } from 'lucide-react';
+import pidyLogo from '@/assets/pidy-logo.png';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -24,7 +24,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4 animate-pulse">
-            <Sparkles className="w-8 h-8 text-primary" />
+            <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
           </div>
           <p className="text-muted-foreground">Loading...</p>
         </div>

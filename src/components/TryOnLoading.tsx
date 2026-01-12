@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import pidyLogo from '@/assets/pidy-logo.png';
 
 const loadingMessages = [
   "Analyzing your measurements...",
@@ -44,7 +44,7 @@ export const TryOnLoading = () => {
         {/* Center content */}
         <div className="relative z-10 text-center px-6">
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/20 flex items-center justify-center animate-pulse glow-border">
-            <Sparkles className="w-10 h-10 text-primary" />
+            <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" />
           </div>
           <h3 className="text-xl font-semibold text-foreground mb-2">
             Creating Your Look

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
-import { CheckCircle, AlertCircle, Sparkles, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
+import pidyLogo from '@/assets/pidy-logo.png';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -91,7 +92,7 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           <div className="aspect-video bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
             <div className="text-center z-10 animate-float">
-              <Sparkles className="w-12 h-12 text-primary mx-auto mb-3" />
+              <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto mb-3" />
               <p className="text-lg font-medium text-foreground">
                 {imageFailed ? 'Image failed to load' : 'Virtual Try-On Complete'}
               </p>
