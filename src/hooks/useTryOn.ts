@@ -25,9 +25,22 @@ export const useTryOn = (): UseTryOnReturn => {
     setError(null);
 
     try {
-      // Use supabase.functions.invoke which handles auth automatically
+      // Ensure we have a valid session token (iframes/popup flows can be flaky)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('Auth session missing! Please sign in again.');
+      }
+
+      // Invoke edge function with explicit Authorization header
       const { data, error: fnError } = await supabase.functions.invoke('tryon', {
         body: { productId },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (fnError) {

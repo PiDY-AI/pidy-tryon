@@ -27,7 +27,7 @@ const Index = () => {
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
   
-  const { generateTryOn, isLoading: isTryOnLoading } = useTryOn();
+  const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
   const { products, isLoading: isProductsLoading } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -108,7 +108,7 @@ const Index = () => {
       setTryOnResult(result);
       toast.success(`Recommended size: ${result.recommendedSize}`);
     } else {
-      toast.error('Try-on generation failed. Please try again.');
+      toast.error(tryOnError || 'Try-on generation failed. Please try again.');
     }
   };
 
