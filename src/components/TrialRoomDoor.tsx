@@ -99,35 +99,8 @@ export const TrialRoomDoor = ({ isOpening, isLoading, children, onDoorOpened }: 
   const showPerson = phase === 'walking';
   const showWaitingOverlay = phase === 'doors-closing' || phase === 'waiting';
 
-  const doorStatusLabel = (() => {
-    switch (phase) {
-      case 'doors-open':
-        return 'Doors opening';
-      case 'walking':
-        return 'Doors open';
-      case 'doors-closing':
-        return 'Doors closing';
-      case 'waiting':
-        return 'Doors closed';
-      case 'reveal':
-        return 'Doors opening';
-      case 'open':
-        return 'Doors open';
-      default:
-        return 'Idle';
-    }
-  })();
-
-  const responseStatusLabel = isOpening ? (isLoading ? 'Waiting for response…' : 'Response received') : null;
-
   return (
     <div className="relative w-full h-full overflow-hidden rounded-2xl bg-gradient-to-b from-muted to-background">
-      {isOpening && (
-        <div className="absolute top-3 left-3 z-40 rounded-full border border-border bg-background/60 backdrop-blur-sm px-3 py-1.5 text-[11px] leading-none text-muted-foreground">
-          <span className="font-medium text-foreground">{doorStatusLabel}</span>
-          {responseStatusLabel ? <span className="ml-2 opacity-80">{responseStatusLabel}</span> : null}
-        </div>
-      )}
 
       {/* Room interior with spotlight */}
       <div className="absolute inset-0">
