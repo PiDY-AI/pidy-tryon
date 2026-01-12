@@ -20,12 +20,14 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const productId = searchParams.get('productId');
+  const brandSize = searchParams.get('size'); // Size passed from brand site
   const embedMode = !!productId;
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(brandSize);
   
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
@@ -141,24 +143,25 @@ const Index = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleTryOn = async (product: Product) => {
+  const handleTryOn = async (product: Product, size?: string) => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
     setTryOnSequence((v) => v + 1);
 
-    const backendResult = await generateTryOn(product.id, authToken ?? undefined);
+    const sizeToUse = size || selectedSize || product.sizes[0] || 'M';
+    const backendResult = await generateTryOn(product.id, sizeToUse, authToken ?? undefined);
 
     if (backendResult) {
       const result: TryOnResultType = {
-        recommendedSize: backendResult.recommendedSize || 'M',
+        recommendedSize: backendResult.recommendedSize || sizeToUse,
         fitScore: backendResult.fitScore || 85,
         fitNotes: ['Based on your body scan'],
         images: backendResult.images,
         prompt: backendResult.prompt,
       };
       setTryOnResult(result);
-      toast.success(`Recommended size: ${result.recommendedSize}`);
+      toast.success(`Try-on generated for size: ${sizeToUse}`);
     } else {
       toast.error(tryOnError || 'Try-on generation failed. Please try again.');
     }
@@ -320,12 +323,34 @@ const Index = () => {
                   </div>
                 </div>
               ) : !showDoorAnimation ? (
-                // Door with PIDY logo - click to start
-                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background p-6">
+                // Door with size selector and PIDY logo - click to start
+                <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-muted to-background p-6 gap-4">
+                  {/* Size selector */}
+                  {selectedProduct && selectedProduct.sizes.length > 0 && (
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-2">Select size to try on</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {selectedProduct.sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-all ${
+                              selectedSize === size
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-border text-foreground hover:border-primary/50'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <button 
                     onClick={handleStartTryOn}
-                    className="group relative w-48 h-72 cursor-pointer transition-transform duration-300 hover:scale-105"
-                    disabled={!selectedProduct}
+                    className="group relative w-48 h-64 cursor-pointer transition-transform duration-300 hover:scale-105"
+                    disabled={!selectedProduct || !selectedSize}
                   >
                     {/* Door frame */}
                     <div className="absolute inset-0 rounded-lg border-4 border-primary/30 bg-gradient-to-b from-secondary to-muted shadow-2xl overflow-hidden">
@@ -352,10 +377,10 @@ const Index = () => {
                         </div>
                       </div>
                       
-                      {/* Tap to enter text */}
+                      {/* Selected size or tap to enter text */}
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
                         <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                          Tap to enter
+                          {selectedSize ? `Tap to try size ${selectedSize}` : 'Select a size above'}
                         </p>
                       </div>
                     </div>
