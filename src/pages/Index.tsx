@@ -158,15 +158,23 @@ const Index = () => {
     setDoorOpened(true);
   };
 
-  // Embed mode - wait for parent to trigger expansion via postMessage
+  // Auto-expand in embed mode immediately
+  useEffect(() => {
+    if (embedMode && !isExpanded) {
+      setIsExpanded(true);
+      window.parent.postMessage({ type: 'tryon-expand' }, '*');
+    }
+  }, [embedMode, isExpanded]);
+
+  // Embed mode - show panel directly (no button)
   if (embedMode) {
     return (
-      <div className={!isExpanded ? 'hidden' : ''}>
+      <div>
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
         
-        {!isExpanded ? null : (
+        {/* Expanded panel with door animation */}
           // Expanded panel with door animation
           <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
             {/* Header - sticky */}
@@ -324,9 +332,8 @@ const Index = () => {
                   </div>
                 </TrialRoomDoor>
               )}
-            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }
