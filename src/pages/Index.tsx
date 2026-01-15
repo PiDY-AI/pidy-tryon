@@ -253,35 +253,38 @@ const Index = () => {
           <title>Virtual Try-On</title>
         </Helmet>
         
-        <div className="w-[380px] h-[580px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
-            {/* Header - sticky */}
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/50 bg-background z-10">
-              <div className="flex items-center gap-2 min-w-0">
-                <img src={pidyLogo} alt="PIDY" className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium text-foreground text-sm truncate">
-                  {selectedProduct?.name || 'Virtual Try-On'}
-                </span>
+        <div className="w-[380px] h-[580px] flex flex-col glass-luxury rounded-xl overflow-hidden">
+            {/* Header - luxury minimal */}
+            <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <img src={pidyLogo} alt="PIDY" className="w-5 h-5 flex-shrink-0" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-display text-sm text-foreground tracking-wide block truncate">
+                    {selectedProduct?.name || 'Virtual Try-On'}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-luxury text-muted-foreground">
+                    Private Fitting
+                  </span>
+                </div>
               </div>
               {isAuthed && (
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full transition-all duration-300"
                   onClick={async () => {
                     const { error } = await signOut();
-
-                    // Ensure the signed-out UI shows immediately in embed mode
                     setHasSessionToken(false);
                     setAuthToken(null);
                     setShowDoorAnimation(false);
                     setDoorOpened(false);
                     setTryOnResult(null);
-
                     if (error) {
                       toast.error(error.message || 'Sign out failed');
                       return;
                     }
-
                     toast.success('Signed out');
                   }}
                 >
@@ -290,54 +293,59 @@ const Index = () => {
               )}
             </div>
 
-            {/* Content - show sign-in, door button, or try-on animation */}
+            {/* Content */}
             <div className="flex-1 overflow-hidden">
               {authLoading ? (
-                // Loading state
-                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background">
+                // Luxury loading state
+                <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-glow">
                       <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
                     </div>
-                    <p className="text-muted-foreground text-sm">Loading...</p>
+                    <p className="text-xs uppercase tracking-luxury text-muted-foreground">Preparing your suite...</p>
                   </div>
                 </div>
               ) : !isAuthed ? (
-                // Sign-in screen
-                <div className="h-full flex items-center justify-center bg-gradient-to-b from-muted to-background p-6">
+                // Luxury sign-in screen
+                <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-8">
                   <div className="text-center max-w-xs">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" />
+                    {/* Elegant logo presentation */}
+                    <div className="relative w-24 h-24 mx-auto mb-8">
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-glow-subtle" />
+                      <div className="absolute inset-2 rounded-full bg-background border border-primary/30 flex items-center justify-center">
+                        <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" />
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Welcome to Pidy</h3>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Sign in to try on this item and get your perfect size recommendation
+                    <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
+                    <p className="text-xs uppercase tracking-luxury text-muted-foreground mb-8">
+                      Exclusive virtual experience
                     </p>
                     <Button 
-                      className="w-full" 
+                      className="w-full btn-luxury h-12 rounded-none"
                       size="lg"
                       onClick={handleOpenAuthPopup}
                     >
-                      Sign In to Try On
+                      Enter Suite
                     </Button>
+                    <p className="text-[10px] text-muted-foreground/60 mt-4 tracking-wide">
+                      Sign in to access your personal fitting
+                    </p>
                   </div>
                 </div>
               ) : !showDoorAnimation ? (
-                // Door with size selector and PIDY logo - click to start
-                <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-muted to-background p-6 gap-4">
-                  {/* Size selector */}
+                // Luxury fitting room door
+                <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6 gap-6">
+                  {/* Size selector - luxury chips */}
                   {selectedProduct && selectedProduct.sizes.length > 0 && (
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-2">Select size to try on</p>
+                      <p className="text-[10px] uppercase tracking-luxury text-muted-foreground mb-4">Select Your Size</p>
                       <div className="flex flex-wrap justify-center gap-2">
                         {selectedProduct.sizes.map((size) => (
                           <button
                             key={size}
                             onClick={() => setSelectedSize(size)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-all ${
-                              selectedSize === size
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-background border-border text-foreground hover:border-primary/50'
+                            className={`size-chip rounded-none ${
+                              selectedSize === size ? 'size-chip-active' : ''
                             }`}
                           >
                             {size}
@@ -347,49 +355,78 @@ const Index = () => {
                     </div>
                   )}
                   
+                  {/* Luxury fitting room door */}
                   <button 
                     onClick={handleStartTryOn}
-                    className="group relative w-48 h-64 cursor-pointer transition-transform duration-300 hover:scale-105"
+                    className="group relative w-52 h-72 cursor-pointer transition-all duration-500 hover:scale-[1.02]"
                     disabled={!selectedProduct || !selectedSize}
                   >
-                    {/* Door frame */}
-                    <div className="absolute inset-0 rounded-lg border-4 border-primary/30 bg-gradient-to-b from-secondary to-muted shadow-2xl overflow-hidden">
-                      {/* Door panels */}
-                      <div className="absolute top-4 bottom-4 left-4 right-4 rounded border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent" />
+                    {/* Ambient glow */}
+                    <div className="absolute -inset-4 bg-primary/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    
+                    {/* Door frame - art deco inspired */}
+                    <div className="absolute inset-0 border border-primary/40 bg-gradient-to-b from-secondary via-muted to-secondary overflow-hidden">
+                      {/* Gold corner accents */}
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary/60" />
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary/60" />
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary/60" />
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary/60" />
                       
-                      {/* Door handle */}
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2 w-2 h-10 bg-gradient-to-b from-primary to-primary/50 rounded-full shadow-[0_0_10px_hsl(var(--primary)/0.5)]" />
+                      {/* Inner door panel */}
+                      <div className="absolute top-6 bottom-6 left-6 right-6 border border-primary/20 bg-gradient-to-b from-background/5 to-transparent" />
                       
-                      {/* PIDY Room sign */}
-                      <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 border border-primary/40 rounded-full bg-background/50 backdrop-blur-sm">
-                        <span className="text-[10px] font-bold tracking-[0.2em] text-primary">PIDY ROOM</span>
+                      {/* Elegant door handle */}
+                      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                        <div className="w-0.5 h-8 bg-gradient-to-b from-primary via-primary/80 to-primary/40" />
+                        <div className="w-3 h-3 rounded-full border border-primary/60 bg-primary/20" />
                       </div>
                       
-                      {/* Center logo */}
+                      {/* Top emblem */}
+                      <div className="absolute top-8 left-1/2 -translate-x-1/2">
+                        <div className="relative">
+                          <div className="w-12 h-px bg-primary/40" />
+                          <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 border-t border-l border-primary/40" />
+                        </div>
+                        <span className="block text-[8px] font-medium uppercase tracking-[0.3em] text-primary/80 mt-3 text-center">
+                          Pidy
+                        </span>
+                      </div>
+                      
+                      {/* Center monogram */}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div className="relative">
-                          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 group-hover:bg-primary/30 transition-colors" />
-                          <img 
-                            src={pidyLogoBlack} 
-                            alt="PIDY" 
-                            className="relative w-20 h-auto opacity-80 group-hover:opacity-100 transition-opacity" 
-                          />
+                          <div className="absolute -inset-8 bg-primary/5 blur-2xl rounded-full group-hover:bg-primary/10 transition-colors duration-500" />
+                          <div className="relative w-16 h-16 rounded-full border border-primary/30 bg-background/30 backdrop-blur-sm flex items-center justify-center group-hover:border-primary/50 transition-colors duration-300">
+                            <img 
+                              src={pidyLogo} 
+                              alt="PIDY" 
+                              className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300" 
+                            />
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Selected size or tap to enter text */}
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-                        <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                          {selectedSize ? `Tap to try size ${selectedSize}` : 'Select a size above'}
+                      {/* Bottom text */}
+                      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
+                        <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground/80 transition-colors duration-300">
+                          {selectedSize ? 'Tap to Enter' : 'Select Size'}
                         </p>
+                        {selectedSize && (
+                          <p className="text-[11px] text-primary font-medium tracking-wider mt-1">
+                            Size {selectedSize}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                    
-                    {/* Glow effect on hover */}
-                    <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                      <div className="absolute inset-0 bg-primary/10 blur-xl rounded-lg" />
+                      
+                      {/* Subtle shine effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
                   </button>
+                  
+                  {/* Footer tagline */}
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">
+                    Your Private Fitting Awaits
+                  </p>
                 </div>
               ) : (
                 // Door animation and try-on
