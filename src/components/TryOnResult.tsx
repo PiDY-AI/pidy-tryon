@@ -7,22 +7,22 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 
 const PromptSection = ({ prompt }: { prompt: string }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const truncatedPrompt = prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt;
+  const truncatedPrompt = prompt.length > 50 ? prompt.slice(0, 50) + '...' : prompt;
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="space-y-2">
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-foreground hover:text-primary transition-colors">
-          <span>Generation Prompt</span>
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors">
+          <span>Generation Details</span>
+          {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </CollapsibleTrigger>
         {!isOpen && (
-          <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic truncate">
+          <p className="text-[10px] text-muted-foreground/70 bg-secondary/30 px-3 py-2 border border-border/50 italic truncate">
             {truncatedPrompt}
           </p>
         )}
         <CollapsibleContent>
-          <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg italic">
+          <p className="text-[10px] text-muted-foreground/70 bg-secondary/30 px-3 py-2 border border-border/50 italic leading-relaxed">
             {prompt}
           </p>
         </CollapsibleContent>
@@ -51,19 +51,21 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   }, [imageSrc]);
 
   const getFitCategory = (score: number) => {
-    if (score >= 85) return { label: 'Perfect Fit', color: 'text-green-400', bg: 'bg-green-400/20' };
-    if (score >= 70) return { label: 'Good Fit', color: 'text-primary', bg: 'bg-primary/20' };
-    if (score >= 50) return { label: 'Moderate Fit', color: 'text-yellow-400', bg: 'bg-yellow-400/20' };
-    return { label: 'Consider Other Size', color: 'text-orange-400', bg: 'bg-orange-400/20' };
+    if (score >= 85) return { label: 'Impeccable', color: 'text-green-400', bg: 'bg-green-400/10 border border-green-400/30' };
+    if (score >= 70) return { label: 'Excellent', color: 'text-primary', bg: 'bg-primary/10 border border-primary/30' };
+    if (score >= 50) return { label: 'Good Fit', color: 'text-yellow-400', bg: 'bg-yellow-400/10 border border-yellow-400/30' };
+    return { label: 'Consider Sizing', color: 'text-orange-400', bg: 'bg-orange-400/10 border border-orange-400/30' };
   };
 
   const fitCategory = getFitCategory(result.fitScore);
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden animate-scale-in">
+    <div className="glass-luxury rounded-lg overflow-hidden animate-scale-in">
       <div className="relative">
         {imageSrc && !imageFailed ? (
-          <div className="aspect-[3/4] bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
+          <div className="aspect-[3/4] bg-gradient-to-br from-secondary via-muted to-secondary relative overflow-hidden">
+            {/* Subtle vignette */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,hsl(0_0%_0%/0.3)_100%)] z-10 pointer-events-none" />
             <img 
               src={imageSrc}
               alt={`Virtual try-on of ${product.name}`}
@@ -81,92 +83,89 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
               }}
             />
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-sm border border-border text-xs text-muted-foreground">
-                  Loading image...
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div className="px-4 py-2 bg-background/60 backdrop-blur-sm border border-primary/20 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Loading...
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="aspect-video bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
+          <div className="aspect-video bg-gradient-to-br from-secondary via-muted to-secondary flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_70%)]" />
             <div className="text-center z-10 animate-float">
-              <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto mb-3" />
-              <p className="text-lg font-medium text-foreground">
-                {imageFailed ? 'Image failed to load' : 'Virtual Try-On Complete'}
+              <img src={pidyLogo} alt="PIDY" className="w-10 h-10 mx-auto mb-3 opacity-60" />
+              <p className="font-display text-lg text-foreground">
+                {imageFailed ? 'Unable to Load' : 'Complete'}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">{product.name}</p>
-              {imageFailed && imageUrl && (
-                <p className="text-[10px] text-muted-foreground mt-2 break-all max-w-[260px] mx-auto">
-                  {imageUrl}
-                </p>
-              )}
+              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-1">{product.name}</p>
             </div>
           </div>
         )}
         <Button 
           variant="ghost" 
           size="icon" 
-          className="absolute top-3 right-3"
+          className="absolute top-3 right-3 h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm hover:bg-background/80"
           onClick={onClose}
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </Button>
       </div>
       
-      <div className="p-6 space-y-6">
-        {/* Size recommendation */}
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-2">Recommended Size</p>
-          <div className="inline-flex items-center gap-3">
-            <span className="text-5xl font-bold text-gradient">{result.recommendedSize}</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${fitCategory.bg} ${fitCategory.color}`}>
+      <div className="p-5 space-y-5">
+        {/* Size recommendation - luxury presentation */}
+        <div className="text-center py-2">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Recommended Size</p>
+          <div className="flex items-center justify-center gap-4">
+            <span className="font-display text-4xl text-gradient tracking-wide">{result.recommendedSize}</span>
+            <span className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-medium ${fitCategory.bg} ${fitCategory.color}`}>
               {fitCategory.label}
             </span>
           </div>
         </div>
 
-        {/* Fit score */}
+        {/* Fit score - minimal elegant bar */}
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-[10px] uppercase tracking-[0.1em]">
             <span className="text-muted-foreground">Fit Score</span>
-            <span className="font-semibold text-foreground">{result.fitScore}%</span>
+            <span className="font-medium text-foreground">{result.fitScore}%</span>
           </div>
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+          <div className="h-1 bg-secondary/50 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-out"
+              className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out"
               style={{ width: `${result.fitScore}%` }}
             />
           </div>
         </div>
 
-        {/* Fit notes */}
+        {/* Fit notes - refined styling */}
         {result.fitNotes && result.fitNotes.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Fit Notes</p>
+          <div className="space-y-2 pt-2">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Notes</p>
             <div className="space-y-2">
               {result.fitNotes.map((note, index) => (
                 <div 
                   key={index} 
-                  className="flex items-start gap-2 text-sm animate-slide-in-right"
+                  className="flex items-start gap-2 text-xs animate-slide-in-right"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {result.fitScore >= 70 ? (
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400/80 mt-0.5 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                    <AlertCircle className="w-3.5 h-3.5 text-yellow-400/80 mt-0.5 shrink-0" />
                   )}
-                  <span className="text-muted-foreground">{note}</span>
+                  <span className="text-muted-foreground leading-relaxed">{note}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Prompt used - expandable */}
+        {/* Prompt section */}
         {result.prompt && (
-          <PromptSection prompt={result.prompt} />
+          <div className="pt-2 border-t border-border/30">
+            <PromptSection prompt={result.prompt} />
+          </div>
         )}
       </div>
     </div>
