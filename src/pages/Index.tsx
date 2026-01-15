@@ -27,7 +27,6 @@ const Index = () => {
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<string | null>(brandSize);
   
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
@@ -149,7 +148,7 @@ const Index = () => {
     setDoorOpened(false);
     setTryOnSequence((v) => v + 1);
 
-    const sizeToUse = size || selectedSize || product.sizes[0] || 'M';
+    const sizeToUse = size || brandSize || product.sizes[0] || 'M';
     const backendResult = await generateTryOn(product.id, sizeToUse, authToken ?? undefined);
 
     if (backendResult) {
@@ -335,23 +334,13 @@ const Index = () => {
               ) : !showDoorAnimation ? (
                 // Luxury fitting room door
                 <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6 gap-6">
-                  {/* Size selector - luxury chips */}
-                  {selectedProduct && selectedProduct.sizes.length > 0 && (
+                  {/* Selected size display */}
+                  {brandSize && (
                     <div className="text-center">
-                      <p className="text-[10px] uppercase tracking-luxury text-muted-foreground mb-4">Select Your Size</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {selectedProduct.sizes.map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => setSelectedSize(size)}
-                            className={`size-chip rounded-none ${
-                              selectedSize === size ? 'size-chip-active' : ''
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
+                      <p className="text-[10px] uppercase tracking-luxury text-muted-foreground mb-2">Selected Size</p>
+                      <span className="inline-block px-4 py-2 border border-primary/40 bg-primary/10 text-primary font-display text-lg tracking-wide">
+                        {brandSize}
+                      </span>
                     </div>
                   )}
                   
@@ -359,7 +348,7 @@ const Index = () => {
                   <button 
                     onClick={handleStartTryOn}
                     className="group relative w-52 h-72 cursor-pointer transition-all duration-500 hover:scale-[1.02]"
-                    disabled={!selectedProduct || !selectedSize}
+                    disabled={!selectedProduct}
                   >
                     {/* Ambient glow */}
                     <div className="absolute -inset-4 bg-primary/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -409,11 +398,11 @@ const Index = () => {
                       {/* Bottom text */}
                       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
                         <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground/80 transition-colors duration-300">
-                          {selectedSize ? 'Tap to Enter' : 'Select Size'}
+                          Tap to Enter
                         </p>
-                        {selectedSize && (
+                        {brandSize && (
                           <p className="text-[11px] text-primary font-medium tracking-wider mt-1">
-                            Size {selectedSize}
+                            Size {brandSize}
                           </p>
                         )}
                       </div>
