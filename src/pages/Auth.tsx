@@ -185,19 +185,18 @@ const Auth = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isLogin ? (
-                  <>Don't have an account? <span className="text-primary">Sign up</span></>
-                ) : (
-                  <>Already have an account? <span className="text-primary">Sign in</span></>
-                )}
-              </button>
-            </div>
+            {isLogin && (
+              <div className="mt-6 text-center">
+                <a
+                  href="https://pidy-bodyid-app.rork.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Don't have an account? <span className="text-primary">Sign up</span>
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
