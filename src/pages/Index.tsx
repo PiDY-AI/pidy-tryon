@@ -90,13 +90,51 @@ const Index = () => {
     }
   }, [productId, products, selectedProduct]);
 
-  // Listen for messages from parent (brand website) and auth popup
+  // Listen for messages from parent (brand website SDK) and auth popup
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      // Handle auth success from popup (same origin)
-      if (event.origin === window.location.origin && event.data?.type === 'tryon-auth-session') {
-        const { access_token, refresh_token } = event.data || {};
+      const { type, access_token, refresh_token } = event.data || {};
 
+      // Handle auth token from SDK (parent window cached token)
+      if (type === 'pidy-auth-token' && access_token) {
+        console.log('[PIDY Widget] Received token from SDK');
+        
+        const { error } = await supabase.auth.setSession({ 
+          access_token, 
+          refresh_token: refresh_token || '' 
+        });
+        
+        if (error) {
+          console.warn('[PIDY Widget] Could not set session from SDK token:', error.message);
+        }
+
+        // Use in-memory token as source of truth
+        setAuthToken(access_token);
+        setHasSessionToken(true);
+        
+        // Notify SDK that auth was successful
+        window.parent.postMessage({ 
+          type: 'pidy-auth-success',
+          access_token,
+          refresh_token,
+          expires_in: 3600
+        }, '*');
+        return;
+      }
+
+      // Handle sign-out request from SDK
+      if (type === 'pidy-sign-out-request') {
+        await signOut();
+        setAuthToken(null);
+        setHasSessionToken(false);
+        setShowDoorAnimation(false);
+        setDoorOpened(false);
+        setTryOnResult(null);
+        return;
+      }
+
+      // Handle auth success from popup (same origin)
+      if (event.origin === window.location.origin && type === 'tryon-auth-session') {
         if (!access_token || !refresh_token) {
           toast.error('Auth session missing! Please sign in again.');
           return;
@@ -108,39 +146,49 @@ const Index = () => {
           return;
         }
 
-        // Keep an in-memory token as source of truth for backend calls (works even if storage is blocked)
+        // Keep an in-memory token as source of truth for backend calls
         setAuthToken(access_token);
 
-        // Verify that the session is now available in THIS iframe context (best-effort)
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        // Verify session in iframe context
+        const { data: { session } } = await supabase.auth.getSession();
         const ok = !!session?.access_token;
         setHasSessionToken(ok);
 
         if (!ok) {
-          // Don't hard-fail here: we can still proceed using the in-memory token.
           toast.message('Signed in (limited)', {
             description: 'Your browser blocked embedded storage. Try-on will still work for this session.',
           });
         }
+
+        // Notify parent SDK to cache the tokens
+        window.parent.postMessage({ 
+          type: 'pidy-auth-success',
+          access_token,
+          refresh_token,
+          expires_in: 3600
+        }, '*');
 
         setIsExpanded(true);
         window.parent.postMessage({ type: 'tryon-expand' }, '*');
         return;
       }
 
-      // Handle expand command from parent (brand website's "Try On" button)
-      if (event.data?.type === 'tryon-expand' || event.data?.type === 'pidy-expand') {
+      // Handle expand command from parent
+      if (type === 'tryon-expand' || type === 'pidy-expand') {
         setIsExpanded(true);
         window.parent.postMessage({ type: 'tryon-expand' }, '*');
       }
     };
 
     window.addEventListener('message', handleMessage);
+    
+    // Request cached token from SDK on mount (in case SDK has it stored)
+    if (embedMode) {
+      window.parent.postMessage({ type: 'pidy-auth-request' }, '*');
+    }
+    
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [embedMode, signOut]);
 
   const handleTryOn = async (product: Product, size?: string) => {
     setSelectedProduct(product);
@@ -280,6 +328,8 @@ const Index = () => {
                     setShowDoorAnimation(false);
                     setDoorOpened(false);
                     setTryOnResult(null);
+                    // Notify SDK to clear cached tokens
+                    window.parent.postMessage({ type: 'pidy-sign-out' }, '*');
                     if (error) {
                       toast.error(error.message || 'Sign out failed');
                       return;
