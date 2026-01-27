@@ -300,7 +300,7 @@ const Index = () => {
           <title>Virtual Try-On</title>
         </Helmet>
         
-        <div className="w-[380px] h-[580px] flex flex-col glass-luxury rounded-xl overflow-hidden">
+        <div className="w-[380px] h-[580px] flex flex-col bg-[#0d0d0d] border border-[#c9a862]/20 rounded-xl overflow-hidden shadow-2xl">
             {/* Header - luxury minimal */}
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
               <div className="flex items-center gap-3 min-w-0">
