@@ -89,8 +89,8 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
     });
   }, [imageUrl, imageSrc]);
 
+  // Reset between results so a previous failure/loading state doesn't stick
   useEffect(() => {
-    // Reset between results so a previous failure/loading state doesn't stick
     setImageFailed(false);
     setImageLoaded(false);
     setBase64Src(null);
@@ -98,9 +98,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   }, [rawImageSrc]);
 
   // Proactively convert to base64 for cross-origin compatibility
-  // Uses no-cors mode as fallback if standard fetch fails
   useEffect(() => {
-    if (!rawImageSrc || rawImageSrc.startsWith('data:') || base64Src) return;
+    // Skip if no URL, already base64, or conversion in progress
+    if (!rawImageSrc || rawImageSrc.startsWith('data:')) return;
+    
+    // Use a ref pattern via closure to track if this effect is still valid
+    let cancelled = false;
     
     const convertToBase64 = async () => {
       setIsConvertingToBase64(true);
@@ -116,10 +119,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           });
         } catch (corsError) {
           console.warn('[TryOnResult] CORS fetch failed, image will load directly:', corsError);
-          setIsConvertingToBase64(false);
+          if (!cancelled) setIsConvertingToBase64(false);
           // Let the img tag try to load directly
           return;
         }
+        
+        if (cancelled) return;
         
         if (!response.ok) {
           console.warn('[TryOnResult] Fetch returned non-OK status:', response.status);
@@ -128,9 +133,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         }
         
         const blob = await response.blob();
+        if (cancelled) return;
+        
         const reader = new FileReader();
         
         reader.onloadend = () => {
+          if (cancelled) return;
           const base64 = reader.result as string;
           console.log('[TryOnResult] Base64 conversion successful, length:', base64.length);
           setBase64Src(base64);
@@ -145,12 +153,14 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         };
         
         reader.onerror = () => {
+          if (cancelled) return;
           console.error('[TryOnResult] FileReader error during base64 conversion');
           setIsConvertingToBase64(false);
         };
         
         reader.readAsDataURL(blob);
       } catch (err) {
+        if (cancelled) return;
         console.error('[TryOnResult] Base64 conversion failed:', err);
         setIsConvertingToBase64(false);
         
@@ -164,7 +174,11 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
     };
 
     convertToBase64();
-  }, [rawImageSrc, base64Src]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [rawImageSrc]); // Only depend on rawImageSrc, not base64Src
 
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Impeccable', color: 'text-green-400', bg: 'bg-green-400/10 border border-green-400/30' };
