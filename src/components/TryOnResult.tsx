@@ -42,6 +42,9 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const debugMode = useMemo(() => searchParams.get('debug') === 'true', [searchParams]);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [base64Src, setBase64Src] = useState<string | null>(null);
+  const [isConvertingToBase64, setIsConvertingToBase64] = useState(false);
+
   const postToParent = (payload: Record<string, unknown>) => {
     try {
       // Useful when debugging inside a third-party brand site (inspect in the parent window console)
@@ -73,7 +76,10 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   }, [result]);
 
   const imageUrl = result.images?.[0];
-  const imageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
+  const rawImageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
+  
+  // Use base64 version if available, otherwise use original URL
+  const imageSrc = base64Src || rawImageSrc;
 
   useEffect(() => {
     console.log('[TryOnResult] imageUrl:', imageUrl);
@@ -90,7 +96,59 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
     // Reset between results so a previous failure/loading state doesn't stick
     setImageFailed(false);
     setImageLoaded(false);
-  }, [imageSrc]);
+    setBase64Src(null);
+    setIsConvertingToBase64(false);
+  }, [rawImageSrc]);
+
+  // Proactively convert to base64 for cross-origin compatibility
+  useEffect(() => {
+    if (!rawImageSrc || rawImageSrc.startsWith('data:') || base64Src) return;
+    
+    const convertToBase64 = async () => {
+      setIsConvertingToBase64(true);
+      try {
+        console.log('[TryOnResult] Converting image to base64:', rawImageSrc);
+        const response = await fetch(rawImageSrc);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          console.log('[TryOnResult] Base64 conversion successful, length:', base64.length);
+          setBase64Src(base64);
+          setIsConvertingToBase64(false);
+          
+          postToParent({
+            type: 'pidy-image-base64',
+            status: 'success',
+            originalUrl: rawImageSrc,
+            base64Length: base64.length,
+          });
+        };
+        
+        reader.onerror = () => {
+          console.error('[TryOnResult] FileReader error during base64 conversion');
+          setIsConvertingToBase64(false);
+        };
+        
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.error('[TryOnResult] Base64 conversion failed:', err);
+        setIsConvertingToBase64(false);
+        
+        postToParent({
+          type: 'pidy-image-base64',
+          status: 'error',
+          originalUrl: rawImageSrc,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    };
+
+    convertToBase64();
+  }, [rawImageSrc, base64Src]);
 
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Impeccable', color: 'text-green-400', bg: 'bg-green-400/10 border border-green-400/30' };
@@ -178,15 +236,16 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
 
         {/* Debug overlay when ?debug=true */}
         {debugMode && (
-          <div className="absolute top-12 right-3 left-3 bg-black/90 text-white text-[9px] font-mono p-2 rounded max-h-40 overflow-auto z-30">
+          <div className="absolute top-12 right-3 left-3 bg-black/90 text-white text-[9px] font-mono p-2 rounded max-h-48 overflow-auto z-30">
             <div className="flex items-center gap-1 mb-1 text-yellow-400">
               <Bug className="w-3 h-3" />
               <span>DEBUG MODE</span>
             </div>
             <div className="space-y-0.5">
-              <p><strong>Status:</strong> {imageLoaded ? '✅ Loaded' : imageFailed ? '❌ Failed' : '⏳ Loading'}</p>
-              <p><strong>URL:</strong> {imageUrl || 'none'}</p>
-              <p><strong>Processed:</strong> {imageSrc || 'none'}</p>
+              <p><strong>Status:</strong> {imageLoaded ? '✅ Loaded' : imageFailed ? '❌ Failed' : isConvertingToBase64 ? '🔄 Converting...' : '⏳ Loading'}</p>
+              <p><strong>Base64:</strong> {base64Src ? `✅ Ready (${Math.round(base64Src.length / 1024)}KB)` : isConvertingToBase64 ? '🔄 Converting...' : '❌ Not converted'}</p>
+              <p><strong>Original URL:</strong> {imageUrl?.substring(0, 60) || 'none'}...</p>
+              <p><strong>Using:</strong> {base64Src ? 'base64' : 'original URL'}</p>
               <p><strong>Images array:</strong> {JSON.stringify(result.images)}</p>
             </div>
           </div>
