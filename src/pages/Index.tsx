@@ -44,11 +44,12 @@ const Index = () => {
   const isInitializing = authLoading || !sessionCheckComplete;
 
   // Cross-check session presence (iframe/popup storage can be flaky)
-  // IMPORTANT: Don't overwrite authToken if it was set via postMessage from SDK
+  // IMPORTANT: In embed mode, wait for SDK tokens before completing session check
   useEffect(() => {
     if (authLoading) return;
 
     let cancelled = false;
+    
     const check = async () => {
       const {
         data: { session },
@@ -56,12 +57,23 @@ const Index = () => {
 
       if (!cancelled) {
         // Only update token state if we don't already have a token from SDK
-        // (postMessage tokens take priority over supabase session in iframe context)
         if (!authToken) {
           setHasSessionToken(!!session?.access_token);
           setAuthToken(session?.access_token ?? null);
         }
-        setSessionCheckComplete(true);
+        
+        // In embed mode, delay completing session check to give SDK time to send tokens
+        // The SDK might need time to load the auth bridge and retrieve cached tokens
+        if (embedMode && !authToken && !session?.access_token) {
+          // Wait for SDK tokens before declaring "no auth"
+          setTimeout(() => {
+            if (!cancelled) {
+              setSessionCheckComplete(true);
+            }
+          }, 1500); // Give SDK 1.5s to respond with cached tokens
+        } else {
+          setSessionCheckComplete(true);
+        }
       }
     };
 
@@ -69,7 +81,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading]); // Removed 'user' dependency to prevent re-running when SDK token arrives
+  }, [authLoading, embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
