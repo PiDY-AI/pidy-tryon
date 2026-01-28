@@ -57,10 +57,29 @@ const Auth = () => {
               return;
             }
 
+            // Send to widget (same origin)
             window.opener.postMessage(
               { type: 'tryon-auth-session', access_token, refresh_token },
               window.location.origin
             );
+
+            // Also store in central auth bridge for cross-brand sharing
+            // Find the auth bridge iframe in the opener or create reference
+            const bridgeOrigin = window.location.origin;
+            const authBridge = window.opener.document?.getElementById('pidy-auth-bridge') as HTMLIFrameElement | null;
+            if (authBridge && authBridge.contentWindow) {
+              authBridge.contentWindow.postMessage(
+                { 
+                  type: 'pidy-bridge-store-tokens', 
+                  access_token, 
+                  refresh_token,
+                  expires_in: 3600,
+                  user_email: email
+                },
+                bridgeOrigin
+              );
+              console.log('[Auth] Stored tokens in central bridge');
+            }
 
             window.close();
           } else {

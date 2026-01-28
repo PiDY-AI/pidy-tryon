@@ -18,15 +18,21 @@
  * Or use data attributes:
  *    <div id="pidy-tryon" data-product-id="123" data-size="M"></div>
  *    <script>PidyTryOn.autoInit();</script>
+ * 
+ * SHARED AUTH: Users only need to log in once. Auth tokens are stored
+ * on the PIDY domain and shared across all brand websites.
  */
 
 (function(window) {
   'use strict';
 
   const PIDY_ORIGIN = 'https://pidy-tryon.lovable.app';
-  const STORAGE_KEY = 'pidy_auth_token';
-  const REFRESH_KEY = 'pidy_refresh_token';
-  const TOKEN_EXPIRY_KEY = 'pidy_token_expiry';
+  const AUTH_BRIDGE_URL = PIDY_ORIGIN + '/auth-bridge.html';
+  
+  // Fallback local storage keys (used alongside central storage)
+  const LOCAL_STORAGE_KEY = 'pidy_auth_token';
+  const LOCAL_REFRESH_KEY = 'pidy_refresh_token';
+  const LOCAL_EXPIRY_KEY = 'pidy_token_expiry';
 
   // Token refresh buffer (refresh 5 minutes before expiry)
   const REFRESH_BUFFER_MS = 5 * 60 * 1000;
@@ -36,6 +42,10 @@
     _container: null,
     _config: {},
     _refreshTimer: null,
+    _authBridge: null,
+    _authBridgeReady: false,
+    _pendingBridgeCallbacks: [],
+    _cachedTokens: null,
 
     /**
      * Initialize the PIDY Try-On widget
@@ -73,8 +83,8 @@
 
       this._container = container;
       this._setupMessageListener();
+      this._createAuthBridge();
       this._createWidget();
-      this._startTokenRefresh();
     },
 
     /**
@@ -113,6 +123,28 @@
     },
 
     /**
+     * Create hidden auth bridge iframe for centralized token storage
+     */
+    _createAuthBridge: function() {
+      // Only create one bridge per page
+      if (document.getElementById('pidy-auth-bridge')) {
+        this._authBridge = document.getElementById('pidy-auth-bridge');
+        return;
+      }
+
+      const bridge = document.createElement('iframe');
+      bridge.id = 'pidy-auth-bridge';
+      bridge.src = AUTH_BRIDGE_URL;
+      bridge.style.cssText = 'position:absolute;width:0;height:0;border:none;visibility:hidden;';
+      bridge.setAttribute('aria-hidden', 'true');
+      
+      document.body.appendChild(bridge);
+      this._authBridge = bridge;
+
+      console.log('[PIDY SDK] Auth bridge iframe created');
+    },
+
+    /**
      * Create the iframe widget
      */
     _createWidget: function() {
@@ -147,22 +179,47 @@
       this._container.appendChild(iframe);
       this._iframe = iframe;
 
-      // Send cached token once iframe loads
+      // Request tokens from bridge once iframe loads
       iframe.addEventListener('load', () => {
-        this._sendCachedToken();
+        this._requestTokensFromBridge();
       });
     },
 
     /**
-     * Set up message listener for communication with widget
+     * Set up message listener for communication with widget and bridge
      */
     _setupMessageListener: function() {
       window.addEventListener('message', (event) => {
-        // Only accept messages from PIDY origin
-        if (event.origin !== PIDY_ORIGIN) return;
-
         const payload = event.data || {};
-        const { type, access_token, refresh_token, expires_in, source } = payload;
+        const { type, access_token, refresh_token, expires_in, source, tokens } = payload;
+
+        // Messages from auth bridge (PIDY origin)
+        if (event.origin === PIDY_ORIGIN) {
+          switch (type) {
+            case 'pidy-bridge-ready':
+              console.log('[PIDY SDK] Auth bridge ready');
+              this._authBridgeReady = true;
+              // Process any pending callbacks
+              this._pendingBridgeCallbacks.forEach(cb => cb());
+              this._pendingBridgeCallbacks = [];
+              break;
+
+            case 'pidy-bridge-tokens':
+              this._handleBridgeTokens(tokens);
+              break;
+
+            case 'pidy-bridge-stored':
+            case 'pidy-bridge-updated':
+            case 'pidy-bridge-cleared':
+              if (this._config.debug) {
+                console.log('[PIDY SDK] Bridge operation:', type, payload.success);
+              }
+              break;
+          }
+        }
+
+        // Only accept widget messages from PIDY origin
+        if (event.origin !== PIDY_ORIGIN) return;
 
         // Widget -> parent debug events
         if (this._config && this._config.debug && source === 'pidy-widget') {
@@ -172,8 +229,9 @@
 
         switch (type) {
           case 'pidy-auth-success':
-            // User authenticated via popup - cache the tokens
-            this._cacheTokens(access_token, refresh_token, expires_in);
+            // User authenticated via popup - store in central bridge + local
+            this._storeTokensCentral(access_token, refresh_token, expires_in);
+            this._cacheTokensLocal(access_token, refresh_token, expires_in);
             break;
 
           case 'pidy-auth-request':
@@ -182,8 +240,9 @@
             break;
 
           case 'pidy-sign-out':
-            // User signed out - clear cached tokens
-            this._clearTokens();
+            // User signed out - clear all tokens
+            this._clearTokensCentral();
+            this._clearTokensLocal();
             break;
 
           case 'tryon-expand':
@@ -195,94 +254,208 @@
             // Widget collapsed
             this._container.classList.remove('pidy-expanded');
             break;
-
-          default:
-            // No-op for other message types (debug logging handled above)
-            break;
         }
       });
     },
 
     /**
-     * Cache tokens in localStorage
+     * Request tokens from central auth bridge
      */
-    _cacheTokens: function(accessToken, refreshToken, expiresIn) {
-      if (!accessToken) return;
-
-      try {
-        localStorage.setItem(STORAGE_KEY, accessToken);
-        
-        if (refreshToken) {
-          localStorage.setItem(REFRESH_KEY, refreshToken);
+    _requestTokensFromBridge: function() {
+      const doRequest = () => {
+        if (this._authBridge && this._authBridge.contentWindow) {
+          this._authBridge.contentWindow.postMessage({
+            type: 'pidy-bridge-get-tokens'
+          }, PIDY_ORIGIN);
+          console.log('[PIDY SDK] Requested tokens from central bridge');
         }
+      };
 
-        // Calculate and store expiry time
-        const expiryTime = Date.now() + ((expiresIn || 3600) * 1000);
-        localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
-
-        console.log('[PIDY SDK] Tokens cached successfully');
-        this._startTokenRefresh();
-      } catch (e) {
-        console.warn('[PIDY SDK] Could not cache tokens:', e);
+      if (this._authBridgeReady) {
+        doRequest();
+      } else {
+        // Queue until bridge is ready
+        this._pendingBridgeCallbacks.push(doRequest);
+        // Also try local storage as fallback
+        this._sendCachedToken();
       }
     },
 
     /**
-     * Send cached token to iframe
+     * Handle tokens received from bridge
+     */
+    _handleBridgeTokens: function(tokens) {
+      if (!tokens) {
+        console.log('[PIDY SDK] No tokens in central storage, trying local');
+        this._sendCachedToken();
+        return;
+      }
+
+      if (tokens.expired) {
+        console.log('[PIDY SDK] Central token expired, attempting refresh');
+        if (tokens.refreshToken) {
+          this._refreshTokensWithToken(tokens.refreshToken);
+        } else {
+          this._sendCachedToken();
+        }
+        return;
+      }
+
+      if (tokens.accessToken) {
+        console.log('[PIDY SDK] Got tokens from central bridge (expires in', Math.round(tokens.expiresIn / 60), 'minutes)');
+        
+        // Cache locally as backup
+        this._cacheTokensLocal(tokens.accessToken, tokens.refreshToken, tokens.expiresIn);
+        this._cachedTokens = tokens;
+        
+        // Send to widget
+        this._sendTokenToWidget(tokens.accessToken, tokens.refreshToken);
+        
+        // Schedule refresh
+        this._startTokenRefresh(tokens.expiresIn * 1000);
+      }
+    },
+
+    /**
+     * Store tokens in central bridge
+     */
+    _storeTokensCentral: function(accessToken, refreshToken, expiresIn) {
+      if (!accessToken) return;
+
+      const doStore = () => {
+        if (this._authBridge && this._authBridge.contentWindow) {
+          this._authBridge.contentWindow.postMessage({
+            type: 'pidy-bridge-store-tokens',
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expiresIn
+          }, PIDY_ORIGIN);
+          console.log('[PIDY SDK] Stored tokens in central bridge');
+        }
+      };
+
+      if (this._authBridgeReady) {
+        doStore();
+      } else {
+        this._pendingBridgeCallbacks.push(doStore);
+      }
+    },
+
+    /**
+     * Update tokens in central bridge after refresh
+     */
+    _updateTokensCentral: function(accessToken, refreshToken, expiresIn) {
+      if (!accessToken) return;
+
+      if (this._authBridge && this._authBridge.contentWindow && this._authBridgeReady) {
+        this._authBridge.contentWindow.postMessage({
+          type: 'pidy-bridge-update-tokens',
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: expiresIn
+        }, PIDY_ORIGIN);
+      }
+    },
+
+    /**
+     * Clear tokens from central bridge
+     */
+    _clearTokensCentral: function() {
+      if (this._authBridge && this._authBridge.contentWindow && this._authBridgeReady) {
+        this._authBridge.contentWindow.postMessage({
+          type: 'pidy-bridge-clear-tokens'
+        }, PIDY_ORIGIN);
+        console.log('[PIDY SDK] Cleared central tokens');
+      }
+    },
+
+    /**
+     * Cache tokens in local localStorage (fallback)
+     */
+    _cacheTokensLocal: function(accessToken, refreshToken, expiresIn) {
+      if (!accessToken) return;
+
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, accessToken);
+        
+        if (refreshToken) {
+          localStorage.setItem(LOCAL_REFRESH_KEY, refreshToken);
+        }
+
+        // Calculate and store expiry time
+        const expiryTime = Date.now() + ((expiresIn || 3600) * 1000);
+        localStorage.setItem(LOCAL_EXPIRY_KEY, expiryTime.toString());
+
+        console.log('[PIDY SDK] Tokens cached locally');
+      } catch (e) {
+        console.warn('[PIDY SDK] Could not cache tokens locally:', e);
+      }
+    },
+
+    /**
+     * Send token to widget iframe
+     */
+    _sendTokenToWidget: function(accessToken, refreshToken) {
+      if (!this._iframe || !this._iframe.contentWindow) return;
+
+      this._iframe.contentWindow.postMessage({
+        type: 'pidy-auth-token',
+        access_token: accessToken,
+        refresh_token: refreshToken
+      }, PIDY_ORIGIN);
+
+      console.log('[PIDY SDK] Sent token to widget');
+    },
+
+    /**
+     * Send cached token to iframe (from local storage fallback)
      */
     _sendCachedToken: function() {
       if (!this._iframe || !this._iframe.contentWindow) return;
 
       try {
-        const accessToken = localStorage.getItem(STORAGE_KEY);
-        const refreshToken = localStorage.getItem(REFRESH_KEY);
-        const expiry = parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
+        const accessToken = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const refreshToken = localStorage.getItem(LOCAL_REFRESH_KEY);
+        const expiry = parseInt(localStorage.getItem(LOCAL_EXPIRY_KEY) || '0');
 
         if (!accessToken) {
-          console.log('[PIDY SDK] No cached token to send');
+          console.log('[PIDY SDK] No local cached token');
           return;
         }
 
-        // Check if token is expired or about to expire
+        // Check if token is expired
         const now = Date.now();
         const isExpired = now > expiry;
-        const isAboutToExpire = now > (expiry - REFRESH_BUFFER_MS);
 
         if (isExpired) {
-          console.log('[PIDY SDK] Token expired, attempting refresh before sending');
-          this._refreshTokens();
+          console.log('[PIDY SDK] Local token expired, attempting refresh');
+          if (refreshToken) {
+            this._refreshTokensWithToken(refreshToken);
+          }
           return;
         }
 
-        if (isAboutToExpire && refreshToken) {
-          console.log('[PIDY SDK] Token about to expire, refreshing in background');
-          // Still send current token but refresh in background
-          this._refreshTokens();
-        }
-
-        this._iframe.contentWindow.postMessage({
-          type: 'pidy-auth-token',
-          access_token: accessToken,
-          refresh_token: refreshToken
-        }, PIDY_ORIGIN);
-
-        console.log('[PIDY SDK] Sent cached token to widget (expires in', Math.round((expiry - now) / 1000 / 60), 'minutes)');
+        this._sendTokenToWidget(accessToken, refreshToken);
+        console.log('[PIDY SDK] Sent local cached token (expires in', Math.round((expiry - now) / 1000 / 60), 'minutes)');
+        
+        // Schedule refresh
+        this._startTokenRefresh(expiry - now);
       } catch (e) {
         console.warn('[PIDY SDK] Could not send cached token:', e);
       }
     },
 
     /**
-     * Clear cached tokens
+     * Clear local cached tokens
      */
-    _clearTokens: function() {
+    _clearTokensLocal: function() {
       try {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(REFRESH_KEY);
-        localStorage.removeItem(TOKEN_EXPIRY_KEY);
-        console.log('[PIDY SDK] Tokens cleared');
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(LOCAL_REFRESH_KEY);
+        localStorage.removeItem(LOCAL_EXPIRY_KEY);
+        console.log('[PIDY SDK] Local tokens cleared');
       } catch (e) {
-        console.warn('[PIDY SDK] Could not clear tokens:', e);
+        console.warn('[PIDY SDK] Could not clear local tokens:', e);
       }
 
       if (this._refreshTimer) {
@@ -294,47 +467,43 @@
     /**
      * Start automatic token refresh
      */
-    _startTokenRefresh: function() {
+    _startTokenRefresh: function(msUntilExpiry) {
       if (this._refreshTimer) {
         clearTimeout(this._refreshTimer);
       }
 
-      try {
-        const expiry = parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
-        const refreshToken = localStorage.getItem(REFRESH_KEY);
+      if (!msUntilExpiry || msUntilExpiry <= 0) return;
 
-        if (!expiry || !refreshToken) return;
+      const timeUntilRefresh = msUntilExpiry - REFRESH_BUFFER_MS;
 
-        const timeUntilRefresh = expiry - Date.now() - REFRESH_BUFFER_MS;
-
-        if (timeUntilRefresh <= 0) {
-          // Token is expired or about to expire, refresh now
+      if (timeUntilRefresh <= 0) {
+        // Token is about to expire, refresh now
+        this._refreshTokens();
+      } else {
+        // Schedule refresh
+        this._refreshTimer = setTimeout(() => {
           this._refreshTokens();
-        } else {
-          // Schedule refresh
-          this._refreshTimer = setTimeout(() => {
-            this._refreshTokens();
-          }, timeUntilRefresh);
+        }, timeUntilRefresh);
 
-          console.log('[PIDY SDK] Token refresh scheduled in', Math.round(timeUntilRefresh / 1000 / 60), 'minutes');
-        }
-      } catch (e) {
-        console.warn('[PIDY SDK] Could not schedule token refresh:', e);
+        console.log('[PIDY SDK] Token refresh scheduled in', Math.round(timeUntilRefresh / 1000 / 60), 'minutes');
       }
     },
 
     /**
-     * Refresh tokens using refresh token
+     * Refresh tokens using stored refresh token
      */
     _refreshTokens: async function() {
-      try {
-        const refreshToken = localStorage.getItem(REFRESH_KEY);
-        if (!refreshToken) {
-          console.log('[PIDY SDK] No refresh token available');
-          this._clearTokens();
-          return;
-        }
+      const refreshToken = localStorage.getItem(LOCAL_REFRESH_KEY);
+      if (refreshToken) {
+        await this._refreshTokensWithToken(refreshToken);
+      }
+    },
 
+    /**
+     * Refresh tokens using provided refresh token
+     */
+    _refreshTokensWithToken: async function(refreshToken) {
+      try {
         console.log('[PIDY SDK] Attempting token refresh...');
 
         // Call Supabase refresh endpoint
@@ -350,16 +519,16 @@
         });
 
         if (!response.ok) {
-          // Handle specific error codes
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = errorData.error_description || errorData.error || 'Unknown error';
           
           console.warn('[PIDY SDK] Token refresh failed:', response.status, errorMsg);
           
-          // If refresh token is invalid/expired, clear everything and user must re-auth
+          // If refresh token is invalid/expired, clear everything
           if (response.status === 400 || response.status === 401) {
-            console.log('[PIDY SDK] Refresh token invalid/rotated, clearing tokens. User must re-authenticate.');
-            this._clearTokens();
+            console.log('[PIDY SDK] Refresh token invalid, clearing all tokens');
+            this._clearTokensLocal();
+            this._clearTokensCentral();
             
             // Notify widget that auth is invalid
             if (this._iframe && this._iframe.contentWindow) {
@@ -375,13 +544,18 @@
         const data = await response.json();
         
         if (data.access_token) {
-          this._cacheTokens(data.access_token, data.refresh_token, data.expires_in);
-          this._sendCachedToken();
+          // Update both central and local storage
+          this._storeTokensCentral(data.access_token, data.refresh_token, data.expires_in);
+          this._cacheTokensLocal(data.access_token, data.refresh_token, data.expires_in);
+          this._sendTokenToWidget(data.access_token, data.refresh_token);
+          
+          // Schedule next refresh
+          this._startTokenRefresh((data.expires_in || 3600) * 1000);
+          
           console.log('[PIDY SDK] Token refreshed successfully');
         }
       } catch (e) {
         console.warn('[PIDY SDK] Token refresh error:', e);
-        this._clearTokens();
       }
     },
 
@@ -392,15 +566,19 @@
      * @param {number} [expiresIn=3600] - Token expiry in seconds
      */
     setAuthToken: function(accessToken, refreshToken, expiresIn) {
-      this._cacheTokens(accessToken, refreshToken, expiresIn || 3600);
-      this._sendCachedToken();
+      expiresIn = expiresIn || 3600;
+      this._storeTokensCentral(accessToken, refreshToken, expiresIn);
+      this._cacheTokensLocal(accessToken, refreshToken, expiresIn);
+      this._sendTokenToWidget(accessToken, refreshToken);
+      this._startTokenRefresh(expiresIn * 1000);
     },
 
     /**
-     * Sign out and clear cached tokens
+     * Sign out and clear all cached tokens
      */
     signOut: function() {
-      this._clearTokens();
+      this._clearTokensLocal();
+      this._clearTokensCentral();
       
       if (this._iframe && this._iframe.contentWindow) {
         this._iframe.contentWindow.postMessage({
@@ -415,8 +593,8 @@
      */
     isAuthenticated: function() {
       try {
-        const token = localStorage.getItem(STORAGE_KEY);
-        const expiry = parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
+        const token = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const expiry = parseInt(localStorage.getItem(LOCAL_EXPIRY_KEY) || '0');
         return !!token && Date.now() < expiry;
       } catch (e) {
         return false;

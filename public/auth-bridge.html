@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIDY Auth Bridge</title>
+  <style>
+    body { margin: 0; padding: 0; background: transparent; }
+  </style>
+</head>
+<body>
+<script>
+/**
+ * PIDY Auth Bridge
+ * 
+ * This page runs on the PIDY domain and handles centralized token storage.
+ * Brand websites create a hidden iframe to this page to share auth tokens
+ * across different brand domains.
+ */
+(function() {
+  'use strict';
+
+  const STORAGE_KEY = 'pidy_central_auth_token';
+  const REFRESH_KEY = 'pidy_central_refresh_token';
+  const EXPIRY_KEY = 'pidy_central_token_expiry';
+  const USER_KEY = 'pidy_central_user_email';
+
+  /**
+   * Get stored tokens
+   */
+  function getTokens() {
+    try {
+      const accessToken = localStorage.getItem(STORAGE_KEY);
+      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      const expiry = parseInt(localStorage.getItem(EXPIRY_KEY) || '0');
+      const userEmail = localStorage.getItem(USER_KEY);
+
+      if (!accessToken) {
+        return null;
+      }
+
+      // Check if expired
+      if (Date.now() > expiry) {
+        console.log('[Auth Bridge] Token expired');
+        return { expired: true, refreshToken, userEmail };
+      }
+
+      return {
+        accessToken,
+        refreshToken,
+        expiry,
+        userEmail,
+        expiresIn: Math.round((expiry - Date.now()) / 1000)
+      };
+    } catch (e) {
+      console.error('[Auth Bridge] Error reading tokens:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Store tokens
+   */
+  function storeTokens(accessToken, refreshToken, expiresIn, userEmail) {
+    try {
+      localStorage.setItem(STORAGE_KEY, accessToken);
+      if (refreshToken) {
+        localStorage.setItem(REFRESH_KEY, refreshToken);
+      }
+      const expiry = Date.now() + ((expiresIn || 3600) * 1000);
+      localStorage.setItem(EXPIRY_KEY, expiry.toString());
+      if (userEmail) {
+        localStorage.setItem(USER_KEY, userEmail);
+      }
+      console.log('[Auth Bridge] Tokens stored successfully');
+      return true;
+    } catch (e) {
+      console.error('[Auth Bridge] Error storing tokens:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Clear tokens
+   */
+  function clearTokens() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(EXPIRY_KEY);
+      localStorage.removeItem(USER_KEY);
+      console.log('[Auth Bridge] Tokens cleared');
+      return true;
+    } catch (e) {
+      console.error('[Auth Bridge] Error clearing tokens:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Update tokens after refresh
+   */
+  function updateTokens(accessToken, refreshToken, expiresIn) {
+    try {
+      localStorage.setItem(STORAGE_KEY, accessToken);
+      if (refreshToken) {
+        localStorage.setItem(REFRESH_KEY, refreshToken);
+      }
+      const expiry = Date.now() + ((expiresIn || 3600) * 1000);
+      localStorage.setItem(EXPIRY_KEY, expiry.toString());
+      console.log('[Auth Bridge] Tokens updated');
+      return true;
+    } catch (e) {
+      console.error('[Auth Bridge] Error updating tokens:', e);
+      return false;
+    }
+  }
+
+  // Listen for messages from parent/opener
+  window.addEventListener('message', function(event) {
+    const { type, access_token, refresh_token, expires_in, user_email } = event.data || {};
+
+    console.log('[Auth Bridge] Received message:', type);
+
+    switch (type) {
+      case 'pidy-bridge-get-tokens':
+        // SDK requesting tokens
+        const tokens = getTokens();
+        event.source.postMessage({
+          type: 'pidy-bridge-tokens',
+          tokens: tokens
+        }, event.origin);
+        break;
+
+      case 'pidy-bridge-store-tokens':
+        // Auth popup storing tokens
+        const stored = storeTokens(access_token, refresh_token, expires_in, user_email);
+        event.source.postMessage({
+          type: 'pidy-bridge-stored',
+          success: stored
+        }, event.origin);
+        break;
+
+      case 'pidy-bridge-update-tokens':
+        // SDK updating tokens after refresh
+        const updated = updateTokens(access_token, refresh_token, expires_in);
+        event.source.postMessage({
+          type: 'pidy-bridge-updated',
+          success: updated
+        }, event.origin);
+        break;
+
+      case 'pidy-bridge-clear-tokens':
+        // Sign out - clear tokens
+        const cleared = clearTokens();
+        event.source.postMessage({
+          type: 'pidy-bridge-cleared',
+          success: cleared
+        }, event.origin);
+        break;
+
+      case 'pidy-bridge-ping':
+        // Health check
+        event.source.postMessage({
+          type: 'pidy-bridge-pong'
+        }, event.origin);
+        break;
+    }
+  });
+
+  // Signal ready
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'pidy-bridge-ready' }, '*');
+  }
+  if (window.opener) {
+    window.opener.postMessage({ type: 'pidy-bridge-ready' }, '*');
+  }
+
+  console.log('[Auth Bridge] Initialized');
+})();
+</script>
+</body>
+</html>
