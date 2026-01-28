@@ -127,6 +127,20 @@ const Index = () => {
         return;
       }
 
+      // Handle auth invalid from SDK (refresh token rotated/expired)
+      if (type === 'pidy-auth-invalid') {
+        console.log('[PIDY Widget] Auth invalid from SDK:', event.data?.reason);
+        setAuthToken(null);
+        setHasSessionToken(false);
+        setShowDoorAnimation(false);
+        setDoorOpened(false);
+        setTryOnResult(null);
+        toast.message('Session expired', {
+          description: 'Please sign in again to continue.',
+        });
+        return;
+      }
+
       // Handle sign-out request from SDK
       if (type === 'pidy-sign-out-request') {
         await signOut();

@@ -236,24 +236,37 @@
       try {
         const accessToken = localStorage.getItem(STORAGE_KEY);
         const refreshToken = localStorage.getItem(REFRESH_KEY);
+        const expiry = parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
 
-        if (accessToken) {
-          // Check if token is expired
-          const expiry = parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
-          if (Date.now() > expiry) {
-            console.log('[PIDY SDK] Token expired, will attempt refresh');
-            this._refreshTokens();
-            return;
-          }
-
-          this._iframe.contentWindow.postMessage({
-            type: 'pidy-auth-token',
-            access_token: accessToken,
-            refresh_token: refreshToken
-          }, PIDY_ORIGIN);
-
-          console.log('[PIDY SDK] Sent cached token to widget');
+        if (!accessToken) {
+          console.log('[PIDY SDK] No cached token to send');
+          return;
         }
+
+        // Check if token is expired or about to expire
+        const now = Date.now();
+        const isExpired = now > expiry;
+        const isAboutToExpire = now > (expiry - REFRESH_BUFFER_MS);
+
+        if (isExpired) {
+          console.log('[PIDY SDK] Token expired, attempting refresh before sending');
+          this._refreshTokens();
+          return;
+        }
+
+        if (isAboutToExpire && refreshToken) {
+          console.log('[PIDY SDK] Token about to expire, refreshing in background');
+          // Still send current token but refresh in background
+          this._refreshTokens();
+        }
+
+        this._iframe.contentWindow.postMessage({
+          type: 'pidy-auth-token',
+          access_token: accessToken,
+          refresh_token: refreshToken
+        }, PIDY_ORIGIN);
+
+        console.log('[PIDY SDK] Sent cached token to widget (expires in', Math.round((expiry - now) / 1000 / 60), 'minutes)');
       } catch (e) {
         console.warn('[PIDY SDK] Could not send cached token:', e);
       }
@@ -322,6 +335,8 @@
           return;
         }
 
+        console.log('[PIDY SDK] Attempting token refresh...');
+
         // Call Supabase refresh endpoint
         const response = await fetch('https://owipkfsjnmydsjhbfjqu.supabase.co/auth/v1/token?grant_type=refresh_token', {
           method: 'POST',
@@ -335,8 +350,25 @@
         });
 
         if (!response.ok) {
-          console.warn('[PIDY SDK] Token refresh failed, user will need to re-authenticate');
-          this._clearTokens();
+          // Handle specific error codes
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error_description || errorData.error || 'Unknown error';
+          
+          console.warn('[PIDY SDK] Token refresh failed:', response.status, errorMsg);
+          
+          // If refresh token is invalid/expired, clear everything and user must re-auth
+          if (response.status === 400 || response.status === 401) {
+            console.log('[PIDY SDK] Refresh token invalid/rotated, clearing tokens. User must re-authenticate.');
+            this._clearTokens();
+            
+            // Notify widget that auth is invalid
+            if (this._iframe && this._iframe.contentWindow) {
+              this._iframe.contentWindow.postMessage({
+                type: 'pidy-auth-invalid',
+                reason: 'refresh_token_expired'
+              }, PIDY_ORIGIN);
+            }
+          }
           return;
         }
 
