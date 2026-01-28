@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
-import { CheckCircle, AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, X, ChevronDown, ChevronUp, Bug } from 'lucide-react';
 import pidyLogo from '@/assets/pidy-logo.png';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
+import { useSearchParams } from 'react-router-dom';
 const PromptSection = ({ prompt }: { prompt: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const truncatedPrompt = prompt.length > 50 ? prompt.slice(0, 50) + '...' : prompt;
@@ -38,9 +38,10 @@ interface TryOnResultProps {
 }
 
 export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
+  const [searchParams] = useSearchParams();
+  const debugMode = useMemo(() => searchParams.get('debug') === 'true', [searchParams]);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-
   const postToParent = (payload: Record<string, unknown>) => {
     try {
       // Useful when debugging inside a third-party brand site (inspect in the parent window console)
@@ -173,6 +174,22 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         >
           <X className="w-4 h-4" />
         </Button>
+
+        {/* Debug overlay when ?debug=true */}
+        {debugMode && (
+          <div className="absolute top-12 right-3 left-3 bg-black/90 text-white text-[9px] font-mono p-2 rounded max-h-40 overflow-auto z-30">
+            <div className="flex items-center gap-1 mb-1 text-yellow-400">
+              <Bug className="w-3 h-3" />
+              <span>DEBUG MODE</span>
+            </div>
+            <div className="space-y-0.5">
+              <p><strong>Status:</strong> {imageLoaded ? '✅ Loaded' : imageFailed ? '❌ Failed' : '⏳ Loading'}</p>
+              <p><strong>URL:</strong> {imageUrl || 'none'}</p>
+              <p><strong>Processed:</strong> {imageSrc || 'none'}</p>
+              <p><strong>Images array:</strong> {JSON.stringify(result.images)}</p>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-5 space-y-5">
