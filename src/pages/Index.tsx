@@ -40,13 +40,15 @@ const Index = () => {
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
   
-  // Show loading until both auth and session check are complete
-  const isInitializing = authLoading || !sessionCheckComplete;
+  // In embedded iframes, Supabase auth "loading" can remain true due to storage partitioning.
+  // The SDK token is the source of truth in embed mode, so don't block UI on authLoading.
+  const isInitializing = !sessionCheckComplete || (!embedMode && authLoading);
 
   // Cross-check session presence (iframe/popup storage can be flaky)
   // IMPORTANT: In embed mode, wait for SDK tokens before completing session check
   useEffect(() => {
-    if (authLoading) return;
+    // In embed mode, don't wait for authLoading; we may get an SDK token even if Supabase can't hydrate session.
+    if (!embedMode && authLoading) return;
 
     let cancelled = false;
     
@@ -292,15 +294,16 @@ const Index = () => {
   };
 
   // Reset door animation + auth-token state when user signs out
+  // In embed mode, user can be null even when we have a valid SDK token — don't treat that as signed-out.
   useEffect(() => {
-    if (!user && !authLoading) {
+    if (!embedMode && !user && !authLoading) {
       setHasSessionToken(false);
       setAuthToken(null);
       setShowDoorAnimation(false);
       setDoorOpened(false);
       setTryOnResult(null);
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, embedMode]);
 
   const handleOpenAuthPopup = () => {
     const width = 450;
