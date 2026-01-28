@@ -44,6 +44,7 @@ const Index = () => {
   const isInitializing = authLoading || !sessionCheckComplete;
 
   // Cross-check session presence (iframe/popup storage can be flaky)
+  // IMPORTANT: Don't overwrite authToken if it was set via postMessage from SDK
   useEffect(() => {
     if (authLoading) return;
 
@@ -54,8 +55,12 @@ const Index = () => {
       } = await supabase.auth.getSession();
 
       if (!cancelled) {
-        setHasSessionToken(!!session?.access_token);
-        setAuthToken(session?.access_token ?? null);
+        // Only update token state if we don't already have a token from SDK
+        // (postMessage tokens take priority over supabase session in iframe context)
+        if (!authToken) {
+          setHasSessionToken(!!session?.access_token);
+          setAuthToken(session?.access_token ?? null);
+        }
         setSessionCheckComplete(true);
       }
     };
@@ -64,7 +69,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, authLoading]);
+  }, [authLoading]); // Removed 'user' dependency to prevent re-running when SDK token arrives
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
@@ -116,6 +121,7 @@ const Index = () => {
         // Use in-memory token as source of truth
         setAuthToken(access_token);
         setHasSessionToken(true);
+        setSessionCheckComplete(true); // Mark session check as done since we got token from SDK
         
         // Notify SDK that auth was successful
         window.parent.postMessage({ 
