@@ -35,9 +35,13 @@ const Index = () => {
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [hasSessionToken, setHasSessionToken] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
 
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
+  
+  // Show loading until both auth and session check are complete
+  const isInitializing = authLoading || !sessionCheckComplete;
 
   // Cross-check session presence (iframe/popup storage can be flaky)
   useEffect(() => {
@@ -52,6 +56,7 @@ const Index = () => {
       if (!cancelled) {
         setHasSessionToken(!!session?.access_token);
         setAuthToken(session?.access_token ?? null);
+        setSessionCheckComplete(true);
       }
     };
 
@@ -344,8 +349,8 @@ const Index = () => {
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-              {authLoading ? (
-                // Luxury loading state
+              {isInitializing ? (
+                // Luxury loading state - wait until both auth and session check complete
                 <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">
                   <div className="text-center">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-glow">
