@@ -105,13 +105,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
     <div className="glass-luxury rounded-lg overflow-hidden animate-scale-in">
       <div className="relative">
         {imageSrc && !imageFailed ? (
-          <div className="aspect-[3/4] bg-gradient-to-br from-secondary via-muted to-secondary relative overflow-hidden">
-            {/* Subtle vignette */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,hsl(0_0%_0%/0.3)_100%)] z-10 pointer-events-none" />
+          <div className="aspect-[3/4] min-h-[300px] bg-gradient-to-br from-secondary via-muted to-secondary relative overflow-hidden">
+            {/* Image - positioned above gradient, below vignette */}
             <img 
               src={imageSrc}
               alt={`Virtual try-on of ${product.name}`}
-              className="w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-contain z-[1]"
               loading="eager"
               decoding="async"
               onLoad={() => {
@@ -138,8 +137,10 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
                 });
               }}
             />
+            {/* Subtle vignette - above image */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,hsl(0_0%_0%/0.3)_100%)] z-[2] pointer-events-none" />
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center z-20">
+              <div className="absolute inset-0 flex items-center justify-center z-[3]">
                 <div className="px-4 py-2 bg-background/60 backdrop-blur-sm border border-primary/20 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   Loading...
                 </div>
