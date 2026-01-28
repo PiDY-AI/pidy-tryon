@@ -478,7 +478,7 @@ const Index = () => {
                   {/* Scrollable content inside the room */}
                   <div className="h-full overflow-y-auto p-4 space-y-4">
                     {/* Try-On Result with reveal animation */}
-                    {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                    {!isTryOnLoading && tryOnResult && selectedProduct && (
                       <div className="animate-reveal-up">
                         <TryOnResult 
                           result={tryOnResult} 
@@ -489,7 +489,7 @@ const Index = () => {
                     )}
 
                     {/* Retry button if result shown */}
-                    {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && (
+                    {!isTryOnLoading && tryOnResult && selectedProduct && (
                       <Button 
                         className="w-full animate-reveal-up" 
                         variant="outline"
@@ -506,6 +506,34 @@ const Index = () => {
                         <RotateCcw className="w-4 h-4 mr-2" />
                         Try Again
                       </Button>
+                    )}
+
+                    {/* If the animation completed but we got no result, don't show a blank room */}
+                    {!isTryOnLoading && !tryOnResult && selectedProduct && (
+                      <div className="animate-reveal-up rounded-lg border border-border/40 bg-background/40 backdrop-blur-sm p-4 text-center space-y-3">
+                        <p className="text-[10px] uppercase tracking-luxury text-muted-foreground">
+                          Try-on completed
+                        </p>
+                        <p className="text-sm text-foreground">We didn’t receive an image to display.</p>
+                        {tryOnError && (
+                          <p className="text-xs text-muted-foreground break-words">{tryOnError}</p>
+                        )}
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            setShowDoorAnimation(false);
+                            setDoorOpened(false);
+                            setTimeout(() => {
+                              setShowDoorAnimation(true);
+                              handleTryOn(selectedProduct);
+                            }, 100);
+                          }}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Retry
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </TrialRoomDoor>
@@ -565,7 +593,7 @@ const Index = () => {
                     onDoorOpened={() => setDoorOpened(true)}
                   >
                     <div className="h-full overflow-y-auto p-4">
-                      {!isTryOnLoading && selectedProduct && tryOnResult && doorOpened && (
+                      {!isTryOnLoading && selectedProduct && tryOnResult && (
                         <div className="animate-reveal-up">
                           <TryOnResult 
                             result={tryOnResult} 
@@ -576,6 +604,16 @@ const Index = () => {
                               setDoorOpened(false);
                             }}
                           />
+                        </div>
+                      )}
+
+                      {!isTryOnLoading && selectedProduct && !tryOnResult && (
+                        <div className="rounded-lg border border-border/40 bg-background/40 backdrop-blur-sm p-4 text-center space-y-2">
+                          <p className="text-[10px] uppercase tracking-luxury text-muted-foreground">Try-on completed</p>
+                          <p className="text-sm text-foreground">No image was returned.</p>
+                          {tryOnError && (
+                            <p className="text-xs text-muted-foreground break-words">{tryOnError}</p>
+                          )}
                         </div>
                       )}
                     </div>
