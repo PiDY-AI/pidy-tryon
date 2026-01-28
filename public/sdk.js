@@ -373,14 +373,20 @@
   // Expose to global scope
   window.PidyTryOn = PidyTryOn;
 
-  // Auto-init on DOMContentLoaded if elements exist
+  // Auto-init helper
+  function runAutoInit() {
+    const autoElements = document.querySelectorAll('[data-pidy-auto], [data-pidy-tryon]');
+    if (autoElements.length > 0) {
+      PidyTryOn.autoInit();
+    }
+  }
+
+  // Auto-init on DOMContentLoaded or immediately if DOM is already ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      const autoElements = document.querySelectorAll('[data-pidy-auto]');
-      if (autoElements.length > 0) {
-        PidyTryOn.autoInit();
-      }
-    });
+    document.addEventListener('DOMContentLoaded', runAutoInit);
+  } else {
+    // DOM already loaded - run immediately
+    runAutoInit();
   }
 
 })(window);
