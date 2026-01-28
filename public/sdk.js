@@ -112,12 +112,15 @@
      * Create the iframe widget
      */
     _createWidget: function() {
-      const { productId, size, width, height } = this._config;
+      const { productId, size, width, height, debug } = this._config;
 
       // Build URL with parameters
       let url = PIDY_ORIGIN + '/?productId=' + encodeURIComponent(productId);
       if (size) {
         url += '&size=' + encodeURIComponent(size);
+      }
+      if (debug) {
+        url += '&debug=true';
       }
 
       // Create iframe
@@ -393,6 +396,7 @@
       initializedElements.add(el);
 
       const size = el.dataset.size;
+      const debug = el.dataset.debug === 'true';
       const width = parseInt(el.dataset.width) || 400;
       const height = parseInt(el.dataset.height) || 620;
 
@@ -407,6 +411,7 @@
         container: '#' + el.id,
         productId: productId,
         size: size,
+        debug: debug,
         width: width,
         height: height
       });
