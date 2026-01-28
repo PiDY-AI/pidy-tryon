@@ -41,8 +41,20 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // DEBUG: confirm backend payload + derived URL
+  useEffect(() => {
+    console.log('[TryOnResult] result object received:', result);
+    console.log('[TryOnResult] result.images:', result.images);
+    console.log('[TryOnResult] result.images[0]:', result.images?.[0]);
+  }, [result]);
+
   const imageUrl = result.images?.[0];
   const imageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
+
+  useEffect(() => {
+    console.log('[TryOnResult] imageUrl:', imageUrl);
+    console.log('[TryOnResult] imageSrc (processed):', imageSrc);
+  }, [imageUrl, imageSrc]);
 
   useEffect(() => {
     // Reset between results so a previous failure/loading state doesn't stick
@@ -71,7 +83,9 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
               alt={`Virtual try-on of ${product.name}`}
               className="w-full h-full object-contain"
               loading="eager"
-              crossOrigin="anonymous"
+              // In third-party embeds some image hosts block hotlinking by referrer.
+              // Also, we don't need CORS mode for a plain <img>.
+              referrerPolicy="no-referrer"
               onLoad={() => {
                 console.log('[TryOnResult] image loaded:', imageSrc);
                 setImageLoaded(true);
@@ -93,12 +107,20 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         ) : (
           <div className="aspect-video bg-gradient-to-br from-secondary via-muted to-secondary flex items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_70%)]" />
-            <div className="text-center z-10 animate-float">
+            <div className="text-center z-10 animate-float p-6">
               <img src={pidyLogo} alt="PIDY" className="w-10 h-10 mx-auto mb-3 opacity-60" />
               <p className="font-display text-lg text-foreground">
                 {imageFailed ? 'Unable to Load' : 'Complete'}
               </p>
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-1">{product.name}</p>
+              {!imageUrl && (
+                <p className="text-[9px] text-red-400 mt-3 break-all">No image URL in response</p>
+              )}
+              {imageUrl && imageFailed && (
+                <p className="text-[9px] text-orange-400 mt-3 break-all max-w-full">
+                  Failed: {imageUrl.substring(0, 80)}...
+                </p>
+              )}
             </div>
           </div>
         )}
