@@ -98,6 +98,7 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   }, [rawImageSrc]);
 
   // Proactively convert to base64 for cross-origin compatibility
+  // Uses no-cors mode as fallback if standard fetch fails
   useEffect(() => {
     if (!rawImageSrc || rawImageSrc.startsWith('data:') || base64Src) return;
     
@@ -105,8 +106,26 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
       setIsConvertingToBase64(true);
       try {
         console.log('[TryOnResult] Converting image to base64:', rawImageSrc);
-        const response = await fetch(rawImageSrc);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        // Try standard fetch first
+        let response: Response;
+        try {
+          response = await fetch(rawImageSrc, {
+            mode: 'cors',
+            credentials: 'omit',
+          });
+        } catch (corsError) {
+          console.warn('[TryOnResult] CORS fetch failed, image will load directly:', corsError);
+          setIsConvertingToBase64(false);
+          // Let the img tag try to load directly
+          return;
+        }
+        
+        if (!response.ok) {
+          console.warn('[TryOnResult] Fetch returned non-OK status:', response.status);
+          setIsConvertingToBase64(false);
+          return;
+        }
         
         const blob = await response.blob();
         const reader = new FileReader();
