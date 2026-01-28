@@ -43,6 +43,7 @@
      * @param {string} config.container - CSS selector for container element
      * @param {string} config.productId - Product ID to try on
      * @param {string} [config.size] - Pre-selected size
+     * @param {boolean} [config.debug=false] - Enables debug logging + widget debug overlay
      * @param {number} [config.width=400] - Widget width in pixels
      * @param {number} [config.height=620] - Widget height in pixels
      */
@@ -50,6 +51,7 @@
       this._config = {
         width: 400,
         height: 620,
+        debug: false,
         ...config
       };
 
@@ -85,6 +87,7 @@
       elements.forEach((el) => {
         const productId = el.dataset.productId;
         const size = el.dataset.size;
+        const debug = el.dataset.debug === 'true';
         const width = parseInt(el.dataset.width) || 400;
         const height = parseInt(el.dataset.height) || 620;
 
@@ -102,6 +105,7 @@
           container: '#' + el.id,
           productId: productId,
           size: size,
+          debug: debug,
           width: width,
           height: height
         });
@@ -121,6 +125,10 @@
       }
       if (debug) {
         url += '&debug=true';
+      }
+
+      if (debug) {
+        console.log('[PIDY SDK] iframe src:', url);
       }
 
       // Create iframe
@@ -153,7 +161,14 @@
         // Only accept messages from PIDY origin
         if (event.origin !== PIDY_ORIGIN) return;
 
-        const { type, access_token, refresh_token, expires_in } = event.data || {};
+        const payload = event.data || {};
+        const { type, access_token, refresh_token, expires_in, source } = payload;
+
+        // Widget -> parent debug events
+        if (this._config && this._config.debug && source === 'pidy-widget') {
+          const level = type === 'pidy-image-load' && payload.status === 'error' ? 'error' : 'log';
+          console[level]('[PIDY WIDGET]', payload);
+        }
 
         switch (type) {
           case 'pidy-auth-success':
@@ -179,6 +194,10 @@
           case 'tryon-collapse':
             // Widget collapsed
             this._container.classList.remove('pidy-expanded');
+            break;
+
+          default:
+            // No-op for other message types (debug logging handled above)
             break;
         }
       });
