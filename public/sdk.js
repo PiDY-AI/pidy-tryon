@@ -373,20 +373,102 @@
   // Expose to global scope
   window.PidyTryOn = PidyTryOn;
 
-  // Auto-init helper
+  // Track initialized elements to avoid double-init
+  const initializedElements = new WeakSet();
+
+  // Auto-init helper - only initializes new elements
   function runAutoInit() {
     const autoElements = document.querySelectorAll('[data-pidy-auto], [data-pidy-tryon]');
-    if (autoElements.length > 0) {
-      PidyTryOn.autoInit();
-    }
+    
+    autoElements.forEach(function(el) {
+      if (initializedElements.has(el)) return;
+      
+      const productId = el.dataset.productId;
+      if (!productId) {
+        console.warn('[PIDY SDK] Element missing data-product-id:', el);
+        return;
+      }
+
+      // Mark as initialized before calling init
+      initializedElements.add(el);
+
+      const size = el.dataset.size;
+      const width = parseInt(el.dataset.width) || 400;
+      const height = parseInt(el.dataset.height) || 620;
+
+      // Generate unique ID if needed
+      if (!el.id) {
+        el.id = 'pidy-tryon-' + Math.random().toString(36).substr(2, 9);
+      }
+
+      console.log('[PIDY SDK] Auto-initializing element:', el.id);
+
+      PidyTryOn.init({
+        container: '#' + el.id,
+        productId: productId,
+        size: size,
+        width: width,
+        height: height
+      });
+    });
   }
+
+  // MutationObserver for SPA support - detects dynamically added elements
+  function setupMutationObserver() {
+    if (typeof MutationObserver === 'undefined') return;
+
+    const observer = new MutationObserver(function(mutations) {
+      let shouldScan = false;
+      
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if the added node or any descendant matches
+            if (node.matches && (node.matches('[data-pidy-auto]') || node.matches('[data-pidy-tryon]') || node.matches('#pidy-tryon'))) {
+              shouldScan = true;
+            } else if (node.querySelector && node.querySelector('[data-pidy-auto], [data-pidy-tryon], #pidy-tryon')) {
+              shouldScan = true;
+            }
+          }
+        });
+      });
+
+      if (shouldScan) {
+        // Small delay to ensure React has finished rendering
+        setTimeout(runAutoInit, 50);
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    console.log('[PIDY SDK] MutationObserver active for SPA support');
+  }
+
+  // Manual scan method for explicit triggering
+  PidyTryOn.scan = function() {
+    console.log('[PIDY SDK] Manual scan triggered');
+    runAutoInit();
+  };
+
+  // Listen for custom event to re-scan
+  window.addEventListener('pidy-tryon-scan', function() {
+    console.log('[PIDY SDK] Scan event received');
+    runAutoInit();
+  });
 
   // Auto-init on DOMContentLoaded or immediately if DOM is already ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runAutoInit);
+    document.addEventListener('DOMContentLoaded', function() {
+      runAutoInit();
+      setupMutationObserver();
+    });
   } else {
     // DOM already loaded - run immediately
     runAutoInit();
+    setupMutationObserver();
   }
 
 })(window);
