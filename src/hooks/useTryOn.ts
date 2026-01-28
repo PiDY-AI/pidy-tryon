@@ -52,7 +52,24 @@ export const useTryOn = (): UseTryOnReturn => {
       });
 
       if (fnError) {
-        throw new Error(fnError.message || 'Edge function error');
+        // Try to extract meaningful error from response
+        console.error('[useTryOn] Edge function error:', fnError);
+        const errorMessage = fnError.message || 'Edge function error';
+        
+        // Check for common error codes
+        if (errorMessage.includes('USER_NOT_FOUND') || errorMessage.includes('404')) {
+          throw new Error('Please complete your body scan in the PIDY app first.');
+        }
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          throw new Error('Session expired. Please sign in again.');
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Also check if data contains an error (some edge functions return errors in body)
+      if (data?.error) {
+        console.error('[useTryOn] Response error:', data.error);
+        throw new Error(data.error.message || data.error || 'Try-on generation failed');
       }
 
       const tryOnData: TryOnResult = data;
