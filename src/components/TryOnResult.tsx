@@ -39,8 +39,8 @@ interface TryOnResultProps {
 export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [base64Src, setBase64Src] = useState<string | null>(null);
-  const [isConvertingToBase64, setIsConvertingToBase64] = useState(false);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [isConvertingToBlob, setIsConvertingToBlob] = useState(false);
 
   const postToParent = (payload: Record<string, unknown>) => {
     try {
@@ -75,8 +75,8 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const imageUrl = result.images?.[0];
   const rawImageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
   
-  // Use base64 version if available, otherwise use original URL
-  const imageSrc = base64Src || rawImageSrc;
+  // Use blob URL if available, otherwise use original URL
+  const imageSrc = blobUrl || rawImageSrc;
 
   useEffect(() => {
     console.log('[TryOnResult] imageUrl:', imageUrl);
@@ -93,22 +93,33 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
-    setBase64Src(null);
-    setIsConvertingToBase64(false);
+    setBlobUrl(null);
+    setIsConvertingToBlob(false);
   }, [rawImageSrc]);
 
-  // Proactively convert to base64 for cross-origin compatibility
+  // Cleanup blob URL when component unmounts or URL changes
   useEffect(() => {
-    // Skip if no URL, already base64, or conversion in progress
-    if (!rawImageSrc || rawImageSrc.startsWith('data:')) return;
+    return () => {
+      if (blobUrl) {
+        console.log('[TryOnResult] Revoking blob URL:', blobUrl);
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
+  // Proactively convert to Blob URL for cross-origin compatibility
+  // Blob URLs are more CSP-friendly than base64 data URLs
+  useEffect(() => {
+    // Skip if no URL, already a data URL, or blob already created
+    if (!rawImageSrc || rawImageSrc.startsWith('data:') || rawImageSrc.startsWith('blob:')) return;
     
     // Use a ref pattern via closure to track if this effect is still valid
     let cancelled = false;
     
-    const convertToBase64 = async () => {
-      setIsConvertingToBase64(true);
+    const convertToBlob = async () => {
+      setIsConvertingToBlob(true);
       try {
-        console.log('[TryOnResult] Converting image to base64:', rawImageSrc);
+        console.log('[TryOnResult] Converting image to Blob URL:', rawImageSrc);
         
         // Try standard fetch first
         let response: Response;
@@ -119,7 +130,7 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           });
         } catch (corsError) {
           console.warn('[TryOnResult] CORS fetch failed, image will load directly:', corsError);
-          if (!cancelled) setIsConvertingToBase64(false);
+          if (!cancelled) setIsConvertingToBlob(false);
           // Let the img tag try to load directly
           return;
         }
@@ -128,44 +139,32 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
         
         if (!response.ok) {
           console.warn('[TryOnResult] Fetch returned non-OK status:', response.status);
-          setIsConvertingToBase64(false);
+          setIsConvertingToBlob(false);
           return;
         }
         
         const blob = await response.blob();
         if (cancelled) return;
         
-        const reader = new FileReader();
-        
-        reader.onloadend = () => {
-          if (cancelled) return;
-          const base64 = reader.result as string;
-          console.log('[TryOnResult] Base64 conversion successful, length:', base64.length);
-          setBase64Src(base64);
-          setIsConvertingToBase64(false);
-          
-          postToParent({
-            type: 'pidy-image-base64',
-            status: 'success',
-            originalUrl: rawImageSrc,
-            base64Length: base64.length,
-          });
-        };
-        
-        reader.onerror = () => {
-          if (cancelled) return;
-          console.error('[TryOnResult] FileReader error during base64 conversion');
-          setIsConvertingToBase64(false);
-        };
-        
-        reader.readAsDataURL(blob);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('[TryOnResult] Base64 conversion failed:', err);
-        setIsConvertingToBase64(false);
+        // Create a local blob URL - this is CSP-friendly
+        const url = URL.createObjectURL(blob);
+        console.log('[TryOnResult] Blob URL created successfully:', url, 'size:', blob.size);
+        setBlobUrl(url);
+        setIsConvertingToBlob(false);
         
         postToParent({
-          type: 'pidy-image-base64',
+          type: 'pidy-image-blob',
+          status: 'success',
+          originalUrl: rawImageSrc,
+          blobSize: blob.size,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.error('[TryOnResult] Blob conversion failed:', err);
+        setIsConvertingToBlob(false);
+        
+        postToParent({
+          type: 'pidy-image-blob',
           status: 'error',
           originalUrl: rawImageSrc,
           error: err instanceof Error ? err.message : 'Unknown error',
@@ -173,12 +172,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
       }
     };
 
-    convertToBase64();
+    convertToBlob();
     
     return () => {
       cancelled = true;
     };
-  }, [rawImageSrc]); // Only depend on rawImageSrc, not base64Src
+  }, [rawImageSrc]);
 
   const getFitCategory = (score: number) => {
     if (score >= 85) return { label: 'Impeccable', color: 'text-green-400', bg: 'bg-green-400/10 border border-green-400/30' };
