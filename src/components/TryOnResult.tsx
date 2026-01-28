@@ -41,11 +41,34 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  const postToParent = (payload: Record<string, unknown>) => {
+    try {
+      // Useful when debugging inside a third-party brand site (inspect in the parent window console)
+      window.parent?.postMessage(
+        {
+          source: 'pidy-widget',
+          ...payload,
+        },
+        '*'
+      );
+    } catch {
+      // ignore
+    }
+  };
+
   // DEBUG: confirm backend payload + derived URL
   useEffect(() => {
     console.log('[TryOnResult] result object received:', result);
     console.log('[TryOnResult] result.images:', result.images);
     console.log('[TryOnResult] result.images[0]:', result.images?.[0]);
+
+    postToParent({
+      type: 'pidy-tryon-result',
+      hasImages: Array.isArray(result.images) && result.images.length > 0,
+      firstImage: result.images?.[0] ?? null,
+      fitScore: result.fitScore,
+      recommendedSize: result.recommendedSize,
+    });
   }, [result]);
 
   const imageUrl = result.images?.[0];
@@ -54,6 +77,12 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   useEffect(() => {
     console.log('[TryOnResult] imageUrl:', imageUrl);
     console.log('[TryOnResult] imageSrc (processed):', imageSrc);
+
+    postToParent({
+      type: 'pidy-image-src',
+      imageUrl: imageUrl ?? null,
+      imageSrc: imageSrc ?? null,
+    });
   }, [imageUrl, imageSrc]);
 
   useEffect(() => {
@@ -83,17 +112,29 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
               alt={`Virtual try-on of ${product.name}`}
               className="w-full h-full object-contain"
               loading="eager"
-              // In third-party embeds some image hosts block hotlinking by referrer.
-              // Also, we don't need CORS mode for a plain <img>.
-              referrerPolicy="no-referrer"
+              decoding="async"
               onLoad={() => {
                 console.log('[TryOnResult] image loaded:', imageSrc);
                 setImageLoaded(true);
+
+                postToParent({
+                  type: 'pidy-image-load',
+                  status: 'loaded',
+                  imageSrc: imageSrc ?? null,
+                });
               }}
-              onError={() => {
-                console.error('[TryOnResult] image failed to load:', imageSrc);
+              onError={(e) => {
+                const currentSrc = (e.currentTarget as HTMLImageElement | null)?.currentSrc;
+                console.error('[TryOnResult] image failed to load:', imageSrc, 'currentSrc:', currentSrc);
                 setImageFailed(true);
                 setImageLoaded(false);
+
+                postToParent({
+                  type: 'pidy-image-load',
+                  status: 'error',
+                  imageSrc: imageSrc ?? null,
+                  currentSrc: currentSrc ?? null,
+                });
               }}
             />
             {!imageLoaded && (
