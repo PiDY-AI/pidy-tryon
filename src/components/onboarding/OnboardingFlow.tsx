@@ -10,6 +10,7 @@ export interface OnboardingData {
   headshot?: File;
   photos?: { front: File; back: File };
   details?: {
+    name: string;
     height: number;
     weight: number;
     age?: number;
@@ -37,6 +38,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleDetailsSubmit = (details: {
+    name: string;
     height: number;
     weight: number;
     age?: number;

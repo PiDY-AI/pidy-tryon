@@ -15,6 +15,7 @@ export type Gender = 'male' | 'female' | 'other';
 
 interface OnboardingDetailsProps {
   onSubmit: (details: {
+    name: string;
     height: number;
     weight: number;
     age?: number;
@@ -25,6 +26,7 @@ interface OnboardingDetailsProps {
 }
 
 export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) => {
+  const [name, setName] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
@@ -34,6 +36,10 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    if (!name.trim() || name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
 
     const heightNum = parseFloat(height);
     const weightNum = parseFloat(weight);
@@ -60,6 +66,7 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
     e.preventDefault();
     if (validate()) {
       onSubmit({
+        name: name.trim(),
         height: parseFloat(height),
         weight: parseFloat(weight),
         age: age ? parseInt(age) : undefined,
@@ -127,6 +134,33 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-6 overflow-y-auto">
         <div className="space-y-4">
+          {/* Name input */}
+          <div className="space-y-1.5">
+            <Label 
+              htmlFor="name" 
+              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
+            >
+              <span className="text-primary"><User className="w-4 h-4" /></span>
+              Full Name
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) {
+                  setErrors((prev) => ({ ...prev, name: '' }));
+                }
+              }}
+              placeholder="John Doe"
+              className={errors.name ? 'border-destructive' : ''}
+            />
+            {errors.name && (
+              <p className="text-[10px] text-destructive">{errors.name}</p>
+            )}
+          </div>
+
           {/* Measurement inputs */}
           <div className="grid grid-cols-3 gap-3">
             {inputFields.map((field) => (
@@ -172,7 +206,6 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
               htmlFor="gender" 
               className="flex items-center gap-1.5 text-xs font-medium text-foreground"
             >
-              <span className="text-primary"><User className="w-4 h-4" /></span>
               Gender
               <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
