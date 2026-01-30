@@ -14,8 +14,13 @@ import pidyLogo from '@/assets/pidy-logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  
+  // Auto-show onboarding if URL param is present (from "First Time PIDY" button)
+  const startWithOnboarding = searchParams.get('onboarding') === 'true';
+  
   const [isLogin, setIsLogin] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(startWithOnboarding);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +28,6 @@ const Auth = () => {
   const { completeOnboarding } = useOnboarding();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   const [debugInfo, setDebugInfo] = useState<{
     tokenReceived: boolean;
