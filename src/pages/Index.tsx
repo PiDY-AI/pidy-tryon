@@ -418,18 +418,29 @@ const Index = () => {
                       </div>
                     </div>
                     <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
-                    <p className="text-xs uppercase tracking-luxury text-muted-foreground mb-8">
+                    <p className="text-xs uppercase tracking-luxury text-muted-foreground mb-6">
                       Exclusive virtual experience
                     </p>
                     <Button 
-                      className="w-full btn-luxury h-12 rounded-none"
+                      className="w-full btn-luxury h-12 rounded-none mb-3"
                       size="lg"
                       onClick={handleOpenAuthPopup}
                     >
-                      Enter Suite
+                      Sign In
+                    </Button>
+                    <Button 
+                      className="w-full h-12 rounded-none"
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        // For first-time users, open auth popup - after signup they'll see onboarding
+                        handleOpenAuthPopup();
+                      }}
+                    >
+                      First Time PIDY
                     </Button>
                     <p className="text-[10px] text-muted-foreground/60 mt-4 tracking-wide">
-                      Sign in to access your personal fitting
+                      New users will set up their profile after signing up
                     </p>
                   </div>
                 </div>
