@@ -72,13 +72,15 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <button
-                onClick={() => inputRef.current?.click()}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5 hover:bg-white/30 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Retake
-              </button>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5 hover:bg-white/30 transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Change
+                </button>
+              </div>
               <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                 <Check className="w-4 h-4 text-primary-foreground" />
               </div>
@@ -91,7 +93,7 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
               <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
                 <Camera className="w-8 h-8 text-primary" />
               </div>
-              <span className="text-sm text-muted-foreground">Tap to upload</span>
+              <span className="text-sm text-muted-foreground">Tap to capture or upload</span>
             </button>
           )}
           <input
@@ -107,7 +109,7 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
         {/* Tips */}
         <div className="mt-6 text-center max-w-xs">
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Use a clear, front-facing photo with good lighting. This helps us create accurate try-on previews.
+            Use your front camera for a selfie or upload an existing photo. Good lighting helps!
           </p>
         </div>
       </div>
