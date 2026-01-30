@@ -126,7 +126,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
                   <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
                     <User className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-[10px] text-muted-foreground">Tap to upload</span>
+                  <span className="text-[10px] text-muted-foreground">Tap to capture or upload</span>
                 </button>
               )}
               <input
@@ -181,7 +181,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
                   <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
                     <User className="w-6 h-6 text-primary transform rotate-180" />
                   </div>
-                  <span className="text-[10px] text-muted-foreground">Tap to upload</span>
+                  <span className="text-[10px] text-muted-foreground">Tap to capture or upload</span>
                 </button>
               )}
               <input
