@@ -11,7 +11,7 @@ interface OnboardingProcessingProps {
   data: OnboardingData;
 }
 
-interface WidgetScanResult {
+export interface WidgetScanResult {
   success: boolean;
   user_id?: string;
   scan_id?: string;
@@ -128,7 +128,15 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
 
       console.log('API response status:', response.status);
       const scanResult: WidgetScanResult = await response.json();
-      console.log('API response:', scanResult);
+      console.log('[OnboardingProcessing] widget-scan response:', {
+        success: scanResult.success,
+        user_id: scanResult.user_id,
+        scan_id: scanResult.scan_id,
+        is_new_user: scanResult.is_new_user,
+        token_received: !!scanResult.access_token && !!scanResult.refresh_token,
+        expires_in: scanResult.expires_in,
+        token_type: scanResult.token_type,
+      });
 
       if (!scanResult.success) {
         throw new Error(scanResult.error?.message || `API error: ${scanResult.error?.code || 'Unknown'}`);
@@ -136,7 +144,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
 
       // Set the Supabase session if tokens are returned
       if (scanResult.access_token && scanResult.refresh_token) {
-        console.log('Setting Supabase session from widget-scan tokens...');
+        console.log('[OnboardingProcessing] Setting session from widget-scan tokens...');
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: scanResult.access_token,
           refresh_token: scanResult.refresh_token,
@@ -145,8 +153,10 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
           console.error('Failed to set session:', sessionError);
           // Don't throw - user can still use magic link
         } else {
-          console.log('Session set successfully, user is now authenticated');
+          console.log('[OnboardingProcessing] Session set successfully');
         }
+      } else {
+        console.log('[OnboardingProcessing] No tokens returned from widget-scan');
       }
 
       setResult(scanResult);
