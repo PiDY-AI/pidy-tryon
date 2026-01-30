@@ -16,6 +16,10 @@ interface WidgetScanResult {
   user_id?: string;
   scan_id?: string;
   is_new_user?: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
   measurements?: Array<{
     name: string;
     value: number | null;
@@ -128,6 +132,21 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
 
       if (!scanResult.success) {
         throw new Error(scanResult.error?.message || `API error: ${scanResult.error?.code || 'Unknown'}`);
+      }
+
+      // Set the Supabase session if tokens are returned
+      if (scanResult.access_token && scanResult.refresh_token) {
+        console.log('Setting Supabase session from widget-scan tokens...');
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: scanResult.access_token,
+          refresh_token: scanResult.refresh_token,
+        });
+        if (sessionError) {
+          console.error('Failed to set session:', sessionError);
+          // Don't throw - user can still use magic link
+        } else {
+          console.log('Session set successfully, user is now authenticated');
+        }
       }
 
       setResult(scanResult);
