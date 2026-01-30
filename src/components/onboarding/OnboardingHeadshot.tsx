@@ -132,11 +132,15 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
           </button>
         )}
 
-        {/* Tips */}
-        <div className="mt-4 text-center max-w-xs">
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Use a front-facing photo with good lighting for best results
-          </p>
+        {/* Guidelines */}
+        <div className="mt-4 p-3 rounded-lg bg-card/50 border border-border/50 w-full max-w-xs">
+          <p className="text-[10px] uppercase tracking-luxury text-primary mb-2">Guidelines</p>
+          <ul className="text-[11px] text-muted-foreground space-y-1">
+            <li>• Clear front-facing photo of your face</li>
+            <li>• Good lighting, neutral background</li>
+            <li>• No sunglasses or face coverings</li>
+            <li>• Next: You'll add 2 full body photos</li>
+          </ul>
         </div>
       </div>
 
