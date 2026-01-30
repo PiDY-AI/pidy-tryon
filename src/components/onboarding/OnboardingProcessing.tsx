@@ -82,19 +82,26 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
       // Generate unique submission ID
       const submissionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      console.log('Starting image upload to widget-uploads bucket...');
+      
       // Step 1: Upload all 3 images
-      // API expects: front, side, back - we have headshot, front, back
-      // Using headshot as profile photo, front and back for body scan
-      const [frontUrl, backUrl, headshotUrl] = await Promise.all([
-        uploadImage(data.photos.front, submissionId, 'front'),
-        uploadImage(data.photos.back, submissionId, 'back'),
-        uploadImage(data.headshot, submissionId, 'headshot'),
-      ]);
+      let frontUrl: string, backUrl: string, headshotUrl: string;
+      try {
+        [frontUrl, backUrl, headshotUrl] = await Promise.all([
+          uploadImage(data.photos.front, submissionId, 'front'),
+          uploadImage(data.photos.back, submissionId, 'back'),
+          uploadImage(data.headshot, submissionId, 'headshot'),
+        ]);
+        console.log('Images uploaded successfully:', { frontUrl, backUrl, headshotUrl });
+      } catch (uploadErr) {
+        console.error('Image upload failed:', uploadErr);
+        throw new Error(`Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}. Make sure the "widget-uploads" bucket exists and is public.`);
+      }
 
       setCurrentStep(1);
 
       // Step 2: Call widget-scan API
-      // Note: API expects front, side, back but we're sending front, headshot as side, back
+      console.log('Calling widget-scan API...');
       const response = await fetch(`${SUPABASE_URL}/functions/v1/widget-scan`, {
         method: 'POST',
         headers: {
@@ -109,14 +116,16 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
           weight_unit: 'kg',
           age: data.details.age,
           gender: data.details.gender,
-          model: 'sonnet', // Using cheaper model
+          model: 'sonnet',
         }),
       });
 
+      console.log('API response status:', response.status);
       const scanResult: WidgetScanResult = await response.json();
+      console.log('API response:', scanResult);
 
       if (!scanResult.success) {
-        throw new Error(scanResult.error?.message || 'Scan failed');
+        throw new Error(scanResult.error?.message || `API error: ${scanResult.error?.code || 'Unknown'}`);
       }
 
       setResult(scanResult);
@@ -124,7 +133,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
       setCurrentStep(3);
     } catch (err) {
       console.error('Processing error:', err);
-      setError(err instanceof Error ? err.message : 'Processing failed');
+      setError(err instanceof Error ? err.message : 'Processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
