@@ -204,18 +204,16 @@ const Auth = () => {
               </Button>
             </form>
 
-            {isLogin && (
-              <div className="mt-6 text-center">
-                <a
-                  href="https://pidy-bodyid-app.rork.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Don't have an account? <span className="text-primary">Sign up</span>
-                </a>
-              </div>
-            )}
+            <div className="mt-6 text-center">
+              <a
+                href="https://pidy-bodyid-app.rork.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                First time PIDY? <span className="text-primary">Get started</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
