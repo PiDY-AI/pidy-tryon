@@ -179,6 +179,43 @@ const Index = () => {
         return;
       }
 
+      // Handle onboarding complete from popup (fixes double-click issue)
+      if (type === 'pidy-onboarding-complete') {
+        console.log('[PIDY Widget] Onboarding complete from popup');
+        completeOnboarding();
+        
+        // Forward to SDK (parent) so it can persist on brand domain
+        window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+        
+        // If tokens were also sent, apply them
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error) {
+            setAuthToken(access_token);
+            setHasSessionToken(true);
+            setSessionCheckComplete(true);
+            // Also notify SDK about auth success
+            window.parent.postMessage({ 
+              type: 'pidy-auth-success',
+              access_token,
+              refresh_token,
+              expires_in: 3600
+            }, '*');
+          }
+        }
+        return;
+      }
+
+      // Handle onboarding status from SDK (persisted on brand domain)
+      if (type === 'pidy-onboarding-status') {
+        const { isComplete } = event.data || {};
+        console.log('[PIDY Widget] Onboarding status from SDK:', isComplete);
+        if (isComplete) {
+          completeOnboarding();
+        }
+        return;
+      }
+
       // Handle auth invalid from SDK (refresh token rotated/expired)
       if (type === 'pidy-auth-invalid') {
         console.log('[PIDY Widget] Auth invalid from SDK:', event.data?.reason);
@@ -253,13 +290,14 @@ const Index = () => {
 
     window.addEventListener('message', handleMessage);
     
-    // Request cached token from SDK on mount (in case SDK has it stored)
+    // Request cached token and onboarding status from SDK on mount (in case SDK has it stored)
     if (embedMode) {
       window.parent.postMessage({ type: 'pidy-auth-request' }, '*');
+      window.parent.postMessage({ type: 'pidy-onboarding-request' }, '*');
     }
     
     return () => window.removeEventListener('message', handleMessage);
-  }, [embedMode, signOut]);
+  }, [embedMode, signOut, completeOnboarding]);
 
   const handleTryOn = async (product: Product, size?: string) => {
     setSelectedProduct(product);
