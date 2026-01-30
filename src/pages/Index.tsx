@@ -375,13 +375,16 @@ const Index = () => {
     }
   }, [user, authLoading, embedMode]);
 
-  const handleOpenAuthPopup = () => {
+  const handleOpenAuthPopup = (options?: { onboarding?: boolean }) => {
     const width = 450;
     const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
-    const url = `/auth?productId=${encodeURIComponent(productId ?? '')}&popup=true`;
+    let url = `/auth?productId=${encodeURIComponent(productId ?? '')}&popup=true`;
+    if (options?.onboarding) {
+      url += '&onboarding=true';
+    }
 
     window.open(
       url,
@@ -482,7 +485,7 @@ const Index = () => {
                     <Button 
                       className="w-full btn-luxury h-12 rounded-none mb-3"
                       size="lg"
-                      onClick={handleOpenAuthPopup}
+                      onClick={() => handleOpenAuthPopup()}
                     >
                       Sign In
                     </Button>
@@ -490,10 +493,7 @@ const Index = () => {
                       className="w-full h-12 rounded-none"
                       variant="outline"
                       size="lg"
-                      onClick={() => {
-                        // For first-time users, open auth popup - after signup they'll see onboarding
-                        handleOpenAuthPopup();
-                      }}
+                      onClick={() => handleOpenAuthPopup({ onboarding: true })}
                     >
                       First Time PIDY
                     </Button>
