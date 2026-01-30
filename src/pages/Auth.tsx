@@ -22,18 +22,34 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
 
   const handleOnboardingComplete = (data: OnboardingData) => {
-    // TODO: Send onboarding data to backend
-    console.log('[Auth] Onboarding data:', data);
+    // widget-scan API already created the user account
+    // Go directly to try-on experience - user will get magic link email to set password later
+    console.log('[Auth] Onboarding complete, user created by widget-scan');
     
-    // After onboarding, show signup form with email pre-filled
-    if (data.details?.email) {
-      setEmail(data.details.email);
+    // Check if this is a popup window
+    const isPopup = searchParams.get('popup');
+    const productId = searchParams.get('productId');
+    
+    if (isPopup && window.opener) {
+      // Close popup and let user continue in main window
+      // They're already set up via widget-scan, just need to sign in later
+      window.opener.postMessage({ 
+        type: 'pidy-onboarding-complete',
+        email: data.details?.email 
+      }, window.location.origin);
+      window.close();
+    } else {
+      // Redirect to main page to try on items
+      let redirectPath = '/';
+      if (productId) {
+        redirectPath = `/?productId=${productId}`;
+      }
+      navigate(redirectPath);
     }
-    setShowOnboarding(false);
-    setIsLogin(false); // Switch to signup mode
+    
     toast({
-      title: "Profile created!",
-      description: "Now create your account to save your profile.",
+      title: "You're all set!",
+      description: "Check your email to set up your password. You can now try on items!",
     });
   };
 
