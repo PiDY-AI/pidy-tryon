@@ -21,8 +21,8 @@ export const ScrollPicker = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeout = useRef<NodeJS.Timeout>();
-  const itemHeight = 40;
-  const visibleItems = 3;
+  const itemHeight = 36;
+  const visibleItems = 5;
 
   const selectedIndex = value !== undefined ? values.indexOf(value) : -1;
 
@@ -74,67 +74,90 @@ export const ScrollPicker = ({
   return (
     <div className={cn("flex flex-col items-center", className)}>
       {label && (
-        <span className="text-[10px] uppercase tracking-luxury text-muted-foreground mb-1">
+        <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-2 font-medium">
           {label}
         </span>
       )}
-      <div className="relative w-20">
-        {/* Selection highlight */}
+      <div className="relative">
+        {/* Selection indicator - subtle line markers */}
         <div 
           className="absolute left-0 right-0 pointer-events-none z-10"
           style={{ 
-            top: itemHeight, 
+            top: itemHeight * 2, 
             height: itemHeight,
           }}
         >
-          <div className="h-full border-y border-primary/40 bg-primary/5 rounded" />
+          <div className="h-full relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          </div>
         </div>
         
-        {/* Gradient overlays */}
-        <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-background to-transparent pointer-events-none z-20" />
-        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background to-transparent pointer-events-none z-20" />
+        {/* Gradient overlays - softer */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-background via-background/80 to-transparent pointer-events-none z-20" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-20" />
         
         {/* Scrollable container */}
         <div
           ref={containerRef}
-          className="overflow-y-auto scrollbar-hide"
+          className="overflow-y-auto scrollbar-hide w-16"
           style={{ 
             height: itemHeight * visibleItems,
             scrollSnapType: 'y mandatory',
           }}
           onScroll={handleScroll}
         >
-          {/* Padding items for centering */}
-          <div style={{ height: itemHeight }} />
+          {/* Top padding */}
+          <div style={{ height: itemHeight * 2 }} />
           
           {values.map((v, index) => {
             const isSelected = v === value;
+            const distance = Math.abs(index - selectedIndex);
+            const opacity = isSelected ? 1 : distance === 1 ? 0.5 : 0.25;
+            
             return (
               <div
                 key={`${v}-${index}`}
                 className={cn(
-                  "flex items-center justify-center cursor-pointer transition-all duration-150",
-                  isSelected 
-                    ? "text-foreground font-semibold scale-110" 
-                    : "text-muted-foreground/60 scale-90"
+                  "flex items-center justify-center cursor-pointer transition-all duration-200",
+                  isSelected && "text-foreground"
                 )}
                 style={{ 
                   height: itemHeight,
                   scrollSnapAlign: 'center',
+                  opacity,
+                  transform: isSelected ? 'scale(1.1)' : 'scale(0.9)',
                 }}
                 onClick={() => handleItemClick(index)}
               >
-                <span className="text-lg">{v}</span>
-                {isSelected && unit && (
-                  <span className="text-xs text-primary ml-1">{unit}</span>
-                )}
+                <span className={cn(
+                  "font-display transition-all duration-200",
+                  isSelected ? "text-xl font-medium" : "text-base"
+                )}>
+                  {v}
+                </span>
               </div>
             );
           })}
           
-          {/* Padding items for centering */}
-          <div style={{ height: itemHeight }} />
+          {/* Bottom padding */}
+          <div style={{ height: itemHeight * 2 }} />
         </div>
+        
+        {/* Unit label - positioned right of selection */}
+        {unit && value !== '-' && (
+          <div 
+            className="absolute right-0 pointer-events-none z-30 pr-1"
+            style={{ 
+              top: itemHeight * 2,
+              height: itemHeight,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <span className="text-[10px] text-primary/60 font-medium">{unit}</span>
+          </div>
+        )}
       </div>
     </div>
   );
