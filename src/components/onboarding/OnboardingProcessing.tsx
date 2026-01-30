@@ -114,6 +114,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: data.details.name,
           email: data.details.email,
           images: [frontUrl, headshotUrl, backUrl], // front, "side" (headshot), back
           height: data.details.height,
