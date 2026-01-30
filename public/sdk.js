@@ -33,6 +33,7 @@
   const LOCAL_STORAGE_KEY = 'pidy_auth_token';
   const LOCAL_REFRESH_KEY = 'pidy_refresh_token';
   const LOCAL_EXPIRY_KEY = 'pidy_token_expiry';
+  const LOCAL_ONBOARDING_KEY = 'pidy_onboarding_complete';
 
   // Token refresh buffer (refresh 5 minutes before expiry)
   const REFRESH_BUFFER_MS = 5 * 60 * 1000;
@@ -237,6 +238,17 @@
           case 'pidy-auth-request':
             // Widget is requesting cached token
             this._sendCachedToken();
+            break;
+
+          case 'pidy-onboarding-request':
+            // Widget is requesting onboarding status
+            this._sendOnboardingStatus();
+            break;
+
+          case 'pidy-onboarding-complete':
+            // Onboarding completed in popup - store locally
+            this._setOnboardingComplete(true);
+            console.log('[PIDY SDK] Onboarding marked complete');
             break;
 
           case 'pidy-sign-out':
@@ -461,6 +473,39 @@
       if (this._refreshTimer) {
         clearTimeout(this._refreshTimer);
         this._refreshTimer = null;
+      }
+    },
+
+    /**
+     * Set onboarding complete status
+     */
+    _setOnboardingComplete: function(isComplete) {
+      try {
+        if (isComplete) {
+          localStorage.setItem(LOCAL_ONBOARDING_KEY, 'true');
+        } else {
+          localStorage.removeItem(LOCAL_ONBOARDING_KEY);
+        }
+      } catch (e) {
+        console.warn('[PIDY SDK] Could not set onboarding status:', e);
+      }
+    },
+
+    /**
+     * Send onboarding status to widget
+     */
+    _sendOnboardingStatus: function() {
+      if (!this._iframe || !this._iframe.contentWindow) return;
+
+      try {
+        const isComplete = localStorage.getItem(LOCAL_ONBOARDING_KEY) === 'true';
+        this._iframe.contentWindow.postMessage({
+          type: 'pidy-onboarding-status',
+          isComplete: isComplete
+        }, PIDY_ORIGIN);
+        console.log('[PIDY SDK] Sent onboarding status:', isComplete);
+      } catch (e) {
+        console.warn('[PIDY SDK] Could not send onboarding status:', e);
       }
     },
 

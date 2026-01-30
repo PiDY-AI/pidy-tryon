@@ -89,21 +89,24 @@ const Auth = () => {
     });
     
     if (isPopup && window.opener) {
-      // If we have tokens, send them to the opener (the widget) so it can become authed immediately.
+      // Send tokens AND onboarding completion to opener widget
       if (tokenReceived && result?.access_token && result?.refresh_token) {
+        // First: send session tokens
         window.opener.postMessage(
           { type: 'tryon-auth-session', access_token: result.access_token, refresh_token: result.refresh_token },
           window.location.origin
         );
       }
 
-      // Also notify onboarding completion (used by some embed contexts)
+      // Second: notify onboarding completion with tokens (widget uses this to skip sign-in screen)
       window.opener.postMessage(
         {
           type: 'pidy-onboarding-complete',
           email: data.details?.email,
           token_received: tokenReceived,
           is_new_user: result?.is_new_user,
+          access_token: result?.access_token,
+          refresh_token: result?.refresh_token,
         },
         window.location.origin
       );
