@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Ruler, Scale, Calendar, Mail, User } from 'lucide-react';
+import { ArrowLeft, Mail, User } from 'lucide-react';
+import { ScrollPicker } from '@/components/ui/scroll-picker';
 import {
   Select,
   SelectContent,
@@ -27,12 +28,28 @@ interface OnboardingDetailsProps {
 
 export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) => {
   const [name, setName] = useState('');
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  const [age, setAge] = useState('');
+  const [height, setHeight] = useState<number | undefined>(170);
+  const [weight, setWeight] = useState<number | undefined>(70);
+  const [age, setAge] = useState<number | undefined>(undefined);
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Generate value ranges
+  const heightValues = useMemo(() => 
+    Array.from({ length: 151 }, (_, i) => 100 + i), // 100-250 cm
+    []
+  );
+  
+  const weightValues = useMemo(() => 
+    Array.from({ length: 171 }, (_, i) => 30 + i), // 30-200 kg
+    []
+  );
+  
+  const ageValues = useMemo(() => 
+    ['-', ...Array.from({ length: 88 }, (_, i) => 13 + i)], // Optional + 13-100
+    []
+  );
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -41,18 +58,11 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    const heightNum = parseFloat(height);
-    const weightNum = parseFloat(weight);
-    const ageNum = age ? parseInt(age) : undefined;
-
-    if (!height || isNaN(heightNum) || heightNum < 100 || heightNum > 250) {
-      newErrors.height = 'Height must be 100-250 cm';
+    if (!height || height < 100 || height > 250) {
+      newErrors.height = 'Select height';
     }
-    if (!weight || isNaN(weightNum) || weightNum < 30 || weightNum > 200) {
-      newErrors.weight = 'Weight must be 30-200 kg';
-    }
-    if (age && (isNaN(ageNum!) || ageNum! < 13 || ageNum! > 120)) {
-      newErrors.age = 'Age must be 13-120';
+    if (!weight || weight < 30 || weight > 200) {
+      newErrors.weight = 'Select weight';
     }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Please enter a valid email';
@@ -67,48 +77,14 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
     if (validate()) {
       onSubmit({
         name: name.trim(),
-        height: parseFloat(height),
-        weight: parseFloat(weight),
-        age: age ? parseInt(age) : undefined,
+        height: height!,
+        weight: weight!,
+        age: typeof age === 'number' ? age : undefined,
         email,
         gender,
       });
     }
   };
-
-  const inputFields = [
-    {
-      key: 'height',
-      label: 'Height',
-      icon: <Ruler className="w-4 h-4" />,
-      unit: 'cm',
-      value: height,
-      onChange: setHeight,
-      placeholder: '170',
-      required: true,
-    },
-    {
-      key: 'weight',
-      label: 'Weight',
-      icon: <Scale className="w-4 h-4" />,
-      unit: 'kg',
-      value: weight,
-      onChange: setWeight,
-      placeholder: '70',
-      required: true,
-    },
-    {
-      key: 'age',
-      label: 'Age',
-      icon: <Calendar className="w-4 h-4" />,
-      unit: 'years',
-      value: age,
-      onChange: setAge,
-      placeholder: 'Optional',
-      required: false,
-    },
-  ];
-
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
       {/* Header */}
@@ -161,44 +137,41 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
             )}
           </div>
 
-          {/* Measurement inputs */}
-          <div className="grid grid-cols-3 gap-3">
-            {inputFields.map((field) => (
-              <div key={field.key} className="space-y-1.5">
-                <Label 
-                  htmlFor={field.key} 
-                  className="flex items-center gap-1.5 text-xs font-medium text-foreground"
-                >
-                  <span className="text-primary">{field.icon}</span>
-                  {field.label}
-                  {!field.required && (
-                    <span className="text-muted-foreground font-normal">(opt)</span>
-                  )}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id={field.key}
-                    type="number"
-                    value={field.value}
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                      if (errors[field.key]) {
-                        setErrors((prev) => ({ ...prev, [field.key]: '' }));
-                      }
-                    }}
-                    placeholder={field.placeholder}
-                    className={`pr-8 text-sm ${errors[field.key] ? 'border-destructive' : ''}`}
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                    {field.unit}
-                  </span>
-                </div>
-                {errors[field.key] && (
-                  <p className="text-[10px] text-destructive">{errors[field.key]}</p>
-                )}
-              </div>
-            ))}
+          {/* Measurement scroll pickers */}
+          <div className="flex justify-center gap-6 py-4">
+            <ScrollPicker
+              label="Height"
+              values={heightValues}
+              value={height}
+              onChange={(v) => {
+                setHeight(v as number);
+                if (errors.height) setErrors((prev) => ({ ...prev, height: '' }));
+              }}
+              unit="cm"
+            />
+            <ScrollPicker
+              label="Weight"
+              values={weightValues}
+              value={weight}
+              onChange={(v) => {
+                setWeight(v as number);
+                if (errors.weight) setErrors((prev) => ({ ...prev, weight: '' }));
+              }}
+              unit="kg"
+            />
+            <ScrollPicker
+              label="Age"
+              values={ageValues}
+              value={age ?? '-'}
+              onChange={(v) => setAge(v === '-' ? undefined : v as number)}
+              unit="yrs"
+            />
           </div>
+          {(errors.height || errors.weight) && (
+            <p className="text-[10px] text-destructive text-center">
+              {errors.height || errors.weight}
+            </p>
+          )}
 
           {/* Gender selector */}
           <div className="space-y-1.5 pt-2">
