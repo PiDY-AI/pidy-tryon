@@ -105,10 +105,10 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
 
       <div className="flex-shrink-0 text-center px-6 pb-4">
         <h2 className="font-display text-lg text-foreground tracking-wide mb-1">
-          Your Details
+          Step 3 of 3
         </h2>
         <p className="text-xs text-muted-foreground">
-          Help us perfect your fit
+          Enter your details
         </p>
       </div>
 
