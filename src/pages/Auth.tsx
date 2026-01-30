@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { OnboardingFlow, OnboardingData } from '@/components/onboarding/OnboardingFlow';
+import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import pidyLogo from '@/assets/pidy-logo.png';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +20,22 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    // TODO: Send onboarding data to backend
+    console.log('[Auth] Onboarding data:', data);
+    
+    // After onboarding, show signup form with email pre-filled
+    if (data.details?.email) {
+      setEmail(data.details.email);
+    }
+    setShowOnboarding(false);
+    setIsLogin(false); // Switch to signup mode
+    toast({
+      title: "Profile created!",
+      description: "Now create your account to save your profile.",
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +146,36 @@ const Auth = () => {
     }
   };
 
+  // Show onboarding flow for first-time users
+  if (showOnboarding) {
+    return (
+      <>
+        <Helmet>
+          <title>Get Started - PIDY</title>
+          <meta name="description" content="Set up your PIDY profile for virtual try-on" />
+        </Helmet>
+
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            {/* Back button */}
+            <button
+              onClick={() => setShowOnboarding(false)}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Sign In
+            </button>
+
+            {/* Onboarding container */}
+            <div className="glass-card rounded-2xl overflow-hidden h-[580px]">
+              <OnboardingFlow onComplete={handleOnboardingComplete} />
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -204,16 +252,25 @@ const Auth = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <a
-                href="https://pidy-bodyid-app.rork.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                First time PIDY? <span className="text-primary">Get started</span>
-              </a>
-            </div>
+            {isLogin ? (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setShowOnboarding(true)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  First time PIDY? <span className="text-primary">Get started</span>
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setIsLogin(true)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Already have an account? <span className="text-primary">Sign in</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
