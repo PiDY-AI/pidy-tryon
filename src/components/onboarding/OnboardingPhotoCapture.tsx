@@ -19,6 +19,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   const frontUploadRef = useRef<HTMLInputElement>(null);
   const backCameraRef = useRef<HTMLInputElement>(null);
   const backUploadRef = useRef<HTMLInputElement>(null);
+  const batchUploadRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (type: PhotoType, file: File) => {
     const reader = new FileReader();
@@ -40,6 +41,24 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     if (file) {
       handleFileSelect(type, file);
     }
+  };
+
+  const handleBatchUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    // Take first two files - first as front, second as back
+    if (files.length >= 1 && !frontPhoto) {
+      handleFileSelect('front', files[0]);
+    }
+    if (files.length >= 2 && !backPhoto) {
+      handleFileSelect('back', files[1]);
+    } else if (files.length >= 1 && frontPhoto && !backPhoto) {
+      handleFileSelect('back', files[0]);
+    }
+    
+    // Reset input
+    e.target.value = '';
   };
 
   const clearPhoto = (type: PhotoType) => {
@@ -167,6 +186,27 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         </p>
       </div>
 
+      {/* Batch upload button */}
+      {(!frontPhoto || !backPhoto) && (
+        <div className="flex-shrink-0 px-6 pb-2">
+          <button
+            onClick={() => batchUploadRef.current?.click()}
+            className="w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Both Photos at Once
+          </button>
+          <input
+            ref={batchUploadRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleBatchUpload}
+          />
+        </div>
+      )}
+
       {/* Photo capture grid */}
       <div className="flex-1 px-6 overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
@@ -193,6 +233,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             <li>• Hold A4 sheet at chest level</li>
             <li>• Stand in good lighting</li>
             <li>• Full body visible from head to feet</li>
+            <li>• Select front photo first, then back photo</li>
           </ul>
         </div>
       </div>
