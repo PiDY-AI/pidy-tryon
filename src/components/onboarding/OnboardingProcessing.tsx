@@ -58,7 +58,9 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
     
     const { error } = await supabase.storage
       .from('widget-uploads')
-      .upload(path, file, { contentType: 'image/jpeg', upsert: true });
+      // NOTE: Keep upsert=false so we only need INSERT permission on storage.objects.
+      // (Upsert may require UPDATE and can trigger RLS failures in public/anon flows.)
+      .upload(path, file, { contentType: 'image/jpeg', upsert: false });
 
     if (error) throw new Error(`Failed to upload ${type}: ${error.message}`);
 
