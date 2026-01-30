@@ -38,16 +38,26 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background p-6">
       {/* Header */}
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-          <img src={pidyLogo} alt="PIDY" className="w-8 h-8 object-contain" />
+      <div className="text-center mb-4">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+          <img src={pidyLogo} alt="PIDY" className="w-6 h-6 object-contain" />
         </div>
-        <h2 className="font-display text-xl text-foreground tracking-wide mb-1">
+        <h2 className="font-display text-lg text-foreground tracking-wide mb-1">
           Step 1 of 3
         </h2>
         <p className="text-sm text-muted-foreground">
           Add a clear headshot
         </p>
+      </div>
+
+      {/* Guidelines at top */}
+      <div className="mb-4 p-3 rounded-lg bg-card/50 border border-border/50">
+        <p className="text-[10px] uppercase tracking-luxury text-primary mb-2">Prepare for next steps</p>
+        <ul className="text-[11px] text-muted-foreground space-y-1">
+          <li>• <strong className="text-foreground">Now:</strong> Clear front-facing headshot</li>
+          <li>• <strong className="text-foreground">Next:</strong> 2 full body photos (front & back)</li>
+          <li>• <strong className="text-foreground">Keep ready:</strong> An A4 sheet for body photos</li>
+        </ul>
       </div>
 
       {/* Photo display area */}
@@ -132,16 +142,10 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
           </button>
         )}
 
-        {/* Guidelines */}
-        <div className="mt-4 p-3 rounded-lg bg-card/50 border border-border/50 w-full max-w-xs">
-          <p className="text-[10px] uppercase tracking-luxury text-primary mb-2">Guidelines</p>
-          <ul className="text-[11px] text-muted-foreground space-y-1">
-            <li>• Clear front-facing photo of your face</li>
-            <li>• Good lighting, neutral background</li>
-            <li>• No sunglasses or face coverings</li>
-            <li>• Next: You'll add 2 full body photos</li>
-          </ul>
-        </div>
+        {/* Tip */}
+        <p className="mt-3 text-[11px] text-muted-foreground text-center max-w-xs">
+          Use good lighting • No sunglasses
+        </p>
       </div>
 
       {/* Continue button */}
