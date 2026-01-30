@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { OnboardingHeadshot } from './OnboardingHeadshot';
 import { OnboardingPhotoCapture } from './OnboardingPhotoCapture';
-import { OnboardingDetails } from './OnboardingDetails';
+import { OnboardingDetails, Gender } from './OnboardingDetails';
 import { OnboardingProcessing } from './OnboardingProcessing';
 
 type OnboardingStep = 'headshot' | 'photos' | 'details' | 'processing';
 
-interface OnboardingData {
+export interface OnboardingData {
   headshot?: File;
   photos?: { front: File; back: File };
   details?: {
@@ -14,6 +14,7 @@ interface OnboardingData {
     weight: number;
     age?: number;
     email: string;
+    gender?: Gender;
   };
 }
 
@@ -40,6 +41,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     weight: number;
     age?: number;
     email: string;
+    gender?: Gender;
   }) => {
     setData((prev) => ({ ...prev, details }));
     setStep('processing');
@@ -67,10 +69,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         />
       )}
       {step === 'processing' && (
-        <OnboardingProcessing onComplete={handleProcessingComplete} />
+        <OnboardingProcessing onComplete={handleProcessingComplete} data={data} />
       )}
     </div>
   );
 };
-
-export type { OnboardingData };

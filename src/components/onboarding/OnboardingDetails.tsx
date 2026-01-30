@@ -2,7 +2,16 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Ruler, Scale, Calendar, Mail } from 'lucide-react';
+import { ArrowLeft, Ruler, Scale, Calendar, Mail, User } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+export type Gender = 'male' | 'female' | 'other';
 
 interface OnboardingDetailsProps {
   onSubmit: (details: {
@@ -10,6 +19,7 @@ interface OnboardingDetailsProps {
     weight: number;
     age?: number;
     email: string;
+    gender?: Gender;
   }) => void;
   onBack: () => void;
 }
@@ -19,6 +29,7 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
@@ -53,6 +64,7 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
         weight: parseFloat(weight),
         age: age ? parseInt(age) : undefined,
         email,
+        gender,
       });
     }
   };
@@ -152,6 +164,28 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
                 )}
               </div>
             ))}
+          </div>
+
+          {/* Gender selector */}
+          <div className="space-y-1.5 pt-2">
+            <Label 
+              htmlFor="gender" 
+              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
+            >
+              <span className="text-primary"><User className="w-4 h-4" /></span>
+              Gender
+              <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
+              <SelectTrigger id="gender">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Email input */}

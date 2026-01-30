@@ -1,56 +1,197 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import pidyLogo from '@/assets/pidy-logo.png';
+import { supabase } from '@/integrations/supabase/client';
+import { OnboardingData } from './OnboardingFlow';
 
 interface OnboardingProcessingProps {
-  onComplete: () => void;
+  onComplete: (result?: WidgetScanResult) => void;
+  data: OnboardingData;
 }
 
+interface WidgetScanResult {
+  success: boolean;
+  user_id?: string;
+  scan_id?: string;
+  is_new_user?: boolean;
+  measurements?: Array<{
+    name: string;
+    value: number | null;
+    range: number | null;
+    confidence: number | null;
+    unit: string;
+    notes: string;
+  }>;
+  body_type?: string;
+  overall_confidence?: number;
+  pre_analysis_summary?: string;
+  post_analysis_notes?: string;
+  analyzed_at?: string;
+  error?: {
+    code: string;
+    message: string;
+    step: string;
+  };
+}
+
+const SUPABASE_URL = "https://owipkfsjnmydsjhbfjqu.supabase.co";
+
 const steps = [
-  { label: 'Analyzing photos', duration: 2000 },
-  { label: 'Calculating measurements', duration: 2500 },
-  { label: 'Creating your profile', duration: 1500 },
-  { label: 'Preparing fitting room', duration: 1000 },
+  { label: 'Uploading photos', duration: 3000 },
+  { label: 'Analyzing body scan', duration: 8000 },
+  { label: 'Calculating measurements', duration: 4000 },
+  { label: 'Creating your profile', duration: 2000 },
 ];
 
-export const OnboardingProcessing = ({ onComplete }: OnboardingProcessingProps) => {
+export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [apiComplete, setApiComplete] = useState(false);
+  const [result, setResult] = useState<WidgetScanResult | null>(null);
 
+  const uploadImage = useCallback(async (file: File, submissionId: string, type: string): Promise<string> => {
+    const path = `${submissionId}/${type}.jpg`;
+    
+    const { error } = await supabase.storage
+      .from('widget-uploads')
+      .upload(path, file, { contentType: 'image/jpeg', upsert: true });
+
+    if (error) throw new Error(`Failed to upload ${type}: ${error.message}`);
+
+    const { data: urlData } = supabase.storage
+      .from('widget-uploads')
+      .getPublicUrl(path);
+
+    return urlData.publicUrl;
+  }, []);
+
+  const processOnboarding = useCallback(async () => {
+    if (!data.headshot || !data.photos || !data.details) {
+      setError('Missing required data');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Generate unique submission ID
+      const submissionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Step 1: Upload all 3 images
+      // API expects: front, side, back - we have headshot, front, back
+      // Using headshot as profile photo, front and back for body scan
+      const [frontUrl, backUrl, headshotUrl] = await Promise.all([
+        uploadImage(data.photos.front, submissionId, 'front'),
+        uploadImage(data.photos.back, submissionId, 'back'),
+        uploadImage(data.headshot, submissionId, 'headshot'),
+      ]);
+
+      setCurrentStep(1);
+
+      // Step 2: Call widget-scan API
+      // Note: API expects front, side, back but we're sending front, headshot as side, back
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/widget-scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.details.email,
+          images: [frontUrl, headshotUrl, backUrl], // front, "side" (headshot), back
+          height: data.details.height,
+          height_unit: 'cm',
+          weight: data.details.weight,
+          weight_unit: 'kg',
+          age: data.details.age,
+          gender: data.details.gender,
+          model: 'sonnet', // Using cheaper model
+        }),
+      });
+
+      const scanResult: WidgetScanResult = await response.json();
+
+      if (!scanResult.success) {
+        throw new Error(scanResult.error?.message || 'Scan failed');
+      }
+
+      setResult(scanResult);
+      setApiComplete(true);
+      setCurrentStep(3);
+    } catch (err) {
+      console.error('Processing error:', err);
+      setError(err instanceof Error ? err.message : 'Processing failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [data, uploadImage]);
+
+  // Start processing on mount
   useEffect(() => {
-    let totalElapsed = 0;
+    processOnboarding();
+  }, [processOnboarding]);
+
+  // Progress animation
+  useEffect(() => {
+    if (error) return;
+
     const totalDuration = steps.reduce((sum, step) => sum + step.duration, 0);
+    let elapsed = 0;
 
     const interval = setInterval(() => {
-      totalElapsed += 100;
-      const newProgress = Math.min((totalElapsed / totalDuration) * 100, 100);
-      setProgress(newProgress);
+      elapsed += 100;
+      
+      // If API is complete, fast-forward to end
+      if (apiComplete) {
+        setProgress(100);
+        setCurrentStep(steps.length);
+        clearInterval(interval);
+        setTimeout(() => onComplete(result || undefined), 500);
+        return;
+      }
 
-      // Determine current step
-      let elapsed = 0;
-      for (let i = 0; i < steps.length; i++) {
-        elapsed += steps[i].duration;
-        if (totalElapsed < elapsed) {
+      // Otherwise animate based on time
+      const targetProgress = Math.min((elapsed / totalDuration) * 90, 90); // Cap at 90% until API completes
+      setProgress(targetProgress);
+
+      // Update step based on elapsed time
+      let stepElapsed = 0;
+      for (let i = 0; i < steps.length - 1; i++) {
+        stepElapsed += steps[i].duration;
+        if (elapsed < stepElapsed) {
           setCurrentStep(i);
           break;
         }
-        if (i === steps.length - 1) {
-          setCurrentStep(steps.length);
-        }
-      }
-
-      if (totalElapsed >= totalDuration) {
-        clearInterval(interval);
-        // Small delay before completing
-        setTimeout(onComplete, 500);
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [apiComplete, error, onComplete, result]);
 
-  const isComplete = currentStep >= steps.length;
+  const isComplete = currentStep >= steps.length && apiComplete;
+
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6">
+        <div className="w-16 h-16 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+        </div>
+        <h2 className="font-display text-xl text-foreground tracking-wide mb-2">
+          Something went wrong
+        </h2>
+        <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
+          {error}
+        </p>
+        <Button onClick={processOnboarding} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6">
@@ -77,12 +218,12 @@ export const OnboardingProcessing = ({ onComplete }: OnboardingProcessingProps) 
       {/* Status text */}
       <div className="text-center mb-8">
         <h2 className="font-display text-xl text-foreground tracking-wide mb-2">
-          {isComplete ? "You're all set!" : 'Setting up your profile'}
+          {isComplete ? "You're all set!" : 'Analyzing your body scan'}
         </h2>
         <p className="text-xs text-muted-foreground">
           {isComplete 
             ? 'Your private fitting room is ready'
-            : 'This will only take a moment'
+            : 'This may take a moment...'
           }
         </p>
       </div>
@@ -95,7 +236,7 @@ export const OnboardingProcessing = ({ onComplete }: OnboardingProcessingProps) 
       {/* Step indicators */}
       <div className="w-full max-w-xs space-y-3">
         {steps.map((step, index) => {
-          const isActive = index === currentStep;
+          const isActive = index === currentStep && !isComplete;
           const isDone = index < currentStep || isComplete;
 
           return (
@@ -134,11 +275,21 @@ export const OnboardingProcessing = ({ onComplete }: OnboardingProcessingProps) 
         })}
       </div>
 
-      {/* Email notification note */}
-      {isComplete && (
-        <div className="mt-8 p-3 rounded-lg bg-primary/5 border border-primary/20 text-center animate-fade-in">
-          <p className="text-[11px] text-muted-foreground">
-            Check your email for a link to view all your try-ons
+      {/* Results summary */}
+      {isComplete && result && (
+        <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 text-center animate-fade-in w-full max-w-xs">
+          {result.body_type && (
+            <p className="text-sm text-foreground mb-1">
+              Body type: <span className="font-medium capitalize">{result.body_type}</span>
+            </p>
+          )}
+          {result.overall_confidence !== undefined && (
+            <p className="text-xs text-muted-foreground">
+              Confidence: {Math.round(result.overall_confidence * 100)}%
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-3">
+            Check your email for a link to access your measurements
           </p>
         </div>
       )}
