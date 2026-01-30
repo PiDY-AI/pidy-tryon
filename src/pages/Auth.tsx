@@ -25,6 +25,13 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const [debugInfo, setDebugInfo] = useState<{
+    tokenReceived: boolean;
+    sessionSet: boolean;
+    redirectTo: string;
+    error?: string;
+  } | null>(null);
+
   const handleOnboardingComplete = async (data: OnboardingData, result?: WidgetScanResult) => {
     // widget-scan API already created the user account
     // Mark onboarding as complete so user isn't redirected back here
@@ -40,16 +47,21 @@ const Auth = () => {
       token_type: result?.token_type,
     });
 
+    let sessionSet = false;
+    let sessionError: string | undefined;
+
     // Fallback: apply session here too (guards against iframe/popup storage quirks)
     if (tokenReceived && result?.access_token && result?.refresh_token) {
-      const { error: sessionError } = await supabase.auth.setSession({
+      const { error: setSessionError } = await supabase.auth.setSession({
         access_token: result.access_token,
         refresh_token: result.refresh_token,
       });
 
-      if (sessionError) {
-        console.warn('[Auth] Failed to set session from widget-scan tokens:', sessionError.message);
+      if (setSessionError) {
+        console.warn('[Auth] Failed to set session from widget-scan tokens:', setSessionError.message);
+        sessionError = setSessionError.message;
       } else {
+        sessionSet = true;
         const { data: sessionData } = await supabase.auth.getSession();
         console.log('[Auth] Session after setSession:', {
           has_access_token: !!sessionData.session?.access_token,
@@ -61,6 +73,20 @@ const Auth = () => {
     // Check if this is a popup window
     const isPopup = searchParams.get('popup');
     const productId = searchParams.get('productId');
+    
+    // Determine redirect path
+    let redirectPath = '/';
+    if (productId) {
+      redirectPath = `/?productId=${productId}`;
+    }
+
+    // Show debug banner for 3 seconds before routing
+    setDebugInfo({
+      tokenReceived,
+      sessionSet,
+      redirectTo: isPopup ? 'POPUP_CLOSE' : redirectPath,
+      error: sessionError,
+    });
     
     if (isPopup && window.opener) {
       // If we have tokens, send them to the opener (the widget) so it can become authed immediately.
@@ -82,13 +108,12 @@ const Auth = () => {
         window.location.origin
       );
 
+      // Wait to show debug banner
+      await new Promise(resolve => setTimeout(resolve, 3000));
       window.close();
     } else {
-      // Redirect to main page to try on items
-      let redirectPath = '/';
-      if (productId) {
-        redirectPath = `/?productId=${productId}`;
-      }
+      // Wait to show debug banner before redirect
+      await new Promise(resolve => setTimeout(resolve, 3000));
       navigate(redirectPath);
     }
     
@@ -218,6 +243,18 @@ const Auth = () => {
 
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="w-full max-w-md">
+            {/* Debug Banner */}
+            {debugInfo && (
+              <div className="mb-4 p-4 rounded-lg bg-primary/20 border border-primary text-foreground text-sm">
+                <p className="font-bold mb-2">🔍 DEBUG: Routing Decision</p>
+                <p>Token Received: <span className={debugInfo.tokenReceived ? 'text-green-400' : 'text-red-400'}>{debugInfo.tokenReceived ? 'YES ✓' : 'NO ✗'}</span></p>
+                <p>Session Set: <span className={debugInfo.sessionSet ? 'text-green-400' : 'text-red-400'}>{debugInfo.sessionSet ? 'YES ✓' : 'NO ✗'}</span></p>
+                <p>Will Navigate To: <span className="text-primary font-mono">{debugInfo.redirectTo}</span></p>
+                {debugInfo.error && <p className="text-red-400">Error: {debugInfo.error}</p>}
+                <p className="mt-2 text-xs text-muted-foreground">Redirecting in 3 seconds...</p>
+              </div>
+            )}
+
             {/* Back button */}
             <button
               onClick={() => setShowOnboarding(false)}
