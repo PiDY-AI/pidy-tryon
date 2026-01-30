@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, Check, ArrowLeft, User, RotateCcw } from 'lucide-react';
+import { Check, ArrowLeft, User, RotateCcw } from 'lucide-react';
 
 interface OnboardingPhotoCaptureProps {
   onNext: (photos: { front: File; back: File }) => void;
@@ -75,10 +75,10 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
 
       <div className="flex-shrink-0 text-center px-6 pb-4">
         <h2 className="font-display text-lg text-foreground tracking-wide mb-1">
-          Body Photos
+          Step 2 of 3
         </h2>
         <p className="text-xs text-muted-foreground">
-          Take 2 photos holding an A4 sheet
+          Upload front & back body photos with A4 sheet
         </p>
       </div>
 

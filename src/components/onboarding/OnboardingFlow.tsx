@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { OnboardingGuidelines } from './OnboardingGuidelines';
+import { OnboardingHeadshot } from './OnboardingHeadshot';
 import { OnboardingPhotoCapture } from './OnboardingPhotoCapture';
 import { OnboardingDetails } from './OnboardingDetails';
 import { OnboardingProcessing } from './OnboardingProcessing';
 
-type OnboardingStep = 'guidelines' | 'photos' | 'details' | 'processing';
+type OnboardingStep = 'headshot' | 'photos' | 'details' | 'processing';
 
 interface OnboardingData {
+  headshot?: File;
   photos?: { front: File; back: File };
   details?: {
     height: number;
@@ -21,8 +22,13 @@ interface OnboardingFlowProps {
 }
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [step, setStep] = useState<OnboardingStep>('guidelines');
+  const [step, setStep] = useState<OnboardingStep>('headshot');
   const [data, setData] = useState<OnboardingData>({});
+
+  const handleHeadshotComplete = (headshot: File) => {
+    setData((prev) => ({ ...prev, headshot }));
+    setStep('photos');
+  };
 
   const handlePhotosComplete = (photos: { front: File; back: File }) => {
     setData((prev) => ({ ...prev, photos }));
@@ -45,13 +51,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   return (
     <div className="h-full">
-      {step === 'guidelines' && (
-        <OnboardingGuidelines onNext={() => setStep('photos')} />
+      {step === 'headshot' && (
+        <OnboardingHeadshot onNext={handleHeadshotComplete} />
       )}
       {step === 'photos' && (
         <OnboardingPhotoCapture
           onNext={handlePhotosComplete}
-          onBack={() => setStep('guidelines')}
+          onBack={() => setStep('headshot')}
         />
       )}
       {step === 'details' && (
