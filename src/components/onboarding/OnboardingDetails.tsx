@@ -1,0 +1,201 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Ruler, Scale, Calendar, Mail } from 'lucide-react';
+
+interface OnboardingDetailsProps {
+  onSubmit: (details: {
+    height: number;
+    weight: number;
+    age?: number;
+    email: string;
+  }) => void;
+  onBack: () => void;
+}
+
+export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) => {
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [age, setAge] = useState('');
+  const [email, setEmail] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    const heightNum = parseFloat(height);
+    const weightNum = parseFloat(weight);
+    const ageNum = age ? parseInt(age) : undefined;
+
+    if (!height || isNaN(heightNum) || heightNum < 100 || heightNum > 250) {
+      newErrors.height = 'Height must be 100-250 cm';
+    }
+    if (!weight || isNaN(weightNum) || weightNum < 30 || weightNum > 200) {
+      newErrors.weight = 'Weight must be 30-200 kg';
+    }
+    if (age && (isNaN(ageNum!) || ageNum! < 13 || ageNum! > 120)) {
+      newErrors.age = 'Age must be 13-120';
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      onSubmit({
+        height: parseFloat(height),
+        weight: parseFloat(weight),
+        age: age ? parseInt(age) : undefined,
+        email,
+      });
+    }
+  };
+
+  const inputFields = [
+    {
+      key: 'height',
+      label: 'Height',
+      icon: <Ruler className="w-4 h-4" />,
+      unit: 'cm',
+      value: height,
+      onChange: setHeight,
+      placeholder: '170',
+      required: true,
+    },
+    {
+      key: 'weight',
+      label: 'Weight',
+      icon: <Scale className="w-4 h-4" />,
+      unit: 'kg',
+      value: weight,
+      onChange: setWeight,
+      placeholder: '70',
+      required: true,
+    },
+    {
+      key: 'age',
+      label: 'Age',
+      icon: <Calendar className="w-4 h-4" />,
+      unit: 'years',
+      value: age,
+      onChange: setAge,
+      placeholder: 'Optional',
+      required: false,
+    },
+  ];
+
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
+      {/* Header */}
+      <div className="flex-shrink-0 px-6 pt-4 pb-2">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+      </div>
+
+      <div className="flex-shrink-0 text-center px-6 pb-4">
+        <h2 className="font-display text-lg text-foreground tracking-wide mb-1">
+          Your Details
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Help us perfect your fit
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-6 overflow-y-auto">
+        <div className="space-y-4">
+          {/* Measurement inputs */}
+          <div className="grid grid-cols-3 gap-3">
+            {inputFields.map((field) => (
+              <div key={field.key} className="space-y-1.5">
+                <Label 
+                  htmlFor={field.key} 
+                  className="flex items-center gap-1.5 text-xs font-medium text-foreground"
+                >
+                  <span className="text-primary">{field.icon}</span>
+                  {field.label}
+                  {!field.required && (
+                    <span className="text-muted-foreground font-normal">(opt)</span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id={field.key}
+                    type="number"
+                    value={field.value}
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      if (errors[field.key]) {
+                        setErrors((prev) => ({ ...prev, [field.key]: '' }));
+                      }
+                    }}
+                    placeholder={field.placeholder}
+                    className={`pr-8 text-sm ${errors[field.key] ? 'border-destructive' : ''}`}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                    {field.unit}
+                  </span>
+                </div>
+                {errors[field.key] && (
+                  <p className="text-[10px] text-destructive">{errors[field.key]}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Email input */}
+          <div className="space-y-1.5 pt-2">
+            <Label 
+              htmlFor="email" 
+              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
+            >
+              <span className="text-primary"><Mail className="w-4 h-4" /></span>
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) {
+                  setErrors((prev) => ({ ...prev, email: '' }));
+                }
+              }}
+              placeholder="your@email.com"
+              className={errors.email ? 'border-destructive' : ''}
+            />
+            {errors.email && (
+              <p className="text-[10px] text-destructive">{errors.email}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              We'll send you a link to access your try-ons
+            </p>
+          </div>
+        </div>
+
+        {/* Submit button */}
+        <div className="flex-shrink-0 pt-6 pb-6 mt-auto">
+          <Button 
+            type="submit"
+            className="w-full h-12 rounded-none btn-luxury"
+            size="lg"
+          >
+            Create My Profile
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};

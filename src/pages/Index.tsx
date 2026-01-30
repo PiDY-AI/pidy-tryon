@@ -5,9 +5,11 @@ import { ProductCard } from '@/components/ProductCard';
 import { TryOnResult } from '@/components/TryOnResult';
 import { TryOnLoading } from '@/components/TryOnLoading';
 import { TrialRoomDoor } from '@/components/TrialRoomDoor';
+import { OnboardingFlow, OnboardingData } from '@/components/onboarding/OnboardingFlow';
 import { useTryOn } from '@/hooks/useTryOn';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ const Index = () => {
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
   const { products, isLoading: isProductsLoading } = useProducts();
+  const { needsOnboarding, isLoading: isOnboardingLoading, completeOnboarding } = useOnboarding();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tryOnResult, setTryOnResult] = useState<TryOnResultType | null>(null);
   const [hasSessionToken, setHasSessionToken] = useState(false);
@@ -42,7 +45,16 @@ const Index = () => {
   
   // In embedded iframes, Supabase auth "loading" can remain true due to storage partitioning.
   // The SDK token is the source of truth in embed mode, so don't block UI on authLoading.
-  const isInitializing = !sessionCheckComplete || (!embedMode && authLoading);
+  const isInitializing = !sessionCheckComplete || (!embedMode && authLoading) || isOnboardingLoading;
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = async (data: OnboardingData) => {
+    // TODO: Send data to backend (photos, measurements, email)
+    // For now, just mark onboarding as complete locally
+    console.log('[PIDY Widget] Onboarding data:', data);
+    completeOnboarding();
+    toast.success('Profile created! You can now try on clothes.');
+  };
 
   // Cross-check session presence (iframe/popup storage can be flaky)
   // IMPORTANT: In embed mode, wait for SDK tokens before completing session check
@@ -421,6 +433,9 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
+              ) : needsOnboarding ? (
+                // First-time user onboarding flow
+                <OnboardingFlow onComplete={handleOnboardingComplete} />
               ) : !showDoorAnimation ? (
                 // Luxury fitting room door
                 <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6 gap-6">
