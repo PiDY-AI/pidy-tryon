@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowLeft, User, RotateCcw } from 'lucide-react';
+import { Check, ArrowLeft, User, RotateCcw, Camera, Upload } from 'lucide-react';
 
 interface OnboardingPhotoCaptureProps {
   onNext: (photos: { front: File; back: File }) => void;
@@ -15,8 +15,10 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
   
-  const frontInputRef = useRef<HTMLInputElement>(null);
-  const backInputRef = useRef<HTMLInputElement>(null);
+  const frontCameraRef = useRef<HTMLInputElement>(null);
+  const frontUploadRef = useRef<HTMLInputElement>(null);
+  const backCameraRef = useRef<HTMLInputElement>(null);
+  const backUploadRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (type: PhotoType, file: File) => {
     const reader = new FileReader();
@@ -44,11 +46,9 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     if (type === 'front') {
       setFrontPhoto(null);
       setFrontPreview(null);
-      if (frontInputRef.current) frontInputRef.current.value = '';
     } else {
       setBackPhoto(null);
       setBackPreview(null);
-      if (backInputRef.current) backInputRef.current.value = '';
     }
   };
 
@@ -59,6 +59,91 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   };
 
   const isComplete = frontPhoto && backPhoto;
+
+  const PhotoCard = ({ 
+    type, 
+    preview, 
+    onClear,
+    cameraRef,
+    uploadRef,
+  }: { 
+    type: PhotoType; 
+    preview: string | null;
+    onClear: () => void;
+    cameraRef: React.RefObject<HTMLInputElement>;
+    uploadRef: React.RefObject<HTMLInputElement>;
+  }) => (
+    <div className="space-y-2">
+      <p className="text-[10px] uppercase tracking-luxury text-muted-foreground text-center">
+        {type === 'front' ? 'Front View' : 'Back View'}
+      </p>
+      <div 
+        className={`relative aspect-[3/4] rounded-lg border-2 transition-all duration-300 overflow-hidden ${
+          preview 
+            ? 'border-primary bg-primary/5' 
+            : 'border-dashed border-border bg-card/30'
+        }`}
+      >
+        {preview ? (
+          <>
+            <img 
+              src={preview} 
+              alt={`${type} view`} 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+              <Check className="w-3 h-3 text-primary-foreground" />
+            </div>
+            <button
+              onClick={onClear}
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-black/50 backdrop-blur-sm text-white text-[9px] font-medium flex items-center gap-1 hover:bg-black/70 transition-colors"
+            >
+              <RotateCcw className="w-2.5 h-2.5" />
+              Remove
+            </button>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+            <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mb-3">
+              <User className={`w-5 h-5 text-primary ${type === 'back' ? 'transform rotate-180' : ''}`} />
+            </div>
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={() => cameraRef.current?.click()}
+                className="flex-1 py-1.5 rounded bg-primary/10 border border-primary/30 text-primary text-[9px] font-medium flex flex-col items-center gap-0.5 hover:bg-primary/20 transition-colors"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                Camera
+              </button>
+              <button
+                onClick={() => uploadRef.current?.click()}
+                className="flex-1 py-1.5 rounded bg-card border border-border text-muted-foreground text-[9px] font-medium flex flex-col items-center gap-0.5 hover:bg-secondary transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Hidden inputs */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleInputChange(type)}
+      />
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleInputChange(type)}
+      />
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
@@ -78,122 +163,27 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           Step 2 of 3
         </h2>
         <p className="text-xs text-muted-foreground">
-          Upload front & back body photos with A4 sheet
+          Add front & back body photos with A4 sheet
         </p>
       </div>
 
       {/* Photo capture grid */}
       <div className="flex-1 px-6 overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
-          {/* Front photo */}
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-luxury text-muted-foreground text-center">
-              Front View
-            </p>
-            <div 
-              className={`relative aspect-[3/4] rounded-lg border-2 border-dashed transition-all duration-300 overflow-hidden ${
-                frontPreview 
-                  ? 'border-primary/50 bg-primary/5' 
-                  : 'border-border hover:border-primary/30 bg-card/30'
-              }`}
-            >
-              {frontPreview ? (
-                <>
-                  <img 
-                    src={frontPreview} 
-                    alt="Front view" 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-2 left-2 right-2 flex gap-1">
-                    <button
-                      onClick={() => frontInputRef.current?.click()}
-                      className="flex-1 h-7 rounded bg-white/20 backdrop-blur-sm text-white text-[10px] font-medium flex items-center justify-center gap-1 hover:bg-white/30 transition-colors"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      Retake
-                    </button>
-                  </div>
-                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={() => frontInputRef.current?.click()}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-                    <User className="w-6 h-6 text-primary" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Tap to capture or upload</span>
-                </button>
-              )}
-              <input
-                ref={frontInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleInputChange('front')}
-              />
-            </div>
-          </div>
-
-          {/* Back photo */}
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-luxury text-muted-foreground text-center">
-              Back View
-            </p>
-            <div 
-              className={`relative aspect-[3/4] rounded-lg border-2 border-dashed transition-all duration-300 overflow-hidden ${
-                backPreview 
-                  ? 'border-primary/50 bg-primary/5' 
-                  : 'border-border hover:border-primary/30 bg-card/30'
-              }`}
-            >
-              {backPreview ? (
-                <>
-                  <img 
-                    src={backPreview} 
-                    alt="Back view" 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-2 left-2 right-2 flex gap-1">
-                    <button
-                      onClick={() => backInputRef.current?.click()}
-                      className="flex-1 h-7 rounded bg-white/20 backdrop-blur-sm text-white text-[10px] font-medium flex items-center justify-center gap-1 hover:bg-white/30 transition-colors"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      Retake
-                    </button>
-                  </div>
-                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={() => backInputRef.current?.click()}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-                    <User className="w-6 h-6 text-primary transform rotate-180" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Tap to capture or upload</span>
-                </button>
-              )}
-              <input
-                ref={backInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleInputChange('back')}
-              />
-            </div>
-          </div>
+          <PhotoCard 
+            type="front" 
+            preview={frontPreview} 
+            onClear={() => clearPhoto('front')}
+            cameraRef={frontCameraRef}
+            uploadRef={frontUploadRef}
+          />
+          <PhotoCard 
+            type="back" 
+            preview={backPreview} 
+            onClear={() => clearPhoto('back')}
+            cameraRef={backCameraRef}
+            uploadRef={backUploadRef}
+          />
         </div>
 
         {/* Tips */}
@@ -215,7 +205,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           className="w-full h-12 rounded-none btn-luxury"
           size="lg"
         >
-          {isComplete ? 'Continue' : 'Upload both photos'}
+          {isComplete ? 'Continue' : 'Add both photos'}
         </Button>
       </div>
     </div>
