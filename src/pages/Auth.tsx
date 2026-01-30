@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { OnboardingFlow, OnboardingData } from '@/components/onboarding/OnboardingFlow';
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import pidyLogo from '@/assets/pidy-logo.png';
@@ -17,13 +18,15 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { completeOnboarding } = useOnboarding();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const handleOnboardingComplete = (data: OnboardingData) => {
     // widget-scan API already created the user account
-    // Go directly to try-on experience - user will get magic link email to set password later
+    // Mark onboarding as complete so user isn't redirected back here
+    completeOnboarding();
     console.log('[Auth] Onboarding complete, user created by widget-scan');
     
     // Check if this is a popup window
