@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, User } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { ScrollPicker } from '@/components/ui/scroll-picker';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -86,59 +87,56 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
     }
   };
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-4 pb-2">
+      <div className="flex-shrink-0 px-6 pt-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm"
+          className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors text-xs"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back
+          <ArrowLeft className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="flex-shrink-0 text-center px-6 pb-4">
-        <h2 className="font-display text-lg text-foreground tracking-wide mb-1">
-          Step 3 of 3
+      <div className="flex-shrink-0 text-center px-6 pb-2 pt-2">
+        <p className="text-[9px] uppercase tracking-[0.2em] text-primary/70 mb-1">Step 3 of 3</p>
+        <h2 className="font-display text-xl text-foreground">
+          Your Details
         </h2>
-        <p className="text-xs text-muted-foreground">
-          Enter your details
-        </p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-6 overflow-y-auto">
-        <div className="space-y-4">
-          {/* Name input */}
-          <div className="space-y-1.5">
-            <Label 
-              htmlFor="name" 
-              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
-            >
-              <span className="text-primary"><User className="w-4 h-4" /></span>
-              Full Name
-            </Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (errors.name) {
-                  setErrors((prev) => ({ ...prev, name: '' }));
-                }
-              }}
-              placeholder="John Doe"
-              className={errors.name ? 'border-destructive' : ''}
-            />
-            {errors.name && (
-              <p className="text-[10px] text-destructive">{errors.name}</p>
+        {/* Name input - refined */}
+        <div className="space-y-1.5 mb-4">
+          <Label 
+            htmlFor="name" 
+            className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70"
+          >
+            Full Name
+          </Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+            }}
+            placeholder="Enter your name"
+            className={cn(
+              "h-11 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
+              errors.name && 'border-destructive/50'
             )}
-          </div>
+          />
+          {errors.name && (
+            <p className="text-[10px] text-destructive/80">{errors.name}</p>
+          )}
+        </div>
 
-          {/* Measurement scroll pickers */}
-          <div className="flex justify-center gap-6 py-4">
+        {/* Measurement scroll pickers - centered section */}
+        <div className="py-4 border-y border-border/20">
+          <div className="flex justify-center gap-8">
             <ScrollPicker
               label="Height"
               values={heightValues}
@@ -168,71 +166,74 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
             />
           </div>
           {(errors.height || errors.weight) && (
-            <p className="text-[10px] text-destructive text-center">
+            <p className="text-[10px] text-destructive/80 text-center mt-2">
               {errors.height || errors.weight}
             </p>
           )}
+        </div>
 
-          {/* Gender selector */}
-          <div className="space-y-1.5 pt-2">
-            <Label 
-              htmlFor="gender" 
-              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
-            >
-              Gender
-              <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Gender - minimal chips */}
+        <div className="py-4">
+          <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 block mb-3">
+            Gender <span className="normal-case tracking-normal">(optional)</span>
+          </Label>
+          <div className="flex gap-2">
+            {(['male', 'female', 'other'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGender(gender === g ? undefined : g)}
+                className={cn(
+                  "flex-1 py-2 text-[11px] uppercase tracking-wider border rounded transition-all duration-200",
+                  gender === g 
+                    ? "border-primary/50 bg-primary/10 text-primary" 
+                    : "border-border/30 text-muted-foreground/60 hover:border-border/50 hover:text-muted-foreground"
+                )}
+              >
+                {g}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Email input */}
-          <div className="space-y-1.5 pt-2">
-            <Label 
-              htmlFor="email" 
-              className="flex items-center gap-1.5 text-xs font-medium text-foreground"
-            >
-              <span className="text-primary"><Mail className="w-4 h-4" /></span>
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (errors.email) {
-                  setErrors((prev) => ({ ...prev, email: '' }));
-                }
-              }}
-              placeholder="your@email.com"
-              className={errors.email ? 'border-destructive' : ''}
-            />
-            {errors.email && (
-              <p className="text-[10px] text-destructive">{errors.email}</p>
+        {/* Email input - refined */}
+        <div className="space-y-1.5">
+          <Label 
+            htmlFor="email" 
+            className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70"
+          >
+            Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+            }}
+            placeholder="your@email.com"
+            className={cn(
+              "h-11 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
+              errors.email && 'border-destructive/50'
             )}
-            <p className="text-[10px] text-muted-foreground">
-              We'll send you a link to access your try-ons
-            </p>
-          </div>
+          />
+          {errors.email && (
+            <p className="text-[10px] text-destructive/80">{errors.email}</p>
+          )}
+          <p className="text-[10px] text-muted-foreground/50 pt-1">
+            We'll send your try-on results here
+          </p>
         </div>
 
         {/* Submit button */}
         <div className="flex-shrink-0 pt-6 pb-6 mt-auto">
           <Button 
             type="submit"
-            className="w-full h-12 rounded-none btn-luxury"
+            className="w-full h-11 rounded-none btn-luxury text-[11px]"
             size="lg"
           >
-            Create My Profile
+            Continue
           </Button>
         </div>
       </form>
