@@ -8,8 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { OnboardingFlow, OnboardingData } from '@/components/onboarding/OnboardingFlow';
+import type { WidgetScanResult } from '@/components/onboarding/OnboardingProcessing';
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import pidyLogo from '@/assets/pidy-logo.png';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,23 +25,63 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const handleOnboardingComplete = (data: OnboardingData) => {
+  const handleOnboardingComplete = async (data: OnboardingData, result?: WidgetScanResult) => {
     // widget-scan API already created the user account
     // Mark onboarding as complete so user isn't redirected back here
     completeOnboarding();
-    console.log('[Auth] Onboarding complete, user created by widget-scan');
+
+    const tokenReceived = !!result?.access_token && !!result?.refresh_token;
+    console.log('[Auth] Onboarding complete (widget-scan):', {
+      token_received: tokenReceived,
+      is_new_user: result?.is_new_user,
+      user_id: result?.user_id,
+      scan_id: result?.scan_id,
+      expires_in: result?.expires_in,
+      token_type: result?.token_type,
+    });
+
+    // Fallback: apply session here too (guards against iframe/popup storage quirks)
+    if (tokenReceived && result?.access_token && result?.refresh_token) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      });
+
+      if (sessionError) {
+        console.warn('[Auth] Failed to set session from widget-scan tokens:', sessionError.message);
+      } else {
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log('[Auth] Session after setSession:', {
+          has_access_token: !!sessionData.session?.access_token,
+          user_id: sessionData.session?.user?.id,
+        });
+      }
+    }
     
     // Check if this is a popup window
     const isPopup = searchParams.get('popup');
     const productId = searchParams.get('productId');
     
     if (isPopup && window.opener) {
-      // Close popup and let user continue in main window
-      // They're already set up via widget-scan, just need to sign in later
-      window.opener.postMessage({ 
-        type: 'pidy-onboarding-complete',
-        email: data.details?.email 
-      }, window.location.origin);
+      // If we have tokens, send them to the opener (the widget) so it can become authed immediately.
+      if (tokenReceived && result?.access_token && result?.refresh_token) {
+        window.opener.postMessage(
+          { type: 'tryon-auth-session', access_token: result.access_token, refresh_token: result.refresh_token },
+          window.location.origin
+        );
+      }
+
+      // Also notify onboarding completion (used by some embed contexts)
+      window.opener.postMessage(
+        {
+          type: 'pidy-onboarding-complete',
+          email: data.details?.email,
+          token_received: tokenReceived,
+          is_new_user: result?.is_new_user,
+        },
+        window.location.origin
+      );
+
       window.close();
     } else {
       // Redirect to main page to try on items

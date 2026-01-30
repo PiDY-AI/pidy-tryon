@@ -97,6 +97,26 @@ const Index = () => {
     };
   }, [authLoading, embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep local token state in sync when onboarding sets a session (or when auth changes elsewhere)
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        setHasSessionToken(true);
+        if (!authToken) setAuthToken(session.access_token);
+        setSessionCheckComplete(true);
+        return;
+      }
+
+      setHasSessionToken(false);
+      // In embed mode, keep SDK-provided in-memory tokens even if the Supabase session can't persist.
+      if (!embedMode) setAuthToken(null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [authToken, embedMode]);
+
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
   // We still allow the flow by creating a lightweight placeholder product.

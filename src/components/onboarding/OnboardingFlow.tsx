@@ -3,6 +3,7 @@ import { OnboardingHeadshot } from './OnboardingHeadshot';
 import { OnboardingPhotoCapture } from './OnboardingPhotoCapture';
 import { OnboardingDetails, Gender } from './OnboardingDetails';
 import { OnboardingProcessing } from './OnboardingProcessing';
+import type { WidgetScanResult } from './OnboardingProcessing';
 
 type OnboardingStep = 'headshot' | 'photos' | 'details' | 'processing';
 
@@ -20,7 +21,7 @@ export interface OnboardingData {
 }
 
 interface OnboardingFlowProps {
-  onComplete: (data: OnboardingData) => void;
+  onComplete: (data: OnboardingData, result?: WidgetScanResult) => void;
 }
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
@@ -49,8 +50,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setStep('processing');
   };
 
-  const handleProcessingComplete = () => {
-    onComplete(data);
+  const handleProcessingComplete = (result?: WidgetScanResult) => {
+    onComplete(data, result);
   };
 
   return (
