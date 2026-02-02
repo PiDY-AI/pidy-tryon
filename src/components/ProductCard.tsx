@@ -16,11 +16,18 @@ export const ProductCard = ({ product, onTryOn, isSelected }: ProductCardProps) 
       }`}
     >
       <div className="aspect-[3/4] relative overflow-hidden bg-secondary">
-        <img 
-          src={product.image} 
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-        />
+        {product.image ? (
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+            onError={(e) => e.currentTarget.style.display = 'none'}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <Shirt className="w-12 h-12 opacity-50" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
       </div>
       <div className="p-4 space-y-3">
