@@ -489,11 +489,27 @@ const Index = () => {
                 // Luxury sign-in screen
                 <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-8">
                   <div className="text-center max-w-xs">
-                    {/* Elegant logo presentation */}
+                    {/* Elegant logo presentation - use text fallback if image fails */}
                     <div className="relative w-24 h-24 mx-auto mb-8">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-glow-subtle" />
                       <div className="absolute inset-2 rounded-full bg-background border border-primary/30 flex items-center justify-center">
-                        <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                        <img 
+                          src={pidyLogo} 
+                          alt="" 
+                          className="w-12 h-12 object-contain" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            // Show text fallback
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }} 
+                        />
+                        <span 
+                          className="font-display text-2xl text-primary hidden items-center justify-center"
+                          style={{ display: 'none' }}
+                        >
+                          P
+                        </span>
                       </div>
                     </div>
                     <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
