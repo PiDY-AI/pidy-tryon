@@ -39,6 +39,7 @@ const Index = () => {
   const [hasSessionToken, setHasSessionToken] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
+  const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('claude-openai');
 
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
@@ -310,6 +311,7 @@ const Index = () => {
       productId: product.id,
       selectedSize: sizeToUse,
       accessTokenOverride: authToken ?? undefined,
+      provider,
     });
 
     if (backendResult) {
@@ -521,6 +523,33 @@ const Index = () => {
                       </span>
                     </div>
                   )}
+                  
+                  {/* Provider toggle */}
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase tracking-luxury text-muted-foreground mb-2">Generation Mode</p>
+                    <div className="flex items-center justify-center gap-1 p-1 border border-border/40 bg-background/30 backdrop-blur-sm">
+                      <button
+                        onClick={() => setProvider('claude-openai')}
+                        className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 ${
+                          provider === 'claude-openai'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Best Quality
+                      </button>
+                      <button
+                        onClick={() => setProvider('groq-replicate')}
+                        className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 ${
+                          provider === 'groq-replicate'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Fast
+                      </button>
+                    </div>
+                  </div>
                   
                   {/* Luxury fitting room door */}
                   <button 
