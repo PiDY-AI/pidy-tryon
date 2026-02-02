@@ -172,9 +172,21 @@
       iframe.style.border = 'none';
       iframe.style.borderRadius = '12px';
       iframe.style.overflow = 'hidden';
-      iframe.style.background = 'transparent';
+      // IMPORTANT: Use a solid background to avoid parent-page background bleeding through
+      // and to prevent white flashes/overlays on some browsers during iframe paint.
+      iframe.style.background = '#0d0d0d';
+      iframe.style.display = 'block';
       iframe.allow = 'clipboard-write';
       iframe.setAttribute('allowtransparency', 'true');
+
+      // Ensure the container itself doesn't show through if the iframe is still painting.
+      try {
+        this._container.style.background = '#0d0d0d';
+        this._container.style.borderRadius = '12px';
+        this._container.style.overflow = 'hidden';
+      } catch (e) {
+        // ignore
+      }
 
       this._container.innerHTML = '';
       this._container.appendChild(iframe);
