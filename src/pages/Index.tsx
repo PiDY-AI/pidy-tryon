@@ -306,7 +306,11 @@ const Index = () => {
     setTryOnSequence((v) => v + 1);
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
-    const backendResult = await generateTryOn(product.id, sizeToUse, authToken ?? undefined);
+    const backendResult = await generateTryOn({
+      productId: product.id,
+      selectedSize: sizeToUse,
+      accessTokenOverride: authToken ?? undefined,
+    });
 
     if (backendResult) {
       const result: TryOnResultType = {

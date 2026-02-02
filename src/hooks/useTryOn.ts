@@ -8,8 +8,15 @@ interface TryOnResult {
   prompt?: string;
 }
 
+interface GenerateTryOnOptions {
+  productId: string;
+  selectedSize: string;
+  accessTokenOverride?: string;
+  provider?: 'claude-openai' | 'groq-replicate';
+}
+
 interface UseTryOnReturn {
-  generateTryOn: (productId: string, selectedSize: string, accessTokenOverride?: string) => Promise<TryOnResult | null>;
+  generateTryOn: (options: GenerateTryOnOptions) => Promise<TryOnResult | null>;
   isLoading: boolean;
   error: string | null;
   result: TryOnResult | null;
@@ -20,11 +27,12 @@ export const useTryOn = (): UseTryOnReturn => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryOnResult | null>(null);
 
-  const generateTryOn = async (
-    productId: string,
-    selectedSize: string,
-    accessTokenOverride?: string
-  ): Promise<TryOnResult | null> => {
+  const generateTryOn = async ({
+    productId,
+    selectedSize,
+    accessTokenOverride,
+    provider,
+  }: GenerateTryOnOptions): Promise<TryOnResult | null> => {
     setIsLoading(true);
     setError(null);
 
@@ -44,8 +52,13 @@ export const useTryOn = (): UseTryOnReturn => {
       }
 
       // Invoke edge function with explicit Authorization header
+      const requestBody: Record<string, string> = { productId, size: selectedSize };
+      if (provider) {
+        requestBody.provider = provider;
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke('tryon', {
-        body: { productId, size: selectedSize },
+        body: requestBody,
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
