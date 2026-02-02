@@ -97,6 +97,20 @@
     font-weight: 500;
     letter-spacing: 0.02em;
   }
+
+  /* Hide broken images globally to prevent browser "X" placeholders */
+  img:not([src]),
+  img[src=""],
+  img:-moz-broken,
+  img:-moz-user-disabled {
+    visibility: hidden;
+  }
+
+  /* Fallback for errored images - make invisible */
+  img::before {
+    content: "";
+    display: block;
+  }
 }
 
 @layer utilities {
