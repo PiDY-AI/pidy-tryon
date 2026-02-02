@@ -307,26 +307,32 @@ const Index = () => {
     setTryOnSequence((v) => v + 1);
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
-    const backendResult = await generateTryOn({
-      productId: product.id,
-      selectedSize: sizeToUse,
-      accessTokenOverride: authToken ?? undefined,
-      provider,
-      retry: isRetry,
-    });
+    
+    try {
+      const backendResult = await generateTryOn({
+        productId: product.id,
+        selectedSize: sizeToUse,
+        accessTokenOverride: authToken ?? undefined,
+        provider,
+        retry: isRetry,
+      });
 
-    if (backendResult) {
-      const result: TryOnResultType = {
-        recommendedSize: backendResult.recommendedSize || sizeToUse,
-        fitScore: backendResult.fitScore || 85,
-        fitNotes: ['Based on your body scan'],
-        images: backendResult.images,
-        prompt: backendResult.prompt,
-      };
-      setTryOnResult(result);
-      toast.success(`Try-on generated for size: ${sizeToUse}`);
-    } else {
-      toast.error(tryOnError || 'Try-on generation failed. Please try again.');
+      if (backendResult) {
+        const result: TryOnResultType = {
+          recommendedSize: backendResult.recommendedSize || sizeToUse,
+          fitScore: backendResult.fitScore || 85,
+          fitNotes: ['Based on your body scan'],
+          images: backendResult.images,
+          prompt: backendResult.prompt,
+        };
+        setTryOnResult(result);
+        toast.success(`Try-on generated for size: ${sizeToUse}`);
+      } else {
+        toast.error(tryOnError || 'Try-on generation failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('[PIDY Widget] Try-on error:', error);
+      toast.error(error instanceof Error ? error.message : 'Try-on generation failed. Please try again.');
     }
   };
 
