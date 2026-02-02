@@ -1,0 +1,13 @@
+run = "npm run dev -- --host 0.0.0.0 --port 3000"
+entrypoint = "src/main.tsx"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "npm run build && npm run preview -- --host 0.0.0.0 --port 3000"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
