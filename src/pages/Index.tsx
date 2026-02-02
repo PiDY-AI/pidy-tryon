@@ -752,7 +752,7 @@ const Index = () => {
                   >
                     <div className="h-full overflow-y-auto p-4">
                       {!isTryOnLoading && selectedProduct && tryOnResult && (
-                        <div className="animate-reveal-up">
+                        <div className="animate-reveal-up space-y-4">
                           <TryOnResult 
                             result={tryOnResult} 
                             product={selectedProduct}
@@ -762,6 +762,16 @@ const Index = () => {
                               setDoorOpened(false);
                             }}
                           />
+                          
+                          {/* Retry button below result */}
+                          <Button
+                            onClick={() => handleTryOn(selectedProduct, undefined, true)}
+                            className="w-full"
+                            variant="outline"
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Retry Try-On
+                          </Button>
                         </div>
                       )}
 
