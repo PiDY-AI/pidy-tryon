@@ -37,6 +37,16 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   const rawImageSrc = imageUrl && !imageUrl.startsWith('data:') ? encodeURI(imageUrl) : imageUrl;
   const imageSrc = base64Src || rawImageSrc;
 
+  // Defensive: prevent browser broken-image placeholders for obviously invalid values.
+  // (We’ve seen the backend return a single character like "h" in some error states.)
+  const isLikelyRenderableImageSrc =
+    typeof imageSrc === 'string' &&
+    (imageSrc.startsWith('data:image/') ||
+      imageSrc.startsWith('https://') ||
+      imageSrc.startsWith('http://') ||
+      imageSrc.startsWith('blob:') ||
+      imageSrc.startsWith('/'));
+
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
@@ -79,7 +89,7 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
   return (
     <div className="glass-luxury rounded-lg overflow-hidden animate-scale-in">
       <div className="relative">
-        {imageSrc && !imageFailed ? (
+        {imageSrc && isLikelyRenderableImageSrc && !imageFailed ? (
           <div className="aspect-[3/4] min-h-[300px] bg-gradient-to-br from-secondary via-muted to-secondary relative overflow-hidden">
             <img 
               src={imageSrc}
@@ -107,9 +117,16 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
           <div className="aspect-video bg-gradient-to-br from-secondary via-muted to-secondary flex items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_70%)]" />
             <div className="text-center z-10 animate-float p-6">
-              <img src={pidyLogo} alt="PIDY" className="w-10 h-10 mx-auto mb-3 opacity-60" />
+              <img
+                src={pidyLogo}
+                alt="PIDY"
+                className="w-10 h-10 mx-auto mb-3 opacity-60"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
               <p className="font-display text-lg text-foreground">
-                {imageFailed ? 'Unable to Load' : 'Complete'}
+                {imageFailed || (imageSrc && !isLikelyRenderableImageSrc) ? 'Unable to Load' : 'Complete'}
               </p>
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-1">{product.name}</p>
             </div>
