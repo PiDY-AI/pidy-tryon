@@ -426,7 +426,7 @@ const Index = () => {
   // Embed mode - show panel directly (no button)
   if (embedMode) {
     return (
-      <div>
+      <div className="w-full h-full min-h-screen bg-[#0d0d0d]">
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
