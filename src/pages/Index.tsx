@@ -149,8 +149,10 @@ const Index = () => {
 
   // Listen for messages from parent (brand website SDK) and auth popup
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      const { type, access_token, refresh_token } = event.data || {};
+    // Keep handler non-async so thrown errors don't become unhandled promise rejections.
+    const handleMessage = (event: MessageEvent) => {
+      void (async () => {
+        const { type, access_token, refresh_token } = event.data || {};
 
       // Handle auth token from SDK (parent window cached token)
       if (type === 'pidy-auth-token' && access_token) {
@@ -282,11 +284,14 @@ const Index = () => {
         return;
       }
 
-      // Handle expand command from parent
-      if (type === 'tryon-expand' || type === 'pidy-expand') {
-        setIsExpanded(true);
-        window.parent.postMessage({ type: 'tryon-expand' }, '*');
-      }
+        // Handle expand command from parent
+        if (type === 'tryon-expand' || type === 'pidy-expand') {
+          setIsExpanded(true);
+          window.parent.postMessage({ type: 'tryon-expand' }, '*');
+        }
+      })().catch((err) => {
+        console.error('[PIDY Widget] Message handler error:', err);
+      });
     };
 
     window.addEventListener('message', handleMessage);
