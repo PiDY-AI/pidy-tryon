@@ -300,7 +300,7 @@ const Index = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [embedMode, signOut, completeOnboarding]);
 
-  const handleTryOn = async (product: Product, size?: string) => {
+  const handleTryOn = async (product: Product, size?: string, isRetry?: boolean) => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
@@ -312,6 +312,7 @@ const Index = () => {
       selectedSize: sizeToUse,
       accessTokenOverride: authToken ?? undefined,
       provider,
+      retry: isRetry,
     });
 
     if (backendResult) {
@@ -655,7 +656,7 @@ const Index = () => {
                           setDoorOpened(false);
                           setTimeout(() => {
                             setShowDoorAnimation(true);
-                            handleTryOn(selectedProduct);
+                            handleTryOn(selectedProduct, undefined, true);
                           }, 100);
                         }}
                         style={{ animationDelay: '0.2s' }}
@@ -683,7 +684,7 @@ const Index = () => {
                             setDoorOpened(false);
                             setTimeout(() => {
                               setShowDoorAnimation(true);
-                              handleTryOn(selectedProduct);
+                              handleTryOn(selectedProduct, undefined, true);
                             }, 100);
                           }}
                         >
@@ -800,6 +801,33 @@ const Index = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     Select an item to see your personalized fit
                   </p>
+                </div>
+                
+                {/* Provider toggle */}
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Generation Mode</p>
+                  <div className="flex items-center gap-1 p-1 border border-border/40 bg-background/30 backdrop-blur-sm rounded">
+                    <button
+                      onClick={() => setProvider('claude-openai')}
+                      className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 rounded-sm ${
+                        provider === 'claude-openai'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Best Quality
+                    </button>
+                    <button
+                      onClick={() => setProvider('groq-replicate')}
+                      className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 rounded-sm ${
+                        provider === 'groq-replicate'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Fast
+                    </button>
+                  </div>
                 </div>
               </div>
 

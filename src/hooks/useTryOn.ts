@@ -13,6 +13,7 @@ interface GenerateTryOnOptions {
   selectedSize: string;
   accessTokenOverride?: string;
   provider?: 'claude-openai' | 'groq-replicate';
+  retry?: boolean;
 }
 
 interface UseTryOnReturn {
@@ -32,6 +33,7 @@ export const useTryOn = (): UseTryOnReturn => {
     selectedSize,
     accessTokenOverride,
     provider,
+    retry,
   }: GenerateTryOnOptions): Promise<TryOnResult | null> => {
     setIsLoading(true);
     setError(null);
@@ -52,9 +54,12 @@ export const useTryOn = (): UseTryOnReturn => {
       }
 
       // Invoke edge function with explicit Authorization header
-      const requestBody: Record<string, string> = { productId, size: selectedSize };
+      const requestBody: Record<string, string | boolean> = { productId, size: selectedSize };
       if (provider) {
         requestBody.provider = provider;
+      }
+      if (retry) {
+        requestBody.retry = true;
       }
 
       const { data, error: fnError } = await supabase.functions.invoke('tryon', {
