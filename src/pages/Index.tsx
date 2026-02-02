@@ -436,7 +436,7 @@ const Index = () => {
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <img src={pidyLogo} alt="PIDY" className="w-5 h-5 flex-shrink-0" />
+                  <img src={pidyLogo} alt="PIDY" className="w-5 h-5 flex-shrink-0" onError={(e) => e.currentTarget.style.display = 'none'} />
                 </div>
                 <div className="min-w-0">
                   <span className="font-display text-sm text-foreground tracking-wide block truncate">
@@ -480,7 +480,7 @@ const Index = () => {
                 <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">
                   <div className="text-center">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-glow">
-                      <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
+                      <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
                     </div>
                     <p className="text-xs uppercase tracking-luxury text-muted-foreground">Preparing your suite...</p>
                   </div>
@@ -493,7 +493,7 @@ const Index = () => {
                     <div className="relative w-24 h-24 mx-auto mb-8">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-glow-subtle" />
                       <div className="absolute inset-2 rounded-full bg-background border border-primary/30 flex items-center justify-center">
-                        <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" />
+                        <img src={pidyLogo} alt="PIDY" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
                       </div>
                     </div>
                     <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
@@ -609,6 +609,7 @@ const Index = () => {
                               src={pidyLogo} 
                               alt="PIDY" 
                               className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300" 
+                              onError={(e) => e.currentTarget.style.display = 'none'}
                             />
                           </div>
                         </div>

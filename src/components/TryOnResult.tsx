@@ -88,10 +88,14 @@ export const TryOnResult = ({ result, product, onClose }: TryOnResultProps) => {
               loading="eager"
               decoding="async"
               onLoad={() => setImageLoaded(true)}
-              onError={() => { setImageFailed(true); setImageLoaded(false); }}
+              onError={(e) => { 
+                e.currentTarget.style.display = 'none'; // Immediately hide broken image placeholder
+                setImageFailed(true); 
+                setImageLoaded(false); 
+              }}
             />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,hsl(0_0%_0%/0.3)_100%)] z-[2] pointer-events-none" />
-            {!imageLoaded && (
+            {!imageLoaded && !imageFailed && (
               <div className="absolute inset-0 flex items-center justify-center z-[3]">
                 <div className="px-4 py-2 bg-background/60 backdrop-blur-sm border border-primary/20 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   Loading...
