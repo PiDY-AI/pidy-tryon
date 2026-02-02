@@ -753,6 +753,30 @@ const Index = () => {
                     <div className="h-full overflow-y-auto p-4">
                       {!isTryOnLoading && selectedProduct && tryOnResult && (
                         <div className="animate-reveal-up space-y-4">
+                          {/* Retry header with size and button */}
+                          <div className="flex items-center justify-between p-3 bg-secondary/30 border border-border/50 rounded-lg">
+                            <div className="space-y-1">
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Tried Size</p>
+                              <p className="font-display text-lg text-foreground">{tryOnResult.recommendedSize}</p>
+                            </div>
+                            <Button
+                              onClick={() => handleTryOn(selectedProduct, undefined, true)}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Retry
+                            </Button>
+                          </div>
+                          
+                          {/* Prompt display */}
+                          {tryOnResult.prompt && (
+                            <div className="p-3 bg-secondary/20 border border-border/30 rounded-lg">
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">Generation Prompt</p>
+                              <p className="text-xs text-muted-foreground/80 italic leading-relaxed">{tryOnResult.prompt}</p>
+                            </div>
+                          )}
+                          
                           <TryOnResult 
                             result={tryOnResult} 
                             product={selectedProduct}
@@ -762,16 +786,6 @@ const Index = () => {
                               setDoorOpened(false);
                             }}
                           />
-                          
-                          {/* Retry button below result */}
-                          <Button
-                            onClick={() => handleTryOn(selectedProduct, undefined, true)}
-                            className="w-full"
-                            variant="outline"
-                          >
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Retry Try-On
-                          </Button>
                         </div>
                       )}
 
