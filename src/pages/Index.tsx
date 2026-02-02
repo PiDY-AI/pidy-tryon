@@ -780,12 +780,27 @@ const Index = () => {
               )}
 
               {!isTryOnLoading && !tryOnResult && (
-                <div className="glass-card rounded-2xl p-6 text-center">
+                <div className="glass-card rounded-2xl p-6 text-center space-y-4">
                   <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <h3 className="font-semibold text-foreground mb-2">Pidy Room</h3>
                   <p className="text-sm text-muted-foreground">
-                    Select a product to see how it looks on you
+                    {selectedProduct 
+                      ? `Ready to try on: ${selectedProduct.name}`
+                      : 'Select a product to see how it looks on you'
+                    }
                   </p>
+                  
+                  {/* Retry button - visible when a product is selected */}
+                  {selectedProduct && (
+                    <Button
+                      onClick={() => handleTryOn(selectedProduct, undefined, true)}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Retry Try-On
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
