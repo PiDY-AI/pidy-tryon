@@ -26,7 +26,10 @@
 (function(window) {
   'use strict';
 
-  const PIDY_ORIGIN = 'https://pidy-tryon.lovable.app';
+  // Support localhost for development
+  const PIDY_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? window.location.origin
+    : 'https://pidy-tryon.lovable.app';
   const AUTH_BRIDGE_URL = PIDY_ORIGIN + '/auth-bridge.html';
   
   // Fallback local storage keys (used alongside central storage)
@@ -231,8 +234,11 @@
           }
         }
 
-        // Only accept widget messages from PIDY origin
-        if (event.origin !== PIDY_ORIGIN) return;
+        // Only accept widget messages from PIDY origin or localhost
+        const isValidOrigin = event.origin === PIDY_ORIGIN ||
+                             event.origin.includes('localhost') ||
+                             event.origin.includes('127.0.0.1');
+        if (!isValidOrigin) return;
 
         // Widget -> parent debug events
         if (this._config && this._config.debug && source === 'pidy-widget') {
@@ -489,14 +495,24 @@
     },
 
     /**
-     * Set onboarding complete status
+     * Set onboarding complete status in BOTH local and central storage
      */
     _setOnboardingComplete: function(isComplete) {
       try {
+        // Store locally
         if (isComplete) {
           localStorage.setItem(LOCAL_ONBOARDING_KEY, 'true');
         } else {
           localStorage.removeItem(LOCAL_ONBOARDING_KEY);
+        }
+
+        // Also store in central bridge for cross-domain persistence
+        if (this._authBridge && this._authBridge.contentWindow && this._authBridgeReady) {
+          this._authBridge.contentWindow.postMessage({
+            type: 'pidy-bridge-set-onboarding',
+            complete: isComplete
+          }, PIDY_ORIGIN);
+          console.log('[PIDY SDK] Stored onboarding in central bridge:', isComplete);
         }
       } catch (e) {
         console.warn('[PIDY SDK] Could not set onboarding status:', e);
@@ -505,19 +521,43 @@
 
     /**
      * Send onboarding status to widget
+     * Check BOTH local storage AND central bridge
      */
     _sendOnboardingStatus: function() {
       if (!this._iframe || !this._iframe.contentWindow) return;
 
-      try {
-        const isComplete = localStorage.getItem(LOCAL_ONBOARDING_KEY) === 'true';
+      // Check local first
+      const localComplete = localStorage.getItem(LOCAL_ONBOARDING_KEY) === 'true';
+
+      // Also request from central bridge
+      if (this._authBridge && this._authBridge.contentWindow && this._authBridgeReady) {
+        this._authBridge.contentWindow.postMessage({
+          type: 'pidy-bridge-get-onboarding'
+        }, PIDY_ORIGIN);
+
+        // Listen for response
+        const handleOnboardingResponse = (event) => {
+          if (event.origin === PIDY_ORIGIN && event.data.type === 'pidy-bridge-onboarding') {
+            const centralComplete = event.data.isComplete;
+            const isComplete = localComplete || centralComplete;
+
+            this._iframe.contentWindow.postMessage({
+              type: 'pidy-onboarding-status',
+              isComplete: isComplete
+            }, PIDY_ORIGIN);
+            console.log('[PIDY SDK] Sent onboarding status (local:', localComplete, 'central:', centralComplete, 'final:', isComplete, ')');
+
+            window.removeEventListener('message', handleOnboardingResponse);
+          }
+        };
+        window.addEventListener('message', handleOnboardingResponse);
+      } else {
+        // No bridge, use local only
         this._iframe.contentWindow.postMessage({
           type: 'pidy-onboarding-status',
-          isComplete: isComplete
+          isComplete: localComplete
         }, PIDY_ORIGIN);
-        console.log('[PIDY SDK] Sent onboarding status:', isComplete);
-      } catch (e) {
-        console.warn('[PIDY SDK] Could not send onboarding status:', e);
+        console.log('[PIDY SDK] Sent onboarding status (local only):', localComplete);
       }
     },
 

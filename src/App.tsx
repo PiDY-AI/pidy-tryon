@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { AuthGuard } from "./components/AuthGuard";
 import { useHideBrokenImages } from "./hooks/useHideBrokenImages";
+import DemoIndex from "./demo/pages/DemoIndex";
+import ProductDetail from "./demo/pages/ProductDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,9 @@ const App = () => {
                   </AuthGuard>
                 }
               />
+              {/* Demo Routes - No Auth Required */}
+              <Route path="/demo" element={<DemoIndex />} />
+              <Route path="/demo/product/:id" element={<ProductDetail />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
