@@ -2,81 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Luxury brand typography - Cormorant for headings, Inter for body */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+/* PIDY uses system fonts for better performance and native feel */
 
 @layer base {
   :root {
-    --background: 0 0% 5%;
-    --foreground: 45 15% 92%;
+    /* Background colors - PIDY spec */
+    --background: 0 0% 5%;          /* #0D0D0D */
+    --foreground: 0 0% 100%;         /* #FFFFFF */
 
-    --card: 0 0% 8%;
-    --card-foreground: 45 15% 92%;
+    --card: 0 0% 10%;                /* #1A1A1A - Surface */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 45 15% 92%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Warm gold - signature luxury accent */
-    --primary: 38 65% 58%;
-    --primary-foreground: 0 0% 5%;
+    /* Primary accent - PIDY spec #E8C4A0 (lighter, warmer) */
+    --primary: 36 67% 77%;           /* #E8C4A0 */
+    --primary-light: 38 74% 89%;     /* #F5E6D3 */
+    --primary-dark: 32 55% 64%;      /* #D4A574 - gradient end */
+    --primary-foreground: 0 0% 10%;  /* #1A1A1A - dark text on light button */
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 45 15% 92%;
+    /* Surface colors - PIDY spec */
+    --secondary: 0 0% 10%;           /* #1A1A1A - Surface */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 35 8% 45%;
+    --surface-light: 0 0% 15%;       /* #252525 */
 
-    --accent: 38 55% 50%;
-    --accent-foreground: 45 15% 92%;
+    /* Text colors - PIDY spec */
+    --muted: 0 0% 46%;               /* #757575 - Muted text */
+    --muted-foreground: 0 0% 70%;    /* #B3B3B3 - Secondary text */
 
-    --destructive: 0 65% 45%;
+    --accent: 36 67% 77%;            /* Same as primary */
+    --accent-foreground: 0 0% 10%;
+
+    /* Semantic colors - PIDY spec */
+    --destructive: 4 90% 58%;        /* #F44336 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 38 15% 18%;
-    --input: 0 0% 12%;
-    --ring: 38 65% 58%;
+    --success: 122 39% 49%;          /* #4CAF50 */
+    --warning: 36 100% 50%;          /* #FF9800 */
 
-    --radius: 0.5rem;
+    /* Fit indicator colors - NEW from PIDY spec */
+    --fit-tight: 0 79% 70%;          /* #FF6B6B */
+    --fit-fitted: 174 62% 57%;       /* #4ECDC4 */
+    --fit-loose: 158 58% 73%;        /* #95E1D3 */
 
-    /* Luxury tokens */
-    --glow-primary: 38 65% 58%;
+    /* Border and input - PIDY spec */
+    --border: 0 0% 20%;              /* #333333 */
+    --input: 0 0% 10%;               /* #1A1A1A */
+    --ring: 36 67% 77%;              /* #E8C4A0 */
+
+    --radius: 0.75rem;               /* 12px - PIDY spec base */
+
+    /* Luxury tokens - updated with new primary */
+    --glow-primary: 36 67% 77%;
     --surface-glass: 0 0% 10%;
-    --gradient-gold: linear-gradient(135deg, hsl(38 65% 58%) 0%, hsl(32 55% 45%) 100%);
+    --gradient-primary: linear-gradient(90deg, #E8C4A0 0%, #D4A574 100%);
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 5%) 100%);
     --shadow-luxury: 0 25px 50px -12px hsl(0 0% 0% / 0.6);
-    --shadow-glow: 0 0 40px hsl(38 65% 58% / 0.15);
+    --shadow-glow: 0 0 40px hsl(36 67% 77% / 0.15);
     --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
 
     --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 45 15% 92%;
-    --sidebar-primary: 38 65% 58%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 45 15% 92%;
-    --sidebar-border: 38 15% 15%;
-    --sidebar-ring: 38 65% 58%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 36 67% 77%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 36 67% 77%;
   }
 
   .dark {
     --background: 0 0% 5%;
-    --foreground: 45 15% 92%;
-    --card: 0 0% 8%;
-    --card-foreground: 45 15% 92%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 45 15% 92%;
-    --primary: 38 65% 58%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 45 15% 92%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 35 8% 45%;
-    --accent: 38 55% 50%;
-    --accent-foreground: 45 15% 92%;
-    --destructive: 0 65% 45%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 36 67% 77%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 46%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 36 67% 77%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 4 90% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 38 15% 18%;
-    --input: 0 0% 12%;
-    --ring: 38 65% 58%;
+    --border: 0 0% 20%;
+    --input: 0 0% 10%;
+    --ring: 36 67% 77%;
   }
 }
 
@@ -87,19 +103,32 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
-    letter-spacing: 0.01em;
+    font-size: 14px;
+    line-height: 20px;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 500;
-    letter-spacing: 0.02em;
+    font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
   }
 }
 
 @layer utilities {
+  /* PIDY Typography Scale - matches mobile app */
+  .text-display { font-size: 36px; font-weight: 800; line-height: 44px; }
+  .text-h1 { font-size: 28px; font-weight: 800; line-height: 36px; }
+  .text-h2 { font-size: 20px; font-weight: 700; line-height: 28px; }
+  .text-h3 { font-size: 18px; font-weight: 700; line-height: 24px; }
+  .text-h4 { font-size: 16px; font-weight: 700; line-height: 22px; }
+  .text-subtitle { font-size: 15px; font-weight: 600; line-height: 22px; }
+  .text-body { font-size: 14px; font-weight: 400; line-height: 20px; }
+  .text-body-bold { font-size: 14px; font-weight: 600; line-height: 20px; }
+  .text-caption { font-size: 13px; font-weight: 400; line-height: 18px; }
+  .text-small { font-size: 12px; font-weight: 600; line-height: 16px; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 14px; }
+
   /* Luxury glass morphism */
   .glass-card {
     @apply bg-card/70 backdrop-blur-2xl border border-border/30;

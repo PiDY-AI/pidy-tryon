@@ -5,24 +5,29 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-subtitle font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow hover:shadow-glow-lg",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-secondary hover:text-secondary-foreground",
+        // Primary button with PIDY gradient (#E8C4A0 → #D4A574)
+        default: "rounded-xl bg-gradient-to-r from-[#E8C4A0] to-[#D4A574] text-[#1A1A1A] hover:opacity-90 active:scale-[0.98]",
+        // Secondary button - PIDY spec
+        secondary: "rounded-2xl border border-[#333333] bg-transparent text-primary hover:bg-[#333333]/20",
+        destructive: "rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "rounded-xl border border-border bg-transparent hover:bg-accent/10 hover:text-accent-foreground",
+        ghost: "rounded-xl hover:bg-accent/10 hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow hover:shadow-glow-lg animate-glow",
-        glass: "bg-card/50 backdrop-blur-lg border border-border/50 text-foreground hover:bg-card/70 hover:border-primary/50",
+        // Icon button - PIDY spec
+        icon: "rounded-full bg-card hover:bg-surface-light",
+        // Keep glass variant for special cases
+        glass: "rounded-xl bg-card/50 backdrop-blur-lg border border-border/50 text-foreground hover:bg-card/70 hover:border-primary/50",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        default: "h-12 px-4 py-3",           // 48px - PIDY spec
+        sm: "h-9 rounded-lg px-3",
+        lg: "h-14 rounded-2xl px-5 py-4",   // 56px - PIDY spec large
+        icon: "h-10 w-10",                   // 40px - PIDY spec
+        "icon-lg": "h-11 w-11",              // 44px - PIDY spec
       },
     },
     defaultVariants: {
