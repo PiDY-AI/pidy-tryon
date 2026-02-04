@@ -101,23 +101,68 @@ const Index = () => {
         data: { session },
       } = await supabase.auth.getSession();
 
+      console.log('[PIDY Widget] Session check:', {
+        embedMode,
+        hasSession: !!session?.access_token,
+        hasAuthToken: !!authToken,
+        userId: session?.user?.id
+      });
+
       if (!cancelled) {
-        // Only update token state if we don't already have a token from SDK
-        if (!authToken) {
-          setHasSessionToken(!!session?.access_token);
-          setAuthToken(session?.access_token ?? null);
-        }
-        
-        // In embed mode, delay completing session check to give SDK time to send tokens
-        // The SDK might need time to load the auth bridge and retrieve cached tokens
-        if (embedMode && !authToken && !session?.access_token) {
-          // Wait for SDK tokens before declaring "no auth"
-          setTimeout(() => {
-            if (!cancelled) {
-              setSessionCheckComplete(true);
+        // If we found a session, use it
+        if (session?.access_token) {
+          console.log('[PIDY Widget] Found existing Supabase session, using it');
+          setHasSessionToken(true);
+          if (!authToken) setAuthToken(session.access_token);
+
+          // Check if user has completed onboarding from database
+          const onboardingComplete = session.user?.user_metadata?.onboarding_complete === true;
+          if (onboardingComplete) {
+            console.log('[PIDY Widget] User has already completed onboarding (from session)');
+            completeOnboarding();
+            // Mark that we received onboarding status (so we don't wait for SDK)
+            setSdkOnboardingReceived(true);
+          }
+
+          // In embed mode, notify parent SDK about the existing session
+          if (embedMode) {
+            console.log('[PIDY Widget] Notifying parent SDK about existing session');
+            window.parent.postMessage({
+              type: 'pidy-auth-success',
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+              expires_in: 3600
+            }, '*');
+
+            // Also notify about onboarding if complete
+            if (onboardingComplete) {
+              window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
             }
-          }, 1500); // Give SDK 1.5s to respond with cached tokens
+          }
+
+          setSessionCheckComplete(true);
+        }
+        // Only update token state if we don't already have a token from SDK
+        else if (!authToken) {
+          setHasSessionToken(false);
+          setAuthToken(null);
+
+          // In embed mode, delay completing session check to give SDK time to send tokens
+          // The SDK might need time to load the auth bridge and retrieve cached tokens
+          if (embedMode) {
+            // Wait for SDK tokens before declaring "no auth"
+            console.log('[PIDY Widget] No session found, waiting for SDK tokens...');
+            setTimeout(() => {
+              if (!cancelled) {
+                console.log('[PIDY Widget] SDK timeout reached, completing session check');
+                setSessionCheckComplete(true);
+              }
+            }, 1500); // Give SDK 1.5s to respond with cached tokens
+          } else {
+            setSessionCheckComplete(true);
+          }
         } else {
+          // We have authToken from SDK already
           setSessionCheckComplete(true);
         }
       }
