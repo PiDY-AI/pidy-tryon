@@ -858,36 +858,85 @@ const Index = () => {
                   onDoorOpened={handleDoorOpened}
                 >
                   {/* Scrollable content inside the room */}
-                  <div className="h-full overflow-y-auto p-4 space-y-4">
+                  <div className="h-full overflow-y-auto p-4 space-y-3">
                     {/* Try-On Result with reveal animation */}
                     {!isTryOnLoading && tryOnResult && selectedProduct && (
                       <div className="animate-reveal-up">
-                        <TryOnResult 
-                          result={tryOnResult} 
+                        <TryOnResult
+                          result={tryOnResult}
                           product={selectedProduct}
-                          onClose={handleCloseTryOn}
+                          onClose={() => {
+                            setTryOnResult(null);
+                            setShowDoorAnimation(false);
+                            setDoorOpened(false);
+                          }}
                         />
                       </div>
                     )}
 
-                    {/* Retry button if result shown */}
+                    {/* Size selector + actions after result */}
                     {!isTryOnLoading && tryOnResult && selectedProduct && (
-                      <Button 
-                        className="w-full animate-reveal-up" 
-                        variant="outline"
-                        onClick={() => {
-                          setShowDoorAnimation(false);
-                          setDoorOpened(false);
-                          setTimeout(() => {
-                            setShowDoorAnimation(true);
-                            handleTryOn(selectedProduct, undefined, true);
-                          }, 100);
-                        }}
-                        style={{ animationDelay: '0.2s' }}
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Try Again
-                      </Button>
+                      <div className="animate-reveal-up space-y-3" style={{ animationDelay: '0.2s' }}>
+                        {/* Tried size indicator */}
+                        <div className="flex items-center justify-between px-3 py-2 bg-secondary/30 border border-border/50 rounded-lg">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Tried Size</p>
+                            <p className="text-sm font-semibold text-foreground">{tryOnResult.recommendedSize}</p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setShowDoorAnimation(false);
+                              setDoorOpened(false);
+                              setTimeout(() => {
+                                setShowDoorAnimation(true);
+                                handleTryOn(selectedProduct, undefined, true);
+                              }, 100);
+                            }}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1.5" />
+                            Retry
+                          </Button>
+                        </div>
+
+                        {/* Try different size */}
+                        <div className="px-3 py-2 bg-secondary/20 border border-border/30 rounded-lg">
+                          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">Try a Different Size</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {selectedProduct.sizes.map((s) => (
+                              <Button
+                                key={s}
+                                size="sm"
+                                variant={s === tryOnResult.recommendedSize ? "default" : "outline"}
+                                className="min-w-[40px] h-8 text-xs"
+                                disabled={s === tryOnResult.recommendedSize}
+                                onClick={() => {
+                                  setShowDoorAnimation(false);
+                                  setDoorOpened(false);
+                                  setTryOnResult(null);
+                                  setTimeout(() => {
+                                    setShowDoorAnimation(true);
+                                    handleTryOn(selectedProduct, s, true);
+                                  }, 100);
+                                }}
+                              >
+                                {s}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Close button */}
+                        <Button
+                          className="w-full"
+                          variant="ghost"
+                          onClick={handleCloseTryOn}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Close
+                        </Button>
+                      </div>
                     )}
 
                     {/* If the animation completed but we got no result, don't show a blank room */}
@@ -976,12 +1025,12 @@ const Index = () => {
                   >
                     <div className="h-full overflow-y-auto p-4">
                       {!isTryOnLoading && selectedProduct && tryOnResult && (
-                        <div className="animate-reveal-up space-y-4">
-                          {/* Retry header with size and button */}
+                        <div className="animate-reveal-up space-y-3">
+                          {/* Tried size + retry */}
                           <div className="flex items-center justify-between p-3 bg-secondary/30 border border-border/50 rounded-lg">
-                            <div className="space-y-1">
+                            <div>
                               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Tried Size</p>
-                              <p className="font-display text-lg text-foreground">{tryOnResult.recommendedSize}</p>
+                              <p className="font-semibold text-foreground">{tryOnResult.recommendedSize}</p>
                             </div>
                             <Button
                               onClick={() => handleTryOn(selectedProduct, undefined, true)}
@@ -992,7 +1041,32 @@ const Index = () => {
                               Retry
                             </Button>
                           </div>
-                          
+
+                          {/* Try different size */}
+                          <div className="px-3 py-2 bg-secondary/20 border border-border/30 rounded-lg">
+                            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">Try a Different Size</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {selectedProduct.sizes.map((s) => (
+                                <Button
+                                  key={s}
+                                  size="sm"
+                                  variant={s === tryOnResult.recommendedSize ? "default" : "outline"}
+                                  className="min-w-[40px] h-8 text-xs"
+                                  disabled={s === tryOnResult.recommendedSize}
+                                  onClick={() => {
+                                    setTryOnResult(null);
+                                    setDoorOpened(false);
+                                    setTimeout(() => {
+                                      handleTryOn(selectedProduct, s, true);
+                                    }, 100);
+                                  }}
+                                >
+                                  {s}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
                           {/* Prompt display */}
                           {tryOnResult.prompt && (
                             <div className="p-3 bg-secondary/20 border border-border/30 rounded-lg">
@@ -1000,9 +1074,9 @@ const Index = () => {
                               <p className="text-xs text-muted-foreground/80 italic leading-relaxed">{tryOnResult.prompt}</p>
                             </div>
                           )}
-                          
-                          <TryOnResult 
-                            result={tryOnResult} 
+
+                          <TryOnResult
+                            result={tryOnResult}
                             product={selectedProduct}
                             onClose={() => {
                               setSelectedProduct(null);
