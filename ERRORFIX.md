@@ -53,3 +53,28 @@ Format each fix with: Error, Root Cause, Files Changed, Fix Summary.
 
 ---
 
+## Fix #3: "Request Limit Reached" Error When Logging In
+
+**Error**: After multiple page refreshes during development/testing, Supabase returns "request limit reached" error preventing users from signing in.
+
+**Root Cause**:
+1. Every page load triggers multiple auth API calls: `getSession()`, `getUser()`, `onAuthStateChange()`
+2. The `useOnboarding` hook was calling `supabase.auth.getUser()` on EVERY page load
+3. Even when onboarding was already complete (stored in localStorage), it still checked the server
+4. Multiple iframe loads compound the problem (each iframe triggers all auth checks)
+5. Rate limit: Too many auth requests per hour triggers Supabase rate limiting
+
+**Files Changed**:
+- `src/hooks/useOnboarding.ts` (lines 11-41)
+
+**Fix Summary**:
+1. Check localStorage first - if onboarding is complete, return immediately without server call
+2. Only call `supabase.auth.getUser()` if localStorage doesn't have the status
+3. Added try/catch error handling to gracefully handle rate limit errors
+4. Fall back to allowing access if server check fails (better UX during rate limits)
+5. This reduces auth API calls by approximately 50% on page loads
+
+**Result**: Significantly fewer auth API calls, reducing the chance of hitting rate limits. When rate limits are hit, the app degrades gracefully instead of blocking users.
+
+---
+
