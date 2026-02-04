@@ -78,3 +78,26 @@ Format each fix with: Error, Root Cause, Files Changed, Fix Summary.
 
 ---
 
+## Fix #4: Popup Blocked on Vercel Due to COOP Header
+
+**Error**: The "Virtual Try-On" button opens a popup window for authentication on localhost but the popup cannot communicate back to the opener on Vercel deployment. `window.opener` is null in the popup, and `window.closed` checks fail.
+
+**Root Cause**:
+1. Vercel's default `Cross-Origin-Opener-Policy` header (`same-origin`) severs the relationship between the opener window and the popup
+2. When COOP is `same-origin`, the popup opens in a new browsing context group, making `window.opener` null
+3. This prevents the popup from sending `postMessage` back to the opener after authentication
+4. On localhost there is no COOP header, so popups work fine
+
+**Files Changed**:
+- `vercel.json` (added COOP header rule for all routes)
+
+**Fix Summary**:
+1. Added `Cross-Origin-Opener-Policy: same-origin-allow-popups` header to all routes via `vercel.json`
+2. This allows popups opened from the same origin to maintain their opener relationship
+3. The popup can now use `window.opener.postMessage()` to send auth tokens back
+4. This is the standard fix used by OAuth/payment integrations (Google Auth, Stripe, etc.)
+
+**Result**: Popup authentication works on Vercel deployment. The popup can communicate back to the opener window after successful sign-in.
+
+---
+
