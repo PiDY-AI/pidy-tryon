@@ -37,10 +37,6 @@ const Auth = () => {
   } | null>(null);
 
   const handleOnboardingComplete = async (data: OnboardingData, result?: WidgetScanResult) => {
-    // widget-scan API already created the user account
-    // Mark onboarding as complete so user isn't redirected back here
-    completeOnboarding();
-
     const tokenReceived = !!result?.access_token && !!result?.refresh_token;
     console.log('[Auth] Onboarding complete (widget-scan):', {
       token_received: tokenReceived,
@@ -71,7 +67,24 @@ const Auth = () => {
           has_access_token: !!sessionData.session?.access_token,
           user_id: sessionData.session?.user?.id,
         });
+
+        // NOW save onboarding completion to user metadata (session is set, user exists)
+        console.log('[Auth] Saving onboarding status to user metadata');
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { onboarding_complete: true }
+        });
+
+        if (updateError) {
+          console.error('[Auth] Error saving onboarding to user metadata:', updateError);
+        } else {
+          console.log('[Auth] Onboarding status saved to database');
+          // Mark onboarding as complete in localStorage
+          completeOnboarding();
+        }
       }
+    } else {
+      // No tokens received, just mark locally
+      completeOnboarding();
     }
     
     // Check if this is a popup window

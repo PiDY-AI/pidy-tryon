@@ -40,20 +40,51 @@ const Index = () => {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
   const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('claude-openai');
+  const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
 
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
-  
+
   // In embedded iframes, Supabase auth "loading" can remain true due to storage partitioning.
   // The SDK token is the source of truth in embed mode, so don't block UI on authLoading.
-  const isInitializing = !sessionCheckComplete || (!embedMode && authLoading) || isOnboardingLoading;
+  // In embed mode, also wait for SDK onboarding response
+  const waitingForSdk = embedMode && !sdkOnboardingReceived;
+  const isInitializing = !sessionCheckComplete ||
+                        (!embedMode && authLoading) ||
+                        isOnboardingLoading ||
+                        waitingForSdk;
 
   // Handle onboarding completion
   const handleOnboardingComplete = async (data: OnboardingData) => {
-    // TODO: Send data to backend (photos, measurements, email)
-    // For now, just mark onboarding as complete locally
     console.log('[PIDY Widget] Onboarding data:', data);
+
+    // Save onboarding completion to user metadata in Supabase
+    if (user) {
+      console.log('[PIDY Widget] Saving onboarding status to user metadata');
+      const { error } = await supabase.auth.updateUser({
+        data: { onboarding_complete: true }
+      });
+
+      if (error) {
+        console.error('[PIDY Widget] Error saving onboarding to user metadata:', error);
+        toast.error('Failed to save profile. Please try again.');
+        return;
+      }
+
+      console.log('[PIDY Widget] Onboarding status saved to database');
+    }
+
+    // Mark as complete locally
+    console.log('[PIDY Widget] Calling completeOnboarding()');
     completeOnboarding();
+    console.log('[PIDY Widget] After completeOnboarding, localStorage:', localStorage.getItem('pidy_onboarding_complete'));
+
+    // Notify parent SDK so it stores in central bridge
+    if (embedMode) {
+      console.log('[PIDY Widget] Sending onboarding completion to parent SDK');
+      window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+    }
+
     toast.success('Profile created! You can now try on clothes.');
   };
 
@@ -102,11 +133,27 @@ const Index = () => {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.access_token) {
         setHasSessionToken(true);
         if (!authToken) setAuthToken(session.access_token);
         setSessionCheckComplete(true);
+
+        // When user signs in, check if they've already completed onboarding
+        if (event === 'SIGNED_IN' && session.user) {
+          console.log('[PIDY Widget] User signed in, checking onboarding status from database');
+          const onboardingComplete = session.user.user_metadata?.onboarding_complete === true;
+
+          if (onboardingComplete) {
+            console.log('[PIDY Widget] User has already completed onboarding');
+            completeOnboarding();
+
+            // Notify parent SDK to store in central bridge
+            if (embedMode) {
+              window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+            }
+          }
+        }
         return;
       }
 
@@ -116,7 +163,7 @@ const Index = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [authToken, embedMode]);
+  }, [authToken, embedMode, completeOnboarding]);
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
@@ -213,8 +260,11 @@ const Index = () => {
       if (type === 'pidy-onboarding-status') {
         const { isComplete } = event.data || {};
         console.log('[PIDY Widget] Onboarding status from SDK:', isComplete);
+        setSdkOnboardingReceived(true); // Mark that we received SDK response
         if (isComplete) {
+          console.log('[PIDY Widget] SDK says onboarding complete, calling completeOnboarding()');
           completeOnboarding();
+          console.log('[PIDY Widget] After SDK onboarding complete, localStorage:', localStorage.getItem('pidy_onboarding_complete'));
         }
         return;
       }
@@ -300,10 +350,24 @@ const Index = () => {
     if (embedMode) {
       window.parent.postMessage({ type: 'pidy-auth-request' }, '*');
       window.parent.postMessage({ type: 'pidy-onboarding-request' }, '*');
+
+      // Timeout: if SDK doesn't respond in 3 seconds, assume no onboarding status
+      const timeout = setTimeout(() => {
+        console.log('[PIDY Widget] SDK onboarding timeout check, received:', sdkOnboardingReceived);
+        if (!sdkOnboardingReceived) {
+          console.log('[PIDY Widget] SDK onboarding timeout - assuming not complete');
+          setSdkOnboardingReceived(true);
+        }
+      }, 3000);
+
+      return () => {
+        window.removeEventListener('message', handleMessage);
+        clearTimeout(timeout);
+      };
     }
-    
+
     return () => window.removeEventListener('message', handleMessage);
-  }, [embedMode, signOut, completeOnboarding]);
+  }, [embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTryOn = async (product: Product, size?: string, isRetry?: boolean) => {
     setSelectedProduct(product);
@@ -430,7 +494,7 @@ const Index = () => {
         <Helmet>
           <title>Virtual Try-On</title>
         </Helmet>
-        
+
         <div className="w-[380px] h-[580px] flex flex-col bg-[#0d0d0d] border border-[#c9a862]/20 rounded-xl overflow-hidden shadow-2xl">
             {/* Header - luxury minimal */}
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
