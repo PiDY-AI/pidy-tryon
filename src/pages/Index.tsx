@@ -506,19 +506,33 @@ const Index = () => {
   }, [user, authLoading, embedMode]);
 
   const handleOpenAuthPopup = (options?: { onboarding?: boolean }) => {
-    console.log('[PIDY Widget] Opening auth popup', { options });
+    console.log('[PIDY Widget] Opening auth popup', { options, embedMode });
 
-    const width = 420;
-    const height = 550;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
+    // Build the auth URL
     let url = `/auth?productId=${encodeURIComponent(productId ?? '')}&popup=true`;
     if (options?.onboarding) {
       url += '&onboarding=true';
     }
 
+    // In embed mode, request parent window to open popup (won't be blocked)
+    if (embedMode) {
+      console.log('[PIDY Widget] Requesting parent to open popup');
+      window.parent.postMessage({
+        type: 'pidy-open-popup',
+        url: window.location.origin + url,
+        width: 420,
+        height: 550
+      }, '*');
+      return;
+    }
+
+    // Non-embed mode: open popup directly
     console.log('[PIDY Widget] Attempting to open popup at:', url);
+
+    const width = 420;
+    const height = 550;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
 
     try {
       const popup = window.open(
@@ -531,15 +545,15 @@ const Index = () => {
 
       // Check if popup was blocked
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        console.warn('[PIDY Widget] Popup was blocked by browser - user needs to allow popups or we redirect');
+        console.warn('[PIDY Widget] Popup was blocked by browser');
 
-        // Show user-friendly message
-        const allowPopup = confirm(
+        // Fallback: redirect in same window
+        const allowRedirect = confirm(
           'Please allow popups for this site to use Virtual Try-On.\n\n' +
           'Click OK to open the sign-in page in this window instead.'
         );
 
-        if (allowPopup) {
+        if (allowRedirect) {
           window.location.href = url;
         }
       }

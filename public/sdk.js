@@ -247,6 +247,11 @@
         }
 
         switch (type) {
+          case 'pidy-open-popup':
+            // Widget requesting popup to be opened by parent window (bypasses iframe popup blocker)
+            this._openAuthPopup(payload);
+            break;
+
           case 'pidy-auth-success':
             // User authenticated via popup - store in central bridge + local
             this._storeTokensCentral(access_token, refresh_token, expires_in);
@@ -558,6 +563,54 @@
           isComplete: localComplete
         }, PIDY_ORIGIN);
         console.log('[PIDY SDK] Sent onboarding status (local only):', localComplete);
+      }
+    },
+
+    /**
+     * Open authentication popup from parent window (won't be blocked)
+     * This is called when the widget iframe requests a popup
+     */
+    _openAuthPopup: function(payload) {
+      const { url, width, height } = payload;
+
+      if (!url) {
+        console.error('[PIDY SDK] No URL provided for popup');
+        return;
+      }
+
+      console.log('[PIDY SDK] Opening auth popup from parent window');
+
+      // Calculate centered position
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      try {
+        const popup = window.open(
+          url,
+          'pidy-auth-popup',
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
+
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          console.warn('[PIDY SDK] Popup was blocked by browser');
+
+          // Fallback: open in new tab or redirect
+          const allowRedirect = confirm(
+            'Please allow popups for this site to use Virtual Try-On.\n\n' +
+            'Click OK to open the sign-in page in a new tab.'
+          );
+
+          if (allowRedirect) {
+            window.open(url, '_blank');
+          }
+        } else {
+          console.log('[PIDY SDK] Popup opened successfully');
+        }
+      } catch (error) {
+        console.error('[PIDY SDK] Error opening popup:', error);
+
+        // Fallback: open in new tab
+        window.open(url, '_blank');
       }
     },
 
