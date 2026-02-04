@@ -506,6 +506,8 @@ const Index = () => {
   }, [user, authLoading, embedMode]);
 
   const handleOpenAuthPopup = (options?: { onboarding?: boolean }) => {
+    console.log('[PIDY Widget] Opening auth popup', { options });
+
     const width = 420;
     const height = 550;
     const left = window.screenX + (window.outerWidth - width) / 2;
@@ -516,16 +518,33 @@ const Index = () => {
       url += '&onboarding=true';
     }
 
-    const popup = window.open(
-      url,
-      'tryon-auth',
-      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
+    console.log('[PIDY Widget] Attempting to open popup at:', url);
 
-    // Check if popup was blocked
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      console.warn('[PIDY Widget] Popup was blocked - opening in same window');
-      // Fallback: open in same window if popup is blocked
+    try {
+      const popup = window.open(
+        url,
+        'tryon-auth',
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
+
+      console.log('[PIDY Widget] Popup opened:', popup ? 'success' : 'blocked');
+
+      // Check if popup was blocked
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        console.warn('[PIDY Widget] Popup was blocked by browser - user needs to allow popups or we redirect');
+
+        // Show user-friendly message
+        const allowPopup = confirm(
+          'Please allow popups for this site to use Virtual Try-On.\n\n' +
+          'Click OK to open the sign-in page in this window instead.'
+        );
+
+        if (allowPopup) {
+          window.location.href = url;
+        }
+      }
+    } catch (error) {
+      console.error('[PIDY Widget] Error opening popup:', error);
       window.location.href = url;
     }
   };
