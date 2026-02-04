@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Pidy Widget Embed</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .product {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .product-info {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 20px;
+    }
+    .product-image {
+      flex: 1;
+      max-width: 400px;
+    }
+    .product-image img {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .product-details {
+      flex: 1;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 28px;
+    }
+    .price {
+      font-size: 24px;
+      color: #c9a862;
+      margin-bottom: 20px;
+    }
+    .size-selector {
+      margin-bottom: 20px;
+    }
+    .size-selector label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .size-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .size-btn {
+      padding: 10px 20px;
+      border: 2px solid #ddd;
+      background: white;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .size-btn.selected {
+      border-color: #c9a862;
+      background: #c9a862;
+      color: white;
+    }
+    .widget-container {
+      margin-top: 20px;
+    }
+    button {
+      background: #c9a862;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #b89852;
+    }
+    .debug {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Brand Store - Test Widget Integration</h1>
+
+  <div class="product">
+    <div class="product-info">
+      <div class="product-image">
+        <img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=500&fit=crop" alt="Varsity Jacket">
+      </div>
+      <div class="product-details">
+        <h1>Stanford Varsity Jacket</h1>
+        <div class="price">₹12,999</div>
+
+        <div class="size-selector">
+          <label>Select Size:</label>
+          <div class="size-buttons">
+            <button class="size-btn" data-size="S">S</button>
+            <button class="size-btn selected" data-size="M">M</button>
+            <button class="size-btn" data-size="L">L</button>
+            <button class="size-btn" data-size="XL">XL</button>
+          </div>
+        </div>
+
+        <button onclick="addToCart()">Add to Cart</button>
+      </div>
+    </div>
+
+    <div class="widget-container">
+      <!-- Widget will be injected here by SDK -->
+      <div
+        id="pidy-tryon"
+        data-product-id="OVO-STAN-VRS-2025-001"
+        data-size="M"
+        data-pidy-tryon
+      ></div>
+    </div>
+
+    <div class="debug">
+      <strong>Debug Info:</strong><br>
+      localStorage['pidy_onboarding_complete']: <span id="onboarding-status">checking...</span><br>
+      localStorage['pidy_auth_token']: <span id="auth-status">checking...</span>
+    </div>
+  </div>
+
+  <!-- Load SDK -->
+  <script src="/sdk.js"></script>
+
+  <script>
+    let selectedSize = 'M';
+
+    // Size selector
+    document.querySelectorAll('.size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedSize = btn.dataset.size;
+
+        // Update widget with new size
+        const widget = document.getElementById('pidy-tryon');
+        widget.setAttribute('data-size', selectedSize);
+
+        console.log('Size changed to:', selectedSize);
+      });
+    });
+
+    function addToCart() {
+      alert('Added to cart: Size ' + selectedSize);
+    }
+
+    // Initialize widget
+    if (window.PidyTryOn) {
+      console.log('Initializing Pidy SDK...');
+      PidyTryOn.autoInit();
+    } else {
+      console.error('PidyTryOn SDK not loaded');
+    }
+
+    // Update debug info
+    function updateDebugInfo() {
+      document.getElementById('onboarding-status').textContent =
+        localStorage.getItem('pidy_onboarding_complete') || 'null';
+      document.getElementById('auth-status').textContent =
+        localStorage.getItem('pidy_auth_token') ? 'exists' : 'null';
+    }
+
+    updateDebugInfo();
+    setInterval(updateDebugInfo, 1000);
+  </script>
+</body>
+</html>
