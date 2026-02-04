@@ -13,27 +13,33 @@ export const useOnboarding = () => {
       // First check localStorage for quick access
       const localCompleted = localStorage.getItem(ONBOARDING_KEY) === 'true';
 
-      // Then check user metadata in Supabase (source of truth)
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user?.user_metadata?.onboarding_complete === true) {
-        console.log('[useOnboarding] User has completed onboarding in database');
-        // Sync to localStorage
-        localStorage.setItem(ONBOARDING_KEY, 'true');
+      // If localStorage says complete, trust it without checking server (reduces API calls)
+      if (localCompleted) {
+        console.log('[useOnboarding] Onboarding complete (cached)');
         setNeedsOnboarding(false);
         setIsLoading(false);
         return;
       }
 
-      // Fall back to localStorage if no user or no metadata
-      console.log('[useOnboarding] Checking onboarding status:', {
-        key: ONBOARDING_KEY,
-        localValue: localStorage.getItem(ONBOARDING_KEY),
-        userMetadata: user?.user_metadata?.onboarding_complete,
-        completed: localCompleted,
-        needsOnboarding: !localCompleted
-      });
-      setNeedsOnboarding(!localCompleted);
+      // Only check server if localStorage doesn't have completion status
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user?.user_metadata?.onboarding_complete === true) {
+          console.log('[useOnboarding] User has completed onboarding in database');
+          // Sync to localStorage for future quick access
+          localStorage.setItem(ONBOARDING_KEY, 'true');
+          setNeedsOnboarding(false);
+        } else {
+          console.log('[useOnboarding] Onboarding not complete');
+          setNeedsOnboarding(true);
+        }
+      } catch (error) {
+        console.error('[useOnboarding] Error checking onboarding status:', error);
+        // Fall back to not requiring onboarding if we can't check
+        setNeedsOnboarding(false);
+      }
+
       setIsLoading(false);
     };
 
