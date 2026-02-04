@@ -57,6 +57,7 @@
      * @param {string} config.container - CSS selector for container element
      * @param {string} config.productId - Product ID to try on
      * @param {string} [config.size] - Pre-selected size
+     * @param {string} [config.authMethod='modal'] - Auth method: 'modal' (recommended), 'popup', or 'redirect'
      * @param {boolean} [config.debug=false] - Enables debug logging + widget debug overlay
      * @param {number} [config.width=400] - Widget width in pixels
      * @param {number} [config.height=620] - Widget height in pixels
@@ -66,6 +67,7 @@
         width: 400,
         height: 620,
         debug: false,
+        authMethod: 'modal', // Default to modal for better UX
         ...config
       };
 
@@ -102,6 +104,7 @@
         const productId = el.dataset.productId;
         const size = el.dataset.size;
         const debug = el.dataset.debug === 'true';
+        const authMethod = el.dataset.authMethod || 'modal'; // 'modal', 'popup', or 'redirect'
         const width = parseInt(el.dataset.width) || 400;
         const height = parseInt(el.dataset.height) || 620;
 
@@ -119,6 +122,7 @@
           container: '#' + el.id,
           productId: productId,
           size: size,
+          authMethod: authMethod,
           debug: debug,
           width: width,
           height: height
@@ -257,9 +261,11 @@
             break;
 
           case 'pidy-auth-success':
-            // User authenticated via popup - store in central bridge + local
+            // User authenticated via popup/modal - store in central bridge + local
             this._storeTokensCentral(access_token, refresh_token, expires_in);
             this._cacheTokensLocal(access_token, refresh_token, expires_in);
+            // Close modal if open
+            this._closeAuthModal();
             break;
 
           case 'pidy-auth-request':
@@ -571,19 +577,27 @@
     },
 
     /**
-     * Open authentication popup from parent window (won't be blocked)
-     * This is called when the widget iframe requests a popup
+     * Open authentication (modal overlay or popup)
+     * This is called when the widget iframe requests auth
      */
     _openAuthPopup: function(payload) {
       const { url, width, height } = payload;
+      const authMethod = this._config.authMethod || 'modal';
 
-      console.log('[PIDY SDK] _openAuthPopup called with:', { url, width, height });
+      console.log('[PIDY SDK] _openAuthPopup called with:', { url, width, height, authMethod });
 
       if (!url) {
-        console.error('[PIDY SDK] No URL provided for popup');
+        console.error('[PIDY SDK] No URL provided for auth');
         return;
       }
 
+      // Modal overlay (recommended - no popup blockers, better mobile UX)
+      if (authMethod === 'modal') {
+        this._openAuthModal(url, width, height);
+        return;
+      }
+
+      // Popup mode (fallback)
       console.log('[PIDY SDK] Opening auth popup from parent window at:', url);
 
       // Calculate centered position
@@ -602,28 +616,196 @@
         console.log('[PIDY SDK] window.open returned:', popup);
 
         if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          console.warn('[PIDY SDK] Popup was blocked by browser');
-
-          // Fallback: open in new tab or redirect
-          const allowRedirect = confirm(
-            'Please allow popups for this site to use Virtual Try-On.\n\n' +
-            'Click OK to open the sign-in page in a new tab.'
-          );
-
-          if (allowRedirect) {
-            console.log('[PIDY SDK] Opening in new tab as fallback');
-            window.open(url, '_blank');
-          }
+          console.warn('[PIDY SDK] Popup was blocked by browser, falling back to modal');
+          // Fallback to modal if popup is blocked
+          this._openAuthModal(url, width, height);
         } else {
           console.log('[PIDY SDK] Popup opened successfully');
         }
       } catch (error) {
         console.error('[PIDY SDK] Error opening popup:', error);
-
-        // Fallback: open in new tab
-        console.log('[PIDY SDK] Opening in new tab after error');
-        window.open(url, '_blank');
+        // Fallback to modal
+        this._openAuthModal(url, width, height);
       }
+    },
+
+    /**
+     * Open authentication in modal overlay
+     * Better UX than popups - no blockers, works great on mobile
+     */
+    _openAuthModal: function(url, width, height) {
+      console.log('[PIDY SDK] Opening auth modal overlay');
+
+      // Remove existing modal if any
+      this._closeAuthModal();
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'pidy-auth-modal-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+      `;
+
+      // Create modal container
+      const modal = document.createElement('div');
+      modal.id = 'pidy-auth-modal';
+      modal.style.cssText = `
+        position: relative;
+        width: 100%;
+        max-width: ${width}px;
+        height: ${height}px;
+        max-height: 90vh;
+        background: #0d0d0d;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        animation: scaleIn 0.3s ease-out;
+      `;
+
+      // Create close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '✕';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        font-size: 18px;
+        cursor: pointer;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      `;
+      closeBtn.onmouseover = function() {
+        this.style.background = 'rgba(255, 255, 255, 0.2)';
+      };
+      closeBtn.onmouseout = function() {
+        this.style.background = 'rgba(255, 255, 255, 0.1)';
+      };
+      closeBtn.onclick = () => {
+        this._closeAuthModal();
+        // Notify widget that auth was cancelled
+        if (this._iframe && this._iframe.contentWindow) {
+          this._iframe.contentWindow.postMessage({
+            type: 'pidy-auth-cancelled'
+          }, PIDY_ORIGIN);
+        }
+      };
+
+      // Create iframe for auth
+      const authIframe = document.createElement('iframe');
+      authIframe.src = url;
+      authIframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 16px;
+      `;
+
+      // Add animations
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Assemble modal
+      modal.appendChild(closeBtn);
+      modal.appendChild(authIframe);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Store reference for cleanup
+      this._authModal = {
+        overlay: overlay,
+        modal: modal,
+        iframe: authIframe
+      };
+
+      // Close on escape key
+      this._modalEscapeHandler = (e) => {
+        if (e.key === 'Escape') {
+          this._closeAuthModal();
+          if (this._iframe && this._iframe.contentWindow) {
+            this._iframe.contentWindow.postMessage({
+              type: 'pidy-auth-cancelled'
+            }, PIDY_ORIGIN);
+          }
+        }
+      };
+      document.addEventListener('keydown', this._modalEscapeHandler);
+
+      // Close on overlay click (not modal click)
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          this._closeAuthModal();
+          if (this._iframe && this._iframe.contentWindow) {
+            this._iframe.contentWindow.postMessage({
+              type: 'pidy-auth-cancelled'
+            }, PIDY_ORIGIN);
+          }
+        }
+      });
+
+      console.log('[PIDY SDK] Auth modal opened');
+    },
+
+    /**
+     * Close authentication modal
+     */
+    _closeAuthModal: function() {
+      if (this._authModal) {
+        const { overlay } = this._authModal;
+        if (overlay && overlay.parentNode) {
+          // Fade out animation
+          overlay.style.animation = 'fadeOut 0.2s ease-out';
+          setTimeout(() => {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+          }, 200);
+        }
+        this._authModal = null;
+      }
+
+      if (this._modalEscapeHandler) {
+        document.removeEventListener('keydown', this._modalEscapeHandler);
+        this._modalEscapeHandler = null;
+      }
+
+      console.log('[PIDY SDK] Auth modal closed');
     },
 
     /**
@@ -788,6 +970,7 @@
 
       const size = el.dataset.size;
       const debug = el.dataset.debug === 'true';
+      const authMethod = el.dataset.authMethod || 'modal';
       const width = parseInt(el.dataset.width) || 400;
       const height = parseInt(el.dataset.height) || 620;
 
@@ -802,6 +985,7 @@
         container: '#' + el.id,
         productId: productId,
         size: size,
+        authMethod: authMethod,
         debug: debug,
         width: width,
         height: height
