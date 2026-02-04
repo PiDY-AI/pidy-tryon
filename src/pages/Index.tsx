@@ -414,6 +414,19 @@ const Index = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-open popup in embed mode when not authenticated
+  useEffect(() => {
+    // Only auto-open in embed mode, when initialization is complete, and user is not authenticated
+    if (embedMode && !isInitializing && !isAuthed && sessionCheckComplete) {
+      console.log('[PIDY Widget] Embed mode - auto-opening auth popup (not authenticated)');
+      // Small delay to ensure SDK is ready
+      const timer = setTimeout(() => {
+        handleOpenAuthPopup();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [embedMode, isInitializing, isAuthed, sessionCheckComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleTryOn = async (product: Product, size?: string, isRetry?: boolean) => {
     setSelectedProduct(product);
     setTryOnResult(null);
