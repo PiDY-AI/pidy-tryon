@@ -592,7 +592,8 @@ const Index = () => {
         </Helmet>
 
         <div className="w-[380px] h-[580px] flex flex-col bg-[#0d0d0d] border border-[#c9a862]/20 rounded-xl overflow-hidden shadow-2xl">
-            {/* Header - luxury minimal */}
+          {/* Header - luxury minimal - hide when showing sign-in UI */}
+          {isAuthed && (
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -608,8 +609,8 @@ const Index = () => {
                 </div>
               </div>
               {isAuthed && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-full transition-all duration-300"
                   onClick={async () => {
@@ -632,9 +633,10 @@ const Index = () => {
                 </Button>
               )}
             </div>
+          )}
 
-            {/* Content */}
-            <div className="flex-1 overflow-hidden">
+          {/* Content */}
+          <div className="flex-1 overflow-hidden">
               {isInitializing ? (
                 // Luxury loading state - wait until both auth and session check complete
                 <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">

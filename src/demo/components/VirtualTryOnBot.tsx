@@ -44,13 +44,22 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
 
   // Trigger SDK autoInit when widget opens
   useEffect(() => {
-    if (!isOpen || !productId) return;
+    console.log('[VirtualTryOnBot] useEffect triggered', { isOpen, productId, size });
+    if (!isOpen || !productId) {
+      console.log('[VirtualTryOnBot] Skipping autoInit - isOpen:', isOpen, 'productId:', productId);
+      return;
+    }
 
+    console.log('[VirtualTryOnBot] Setting timer for autoInit');
     const timer = setTimeout(() => {
+      console.log('[VirtualTryOnBot] Timer fired, checking for SDK');
+      console.log('[VirtualTryOnBot] window.PidyTryOn:', (window as any).PidyTryOn);
       if (typeof (window as any).PidyTryOn?.autoInit === 'function') {
+        console.log('[VirtualTryOnBot] Calling PidyTryOn.autoInit()');
         (window as any).PidyTryOn.autoInit();
       } else {
-        console.error('PidyTryOn SDK not loaded');
+        console.error('[VirtualTryOnBot] PidyTryOn SDK not loaded');
+        console.error('[VirtualTryOnBot] Available window properties:', Object.keys(window));
       }
     }, 100);
 
@@ -71,28 +80,46 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
 
   if (!productId || !tryOnEnabledProducts.includes(productId)) return null;
 
+  // Open sign-in popup directly (works on Vercel too)
+  const handleOpenSignInPopup = () => {
+    const authUrl = `${window.location.origin}/auth?productId=${encodeURIComponent(productId)}&popup=true`;
+    const width = 420;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    console.log('[VirtualTryOnBot] Opening sign-in popup at:', authUrl);
+
+    const popup = window.open(
+      authUrl,
+      'pidy-auth',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+
+    if (!popup || popup.closed) {
+      console.warn('[VirtualTryOnBot] Popup was blocked');
+      alert('Please allow popups for this site to use Virtual Try-On');
+    } else {
+      console.log('[VirtualTryOnBot] Popup opened successfully');
+      // Show widget container after successful popup
+      setIsOpen(true);
+    }
+  };
+
   return (
     <div className="w-full space-y-3">
-      {/* Button - always visible */}
+      {/* Button - directly opens sign-in popup */}
       <button
         type="button"
-        onClick={() => {
-          if (isOpen && !isAuthenticated) {
-            // Cancel authentication
-            setIsOpen(false);
-          } else {
-            // Open widget
-            setIsOpen(true);
-          }
-        }}
+        onClick={handleOpenSignInPopup}
         className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
       >
         <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
-        {isOpen && !isAuthenticated ? 'Cancel' : 'Virtual Try-On'}
+        Virtual Try-On
       </button>
 
-      {/* Widget - only shown when authenticated */}
-      {isAuthenticated && (
+      {/* Widget - shown when button is clicked */}
+      {isOpen && (
         <div className="relative">
           <button
             type="button"

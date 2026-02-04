@@ -67,7 +67,7 @@
         width: 400,
         height: 620,
         debug: false,
-        authMethod: 'modal', // Default to modal for better UX
+        authMethod: 'popup', // Default to popup - doesn't cover brand website
         ...config
       };
 
@@ -104,7 +104,7 @@
         const productId = el.dataset.productId;
         const size = el.dataset.size;
         const debug = el.dataset.debug === 'true';
-        const authMethod = el.dataset.authMethod || 'modal'; // 'modal', 'popup', or 'redirect'
+        const authMethod = el.dataset.authMethod || 'popup'; // 'modal', 'popup', or 'redirect'
         const width = parseInt(el.dataset.width) || 400;
         const height = parseInt(el.dataset.height) || 620;
 
