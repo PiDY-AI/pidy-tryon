@@ -414,18 +414,8 @@ const Index = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-open popup in embed mode when not authenticated
-  useEffect(() => {
-    // Only auto-open in embed mode, when initialization is complete, and user is not authenticated
-    if (embedMode && !isInitializing && !isAuthed && sessionCheckComplete) {
-      console.log('[PIDY Widget] Embed mode - auto-opening auth popup (not authenticated)');
-      // Small delay to ensure SDK is ready
-      const timer = setTimeout(() => {
-        handleOpenAuthPopup();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [embedMode, isInitializing, isAuthed, sessionCheckComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: Removed auto-open popup in embed mode due to popup blockers
+  // The SDK button in VirtualTryOnBot.tsx will handle authentication flow
 
   const handleTryOn = async (product: Product, size?: string, isRetry?: boolean) => {
     setSelectedProduct(product);
@@ -516,8 +506,8 @@ const Index = () => {
   }, [user, authLoading, embedMode]);
 
   const handleOpenAuthPopup = (options?: { onboarding?: boolean }) => {
-    const width = 450;
-    const height = 600;
+    const width = 420;
+    const height = 550;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
@@ -526,11 +516,18 @@ const Index = () => {
       url += '&onboarding=true';
     }
 
-    window.open(
+    const popup = window.open(
       url,
       'tryon-auth',
       `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
     );
+
+    // Check if popup was blocked
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      console.warn('[PIDY Widget] Popup was blocked - opening in same window');
+      // Fallback: open in same window if popup is blocked
+      window.location.href = url;
+    }
   };
 
   const handleDoorOpened = () => {
@@ -608,56 +605,67 @@ const Index = () => {
                   </div>
                 </div>
               ) : !isAuthed ? (
-                // Luxury sign-in screen
-                <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-8">
-                  <div className="text-center max-w-xs">
-                    {/* Elegant logo presentation - use text fallback if image fails */}
-                    <div className="relative w-24 h-24 mx-auto mb-8">
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-glow-subtle" />
-                      <div className="absolute inset-2 rounded-full bg-background border border-primary/30 flex items-center justify-center">
-                        <img 
-                          src={pidyLogo} 
-                          alt="" 
-                          className="w-12 h-12 object-contain" 
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            // Show text fallback
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                          }} 
-                        />
-                        <span 
-                          className="font-display text-2xl text-primary hidden items-center justify-center"
-                          style={{ display: 'none' }}
-                        >
-                          P
-                        </span>
+                embedMode ? (
+                  // Empty state for embed mode - popup opens automatically
+                  <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-pulse">
+                        <img src={pidyLogo} alt="PIDY" className="w-8 h-8 object-contain opacity-50" onError={(e) => e.currentTarget.style.display = 'none'} />
                       </div>
                     </div>
-                    <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
-                    <p className="text-xs uppercase tracking-luxury text-muted-foreground mb-6">
-                      Exclusive virtual experience
-                    </p>
-                    <Button 
-                      className="w-full btn-luxury h-12 rounded-none mb-3"
-                      size="lg"
-                      onClick={() => handleOpenAuthPopup()}
-                    >
-                      Sign In
-                    </Button>
-                    <Button 
-                      className="w-full h-12 rounded-none"
-                      variant="outline"
-                      size="lg"
-                      onClick={() => handleOpenAuthPopup({ onboarding: true })}
-                    >
-                      First Time PIDY
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground/60 mt-4 tracking-wide">
-                      New users will set up their profile after signing up
-                    </p>
                   </div>
-                </div>
+                ) : (
+                  // Full sign-in screen for non-embed mode
+                  <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-8">
+                    <div className="text-center max-w-xs">
+                      {/* Elegant logo presentation - use text fallback if image fails */}
+                      <div className="relative w-24 h-24 mx-auto mb-8">
+                        <div className="absolute inset-0 rounded-full bg-primary/10 animate-glow-subtle" />
+                        <div className="absolute inset-2 rounded-full bg-background border border-primary/30 flex items-center justify-center">
+                          <img
+                            src={pidyLogo}
+                            alt=""
+                            className="w-12 h-12 object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              // Show text fallback
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <span
+                            className="font-display text-2xl text-primary hidden items-center justify-center"
+                            style={{ display: 'none' }}
+                          >
+                            P
+                          </span>
+                        </div>
+                      </div>
+                      <h3 className="font-display text-2xl text-foreground mb-2 tracking-wide">Private Fitting Room</h3>
+                      <p className="text-xs uppercase tracking-luxury text-muted-foreground mb-6">
+                        Exclusive virtual experience
+                      </p>
+                      <Button
+                        className="w-full btn-luxury h-12 rounded-none mb-3"
+                        size="lg"
+                        onClick={() => handleOpenAuthPopup()}
+                      >
+                        Sign In
+                      </Button>
+                      <Button
+                        className="w-full h-12 rounded-none"
+                        variant="outline"
+                        size="lg"
+                        onClick={() => handleOpenAuthPopup({ onboarding: true })}
+                      >
+                        First Time PIDY
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground/60 mt-4 tracking-wide">
+                        New users will set up their profile after signing up
+                      </p>
+                    </div>
+                  </div>
+                )
               ) : needsOnboarding ? (
                 // First-time user onboarding flow
                 <OnboardingFlow onComplete={handleOnboardingComplete} />
