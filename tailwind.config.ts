@@ -15,12 +15,9 @@ export default {
     extend: {
       fontFamily: {
         sans: [
+          'Lexend',
           '-apple-system',
           'BlinkMacSystemFont',
-          'San Francisco',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
           'sans-serif'
         ],
       },

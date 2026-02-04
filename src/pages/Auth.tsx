@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
@@ -11,16 +11,18 @@ import { OnboardingFlow, OnboardingData } from '@/components/onboarding/Onboardi
 import type { WidgetScanResult } from '@/components/onboarding/OnboardingProcessing';
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import pidyLogo from '@/assets/pidy-logo.png';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  
+
   // Auto-show onboarding if URL param is present (from "First Time PIDY" button)
   const startWithOnboarding = searchParams.get('onboarding') === 'true';
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(startWithOnboarding);
+  const [showSignInForm, setShowSignInForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,23 @@ const Auth = () => {
   const { completeOnboarding } = useOnboarding();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Detect popup closure and notify parent
+  useEffect(() => {
+    const isPopup = searchParams.get('popup');
+    if (!isPopup || !window.opener) return;
+
+    const handleBeforeUnload = () => {
+      console.log('[Auth] Popup closing - notifying parent');
+      window.opener.postMessage(
+        { type: 'pidy-auth-cancelled' },
+        window.location.origin
+      );
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [searchParams]);
 
   const [debugInfo, setDebugInfo] = useState<{
     tokenReceived: boolean;
@@ -294,6 +313,9 @@ const Auth = () => {
     );
   }
 
+  // Check if this is a popup (smaller layout)
+  const isPopup = searchParams.get('popup') === 'true';
+
   return (
     <>
       <Helmet>
@@ -301,96 +323,257 @@ const Auth = () => {
         <meta name="description" content="Sign in to access the virtual try-on experience" />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo/Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-              <img src={pidyLogo} alt="PIDY" className="w-10 h-10 object-contain" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">Virtual Try-On</h1>
-            <p className="text-muted-foreground mt-2">
-              {isLogin ? 'Sign in to continue' : 'Create your account'}
-            </p>
-          </div>
+      <div className="min-h-screen bg-background">
+        {isPopup ? (
+          // Compact popup layout
+          <div className="h-screen overflow-y-auto p-4">
+            <div className="max-w-sm mx-auto space-y-4">
+              {/* Compact Logo */}
+              <div className="text-center">
+                <img src={pidyTextLogo} alt="PIDY" className="h-10 mx-auto object-contain" />
+              </div>
 
-          {/* Auth Card */}
-          <div className="glass-card rounded-2xl p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-input border-border"
-                    required
-                  />
+              {/* Unsure about Size */}
+              <div className="text-center">
+                <h2 className="text-h4 text-foreground mb-1">Unsure about Size?</h2>
+                <p className="text-caption text-muted-foreground">
+                  Try before you buy with virtual try-on
+                </p>
+              </div>
+
+              {/* Video */}
+              <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                    <p className="text-micro text-muted-foreground">Watch how it works</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-input border-border"
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
+              {/* Sign In Container */}
+              <div className="border border-border/40 rounded-lg p-3 bg-surface/30">
+                {!showSignInForm ? (
+                  // Sign In Button
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => setShowSignInForm(true)}
+                      className="w-full"
+                      size="default"
+                    >
+                      Sign In
+                    </Button>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    {isLogin ? 'Signing in...' : 'Creating account...'}
-                  </span>
+                    {/* First time PIDY - with box */}
+                    <button
+                      onClick={() => setShowOnboarding(true)}
+                      className="w-full text-center group pt-3"
+                    >
+                      <div className="glass-card rounded-xl p-5 hover:border-primary/30 transition-colors">
+                        <p className="text-body text-muted-foreground mb-2">First time PIDY?</p>
+                        <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                          <img src={pidyLogo} alt="PIDY" className="h-5 w-5 object-contain" />
+                          <span className="text-h4 font-semibold">Get started</span>
+                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 ) : (
-                  <span className="flex items-center gap-2">
-                    {isLogin ? 'Sign In' : 'Create Account'}
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                )}
-              </Button>
-            </form>
+                  // Sign In Form
+                  <div className="space-y-4 animate-scale-in">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-h4 text-foreground">Sign In</h2>
+                      <button
+                        onClick={() => setShowSignInForm(false)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </button>
+                    </div>
 
-            {isLogin ? (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => setShowOnboarding(true)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  First time PIDY? <span className="text-primary">Get started</span>
-                </button>
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-small text-foreground">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10 bg-input border-border h-10 text-sm"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="password" className="text-small text-foreground">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10 bg-input border-border h-10 text-sm"
+                            required
+                            minLength={6}
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full mt-4"
+                        size="default"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            Signing in...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            Sign In
+                            <ArrowRight className="w-4 h-4" />
+                          </span>
+                        )}
+                      </Button>
+                    </form>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => setIsLogin(true)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Already have an account? <span className="text-primary">Sign in</span>
-                </button>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          // Full page layout
+          <div className="container max-w-7xl mx-auto px-4 py-8">
+            {/* Logo Header */}
+            <div className="mb-12">
+              <img src={pidyTextLogo} alt="PIDY" className="h-10 object-contain" />
+            </div>
+
+            {/* Two Column Layout */}
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              {/* Left Column - Info */}
+              <div className="space-y-8">
+                {/* Unsure about Size? */}
+                <div>
+                  <h2 className="text-h2 text-foreground mb-3">Unsure about Size?</h2>
+                  <p className="text-body text-muted-foreground">
+                    Try before you buy with PIDY's virtual try-on technology
+                  </p>
+                </div>
+
+                {/* Try before Buy section */}
+                <div>
+                  <h3 className="text-h3 text-foreground mb-4">Try before Buy</h3>
+                  <p className="text-body text-muted-foreground mb-4">
+                    See how clothes fit on you before purchasing
+                  </p>
+                </div>
+
+                {/* Video placeholder */}
+                <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                      <p className="text-caption text-muted-foreground">Watch how it works</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Auth */}
+              <div className="lg:sticky lg:top-8">
+                <div className="glass-card rounded-2xl p-8 max-w-md mx-auto lg:mx-0">
+                  <h2 className="text-h2 text-foreground mb-6">Connect</h2>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-foreground">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="you@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10 bg-input border-border"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-foreground">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 bg-input border-border"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      size="lg"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          {isLogin ? 'Signing in...' : 'Creating account...'}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          {isLogin ? 'Sign In' : 'Create Account'}
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      )}
+                    </Button>
+                  </form>
+
+                  {/* First time PIDY */}
+                  <div className="mt-8 pt-6 border-t border-border">
+                    <button
+                      onClick={() => setShowOnboarding(true)}
+                      className="w-full text-center group"
+                    >
+                      <p className="text-caption text-muted-foreground mb-2">First time PIDY?</p>
+                      <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                        <span className="text-subtitle">Get started</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

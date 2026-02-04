@@ -103,14 +103,14 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 700;
   }
 }

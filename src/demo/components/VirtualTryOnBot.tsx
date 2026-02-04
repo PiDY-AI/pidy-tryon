@@ -9,6 +9,7 @@ interface VirtualTryOnBotProps {
 
 export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Products that support try-on
   const tryOnEnabledProducts = [
@@ -25,6 +26,22 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     'SWIM-FLOR-BKN-2026-011',
   ];
 
+  // Listen for authentication status and popup close from widget
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'pidy-auth-success') {
+        console.log('[VirtualTryOnBot] User authenticated, showing widget');
+        setIsAuthenticated(true);
+      } else if (event.data?.type === 'pidy-auth-cancelled') {
+        console.log('[VirtualTryOnBot] Auth cancelled, resetting button');
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   // Trigger SDK autoInit when widget opens
   useEffect(() => {
     if (!isOpen || !productId) return;
@@ -40,45 +57,87 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     return () => clearTimeout(timer);
   }, [isOpen, productId, size]);
 
+  // Auto-reset if authentication takes too long (user likely closed popup)
+  useEffect(() => {
+    if (!isOpen || isAuthenticated) return;
+
+    const timeout = setTimeout(() => {
+      console.log('[VirtualTryOnBot] Auth timeout, resetting button');
+      setIsOpen(false);
+    }, 60000); // 60 seconds timeout
+
+    return () => clearTimeout(timeout);
+  }, [isOpen, isAuthenticated]);
+
   if (!productId || !tryOnEnabledProducts.includes(productId)) return null;
 
   return (
-    <div className="w-full">
-      {!isOpen ? (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
-        >
-          <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
-          Virtual Try-On
-        </button>
-      ) : (
-        <div className="space-y-3">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close virtual try-on"
-              className="absolute right-2 top-2 z-50 inline-flex h-9 w-9 items-center justify-center rounded-md bg-background/90 text-foreground shadow-lg backdrop-blur transition hover:bg-background"
-            >
-              <X className="h-4 w-4" />
-            </button>
+    <div className="w-full space-y-3">
+      {/* Button - always visible */}
+      <button
+        type="button"
+        onClick={() => {
+          if (isOpen && !isAuthenticated) {
+            // Cancel authentication
+            setIsOpen(false);
+          } else {
+            // Open widget
+            setIsOpen(true);
+          }
+        }}
+        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
+      >
+        <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
+        {isOpen && !isAuthenticated ? 'Cancel' : 'Virtual Try-On'}
+      </button>
 
-            {/* SDK will inject the iframe here */}
-            <div
-              key={`${productId}-${size}`}
-              id="pidy-tryon"
-              data-product-id={productId}
-              data-size={size || "M"}
-              data-pidy-tryon
-              style={{
-                width: "400px",
-                height: "620px",
-                position: "relative",
-              }}
-            />
-          </div>
+      {/* Widget - only shown when authenticated */}
+      {isAuthenticated && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              setIsAuthenticated(false);
+            }}
+            aria-label="Close virtual try-on"
+            className="absolute right-2 top-2 z-50 inline-flex h-9 w-9 items-center justify-center rounded-md bg-background/90 text-foreground shadow-lg backdrop-blur transition hover:bg-background"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          {/* SDK will inject the iframe here */}
+          <div
+            key={`${productId}-${size}`}
+            id="pidy-tryon"
+            data-product-id={productId}
+            data-size={size || "M"}
+            data-pidy-tryon
+            style={{
+              width: "400px",
+              height: "620px",
+              position: "relative",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Hidden widget container for SDK init when waiting for auth */}
+      {isOpen && !isAuthenticated && (
+        <div style={{ display: 'none' }}>
+          <div
+            key={`${productId}-${size}`}
+            id="pidy-tryon"
+            data-product-id={productId}
+            data-size={size || "M"}
+            data-pidy-tryon
+            style={{
+              width: "1px",
+              height: "1px",
+              position: "absolute",
+              opacity: 0,
+            }}
+          />
         </div>
       )}
     </div>
