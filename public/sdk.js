@@ -209,6 +209,10 @@
         const payload = event.data || {};
         const { type, access_token, refresh_token, expires_in, source, tokens } = payload;
 
+        if (this._config.debug) {
+          console.log('[PIDY SDK] Received message:', { type, origin: event.origin, payload });
+        }
+
         // Messages from auth bridge (PIDY origin)
         if (event.origin === PIDY_ORIGIN) {
           switch (type) {
@@ -573,16 +577,20 @@
     _openAuthPopup: function(payload) {
       const { url, width, height } = payload;
 
+      console.log('[PIDY SDK] _openAuthPopup called with:', { url, width, height });
+
       if (!url) {
         console.error('[PIDY SDK] No URL provided for popup');
         return;
       }
 
-      console.log('[PIDY SDK] Opening auth popup from parent window');
+      console.log('[PIDY SDK] Opening auth popup from parent window at:', url);
 
       // Calculate centered position
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
+
+      console.log('[PIDY SDK] Popup position:', { left, top, width, height });
 
       try {
         const popup = window.open(
@@ -590,6 +598,8 @@
           'pidy-auth-popup',
           `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
         );
+
+        console.log('[PIDY SDK] window.open returned:', popup);
 
         if (!popup || popup.closed || typeof popup.closed === 'undefined') {
           console.warn('[PIDY SDK] Popup was blocked by browser');
@@ -601,6 +611,7 @@
           );
 
           if (allowRedirect) {
+            console.log('[PIDY SDK] Opening in new tab as fallback');
             window.open(url, '_blank');
           }
         } else {
@@ -610,6 +621,7 @@
         console.error('[PIDY SDK] Error opening popup:', error);
 
         // Fallback: open in new tab
+        console.log('[PIDY SDK] Opening in new tab after error');
         window.open(url, '_blank');
       }
     },

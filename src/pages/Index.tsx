@@ -516,13 +516,21 @@ const Index = () => {
 
     // In embed mode, request parent window to open popup (won't be blocked)
     if (embedMode) {
-      console.log('[PIDY Widget] Requesting parent to open popup');
-      window.parent.postMessage({
+      const fullUrl = window.location.origin + url;
+      console.log('[PIDY Widget] Embed mode detected, sending popup request to parent');
+      console.log('[PIDY Widget] Full URL:', fullUrl);
+      console.log('[PIDY Widget] Window parent:', window.parent);
+
+      const message = {
         type: 'pidy-open-popup',
-        url: window.location.origin + url,
+        url: fullUrl,
         width: 420,
         height: 550
-      }, '*');
+      };
+
+      console.log('[PIDY Widget] Sending message:', message);
+      window.parent.postMessage(message, '*');
+      console.log('[PIDY Widget] Message sent to parent');
       return;
     }
 
@@ -639,11 +647,34 @@ const Index = () => {
                 </div>
               ) : !isAuthed ? (
                 embedMode ? (
-                  // Empty state for embed mode - popup opens automatically
-                  <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-pulse">
-                        <img src={pidyLogo} alt="PIDY" className="w-8 h-8 object-contain opacity-50" onError={(e) => e.currentTarget.style.display = 'none'} />
+                  // Sign-in UI for embed mode with popup delegation
+                  <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background p-6">
+                    <div className="text-center max-w-xs space-y-4">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <img src={pidyLogo} alt="PIDY" className="w-8 h-8 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                      </div>
+                      <div>
+                        <h3 className="text-h4 text-foreground mb-1">Virtual Try-On</h3>
+                        <p className="text-caption text-muted-foreground">
+                          Sign in to see how this looks on you
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Button
+                          onClick={() => handleOpenAuthPopup()}
+                          className="w-full"
+                          size="default"
+                        >
+                          Sign In
+                        </Button>
+                        <Button
+                          onClick={() => handleOpenAuthPopup({ onboarding: true })}
+                          variant="outline"
+                          className="w-full"
+                          size="default"
+                        >
+                          First Time PIDY
+                        </Button>
                       </div>
                     </div>
                   </div>
