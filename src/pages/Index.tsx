@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ProductCard } from '@/components/ProductCard';
@@ -41,6 +41,11 @@ const Index = () => {
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
   const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('claude-openai');
   const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
+
+  // Track whether the current session was set from an SDK-provided token (not a fresh popup sign-in).
+  // When true, onAuthStateChange should NOT echo pidy-auth-success / pidy-onboarding-complete
+  // back to the SDK, because the SDK already has the token. Echoing creates an infinite loop.
+  const tokenFromSdkRef = useRef(false);
 
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
@@ -124,21 +129,11 @@ const Index = () => {
             setSdkOnboardingReceived(true);
           }
 
-          // In embed mode, notify parent SDK about the existing session
-          if (embedMode) {
-            console.log('[PIDY Widget] Notifying parent SDK about existing session');
-            window.parent.postMessage({
-              type: 'pidy-auth-success',
-              access_token: session.access_token,
-              refresh_token: session.refresh_token,
-              expires_in: 3600
-            }, '*');
-
-            // Also notify about onboarding if complete
-            if (onboardingComplete) {
-              window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
-            }
-          }
+          // In embed mode, do NOT send pidy-auth-success back to SDK here.
+          // The SDK already has the token (it sent it to us, or is about to).
+          // Sending auth-success from here creates a loop:
+          // session check -> sends auth-success -> SDK stores -> SDK sends token -> setSession -> onAuthStateChange -> repeat
+          // The SDK manages its own token storage. We only need to notify on NEW auth (popup sign-in).
 
           setSessionCheckComplete(true);
         }
@@ -175,16 +170,20 @@ const Index = () => {
   }, [authLoading, embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep local token state in sync when onboarding sets a session (or when auth changes elsewhere)
+  // IMPORTANT: Do NOT include authToken in deps - it causes infinite re-subscribe loop:
+  // subscribe -> INITIAL_SESSION -> setAuthToken -> re-subscribe -> INITIAL_SESSION -> ...
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[PIDY Widget] onAuthStateChange:', event);
       if (session?.access_token) {
         setHasSessionToken(true);
-        if (!authToken) setAuthToken(session.access_token);
+        // Use functional update to check previous value without needing authToken in closure
+        setAuthToken((prev) => prev || session.access_token);
         setSessionCheckComplete(true);
 
-        // When user signs in, check if they've already completed onboarding
+        // When user signs in via popup (not from SDK-cached token), notify SDK
         if (event === 'SIGNED_IN' && session.user) {
           console.log('[PIDY Widget] User signed in, checking onboarding status from database');
           const onboardingComplete = session.user.user_metadata?.onboarding_complete === true;
@@ -193,12 +192,15 @@ const Index = () => {
             console.log('[PIDY Widget] User has already completed onboarding');
             completeOnboarding();
 
-            // Notify parent SDK to store in central bridge
-            if (embedMode) {
+            // Only notify SDK if this was a fresh sign-in (popup), not an SDK-provided token.
+            // If tokenFromSdkRef is true, the SDK already knows about the auth + onboarding.
+            if (embedMode && !tokenFromSdkRef.current) {
               window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
             }
           }
         }
+        // Reset the flag after processing - future SIGNED_IN events should be treated normally
+        tokenFromSdkRef.current = false;
         return;
       }
 
@@ -208,7 +210,7 @@ const Index = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [authToken, embedMode, completeOnboarding]);
+  }, [embedMode, completeOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.
@@ -249,53 +251,59 @@ const Index = () => {
       // Handle auth token from SDK (parent window cached token)
       if (type === 'pidy-auth-token' && access_token) {
         console.log('[PIDY Widget] Received token from SDK');
-        
-        const { error } = await supabase.auth.setSession({ 
-          access_token, 
-          refresh_token: refresh_token || '' 
+
+        const { error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token: refresh_token || ''
         });
-        
+
         if (error) {
           console.warn('[PIDY Widget] Could not set session from SDK token:', error.message);
         }
+
+        // Mark that this session came from the SDK - prevents echo loops in onAuthStateChange
+        tokenFromSdkRef.current = true;
 
         // Use in-memory token as source of truth
         setAuthToken(access_token);
         setHasSessionToken(true);
         setSessionCheckComplete(true); // Mark session check as done since we got token from SDK
-        
-        // Notify SDK that auth was successful
-        window.parent.postMessage({ 
-          type: 'pidy-auth-success',
-          access_token,
-          refresh_token,
-          expires_in: 3600
-        }, '*');
+
+        // Do NOT send pidy-auth-success back to SDK here - the SDK already has the token.
+        // Sending it back creates an infinite ping-pong loop:
+        // SDK sends token -> widget sends auth-success -> SDK stores -> triggers more events
         return;
       }
 
-      // Handle onboarding complete from popup (fixes double-click issue)
+      // Handle onboarding complete from popup
       if (type === 'pidy-onboarding-complete') {
         console.log('[PIDY Widget] Onboarding complete from popup');
         completeOnboarding();
-        
+
         // Forward to SDK (parent) so it can persist on brand domain
+        // This is safe - the SDK handler for this message just stores locally, no echo back
         window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
-        
+
         // If tokens were also sent, apply them
         if (access_token && refresh_token) {
+          // Mark as SDK-sourced to prevent onAuthStateChange from echoing back
+          tokenFromSdkRef.current = true;
           const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (!error) {
             setAuthToken(access_token);
             setHasSessionToken(true);
             setSessionCheckComplete(true);
-            // Also notify SDK about auth success
-            window.parent.postMessage({ 
-              type: 'pidy-auth-success',
-              access_token,
-              refresh_token,
-              expires_in: 3600
-            }, '*');
+            // Do NOT send pidy-auth-success here - the popup already notified the SDK.
+            // Sending it again creates a loop.
+
+            // Auto-start try-on after successful onboarding in embed mode
+            if (embedMode && selectedProduct) {
+              console.log('[PIDY Widget] Auto-starting try-on after onboarding');
+              setShowDoorAnimation(true);
+              setTimeout(() => {
+                handleTryOn(selectedProduct);
+              }, 100);
+            }
           }
         }
         return;
@@ -339,12 +347,16 @@ const Index = () => {
         return;
       }
 
-      // Handle auth success from popup (same origin)
+      // Handle auth success from popup (same origin) - this is a FRESH sign-in
       if (event.origin === window.location.origin && type === 'tryon-auth-session') {
         if (!access_token || !refresh_token) {
           toast.error('Auth session missing! Please sign in again.');
           return;
         }
+
+        // Mark so onAuthStateChange doesn't echo pidy-auth-success back to SDK
+        // (we send it ourselves below, once is enough)
+        tokenFromSdkRef.current = true;
 
         const { error } = await supabase.auth.setSession({ access_token, refresh_token });
         if (error) {
@@ -366,8 +378,8 @@ const Index = () => {
           });
         }
 
-        // Notify parent SDK to cache the tokens
-        window.parent.postMessage({ 
+        // Notify parent SDK to cache the tokens (this is the ONE place we tell SDK about popup auth)
+        window.parent.postMessage({
           type: 'pidy-auth-success',
           access_token,
           refresh_token,
@@ -376,6 +388,16 @@ const Index = () => {
 
         setIsExpanded(true);
         window.parent.postMessage({ type: 'tryon-expand' }, '*');
+
+        // Auto-start try-on after successful auth in embed mode
+        if (embedMode && selectedProduct) {
+          console.log('[PIDY Widget] Auto-starting try-on after auth');
+          setShowDoorAnimation(true);
+          // Delay slightly to let state settle
+          setTimeout(() => {
+            handleTryOn(selectedProduct);
+          }, 100);
+        }
         return;
       }
 
@@ -384,35 +406,75 @@ const Index = () => {
           setIsExpanded(true);
           window.parent.postMessage({ type: 'tryon-expand' }, '*');
         }
+
+        // Handle start try-on request from parent (VirtualTryOnBot)
+        if (type === 'pidy-start-tryon') {
+          const { productId: reqProductId, size: reqSize } = event.data || {};
+          console.log('[PIDY Widget] Received start-tryon request:', { reqProductId, reqSize });
+
+          // If not authenticated, open auth popup
+          if (!isAuthed) {
+            console.log('[PIDY Widget] Not authenticated, opening auth popup');
+            handleOpenAuthPopup();
+            // Notify parent that auth is required
+            window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-auth-required' }, '*');
+            return;
+          }
+
+          // If needs onboarding, notify parent
+          if (needsOnboarding) {
+            console.log('[PIDY Widget] Needs onboarding, opening auth popup with onboarding');
+            handleOpenAuthPopup({ onboarding: true });
+            window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-auth-required' }, '*');
+            return;
+          }
+
+          // Start try-on with the product
+          const product = selectedProduct || {
+            id: reqProductId,
+            name: 'Selected item',
+            category: 'Item',
+            image: '',
+            price: 0,
+            sizes: ['S', 'M', 'L', 'XL'],
+          };
+
+          console.log('[PIDY Widget] Starting try-on for product:', product.id, 'size:', reqSize);
+          setShowDoorAnimation(true);
+          handleTryOn(product, reqSize);
+        }
       })().catch((err) => {
         console.error('[PIDY Widget] Message handler error:', err);
       });
     };
 
     window.addEventListener('message', handleMessage);
-    
-    // Request cached token and onboarding status from SDK on mount (in case SDK has it stored)
-    if (embedMode) {
-      window.parent.postMessage({ type: 'pidy-auth-request' }, '*');
-      window.parent.postMessage({ type: 'pidy-onboarding-request' }, '*');
-
-      // Timeout: if SDK doesn't respond in 3 seconds, assume no onboarding status
-      const timeout = setTimeout(() => {
-        console.log('[PIDY Widget] SDK onboarding timeout check, received:', sdkOnboardingReceived);
-        if (!sdkOnboardingReceived) {
-          console.log('[PIDY Widget] SDK onboarding timeout - assuming not complete');
-          setSdkOnboardingReceived(true);
-        }
-      }, 3000);
-
-      return () => {
-        window.removeEventListener('message', handleMessage);
-        clearTimeout(timeout);
-      };
-    }
-
     return () => window.removeEventListener('message', handleMessage);
-  }, [embedMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [embedMode, isAuthed, needsOnboarding, selectedProduct]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Request cached token from SDK on mount ONLY ONCE
+  useEffect(() => {
+    if (!embedMode) return;
+
+    // Only request once
+    console.log('[PIDY Widget] Requesting cached tokens from SDK (once)');
+    window.parent.postMessage({ type: 'pidy-auth-request' }, '*');
+    window.parent.postMessage({ type: 'pidy-onboarding-request' }, '*');
+
+    // Timeout: if SDK doesn't respond in 3 seconds, assume no onboarding status
+    const timeout = setTimeout(() => {
+      console.log('[PIDY Widget] SDK onboarding timeout check');
+      setSdkOnboardingReceived((prev) => {
+        if (!prev) {
+          console.log('[PIDY Widget] SDK onboarding timeout - assuming not complete');
+          return true;
+        }
+        return prev;
+      });
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [embedMode]); // Only run when embedMode changes (once on mount)
 
   // Note: Removed auto-open popup in embed mode due to popup blockers
   // The SDK button in VirtualTryOnBot.tsx will handle authentication flow
@@ -424,7 +486,10 @@ const Index = () => {
     setTryOnSequence((v) => v + 1);
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
-    
+
+    // Notify parent that try-on has started (for VirtualTryOnBot loading state)
+    window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-started', productId: product.id, size: sizeToUse }, '*');
+
     try {
       const backendResult = await generateTryOn({
         productId: product.id,
@@ -444,11 +509,24 @@ const Index = () => {
         };
         setTryOnResult(result);
         toast.success(`Try-on generated for size: ${sizeToUse}`);
+
+        // Notify parent (VirtualTryOnBot) with the try-on result
+        window.parent.postMessage({
+          source: 'pidy-widget',
+          type: 'pidy-tryon-result',
+          images: backendResult.images,
+          recommendedSize: result.recommendedSize,
+          fitScore: result.fitScore,
+        }, '*');
       } else {
+        // Notify parent of error
+        window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-error', error: tryOnError || 'Try-on generation failed' }, '*');
         toast.error(tryOnError || 'Try-on generation failed. Please try again.');
       }
     } catch (error) {
       console.error('[PIDY Widget] Try-on error:', error);
+      // Notify parent of error
+      window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-error', error: error instanceof Error ? error.message : 'Unknown error' }, '*');
       toast.error(error instanceof Error ? error.message : 'Try-on generation failed. Please try again.');
     }
   };

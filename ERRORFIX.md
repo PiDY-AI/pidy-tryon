@@ -101,3 +101,114 @@ Format each fix with: Error, Root Cause, Files Changed, Fix Summary.
 
 ---
 
+## Fix #5: Auth Cancelled Message Sent Before Success Message Processed
+
+**Error**: After signing in via popup, clicking "Virtual Try-On" again asks for sign-in. Console shows `[VirtualTryOnBot] Auth cancelled, resetting button` - the auth appears to be cancelled even though sign-in succeeded.
+
+**Root Cause**:
+1. The popup's `beforeunload` event handler sends `pidy-auth-cancelled` when the popup closes
+2. After successful sign-in, Auth.tsx calls `window.close()` which triggers `beforeunload`
+3. The `beforeunload` handler fires and sends `pidy-auth-cancelled` to the opener
+4. This cancelled message arrives at VirtualTryOnBot and resets the auth state
+5. Race condition: cancelled message overwrites the success state set by `tryon-auth-session`
+
+**Files Changed**:
+- `src/pages/Auth.tsx` (lines 28-52, 130, 207)
+- `src/demo/components/VirtualTryOnBot.tsx` (lines 31-49)
+
+**Fix Summary**:
+1. Added `authSucceeded` state flag in Auth.tsx to track if authentication was successful
+2. Modified `beforeunload` handler to check `authSucceeded` flag before sending cancelled message
+3. Set `authSucceeded = true` BEFORE sending success messages (both in sign-in and onboarding flows)
+4. Modified VirtualTryOnBot to ignore `pidy-auth-cancelled` if already authenticated
+5. Added `isAuthenticated` to useEffect dependency array to ensure proper state checks
+
+**Result**: Popup authentication now works correctly. The cancelled message is not sent after successful authentication, and even if it arrives late, VirtualTryOnBot ignores it because auth already succeeded.
+
+---
+
+## Fix #6: Infinite Auth Request Loop Causing 20k+ Supabase Requests
+
+**Error**: Supabase dashboard shows 20,000+ auth requests in 1 hour, causing rate limiting.
+
+**Root Cause**:
+1. The `useEffect` in Index.tsx that handles messages had `isAuthed`, `needsOnboarding`, `selectedProduct` in its dependency array
+2. Inside this same useEffect, `pidy-auth-request` and `pidy-onboarding-request` were sent to the SDK on every run
+3. When SDK responds with tokens, it triggers `setAuthToken` which changes `isAuthed`
+4. The changed `isAuthed` triggers the useEffect again, which sends another `pidy-auth-request`
+5. This creates an infinite loop: request → response → state change → request → ...
+
+**Files Changed**:
+- `src/pages/Index.tsx` (lines 448-490)
+
+**Fix Summary**:
+1. Separated the initial auth/onboarding request into a new useEffect that only depends on `embedMode`
+2. This ensures `pidy-auth-request` and `pidy-onboarding-request` are only sent ONCE on mount
+3. The message listener useEffect still has `isAuthed`, `needsOnboarding`, `selectedProduct` for fresh state, but no longer sends requests on re-run
+
+**Result**: Auth requests are now sent only once when the widget loads, eliminating the infinite loop.
+
+---
+
+## Fix #7: onAuthStateChange Re-subscribe Loop (Second Infinite Loop)
+
+**Error**: Supabase auth requests still elevated after Fix #6. A second infinite loop existed.
+
+**Root Cause**:
+1. The `onAuthStateChange` useEffect (line 178) had `authToken` in its dependency array
+2. Every time `authToken` changed, the effect unsubscribed and re-subscribed
+3. Each new subscription triggers an `INITIAL_SESSION` event from Supabase
+4. The handler called `setAuthToken(session.access_token)` which changed `authToken`
+5. This created: subscribe -> INITIAL_SESSION -> setAuthToken -> re-subscribe -> INITIAL_SESSION -> ...
+6. Each cycle made a Supabase auth API call
+
+**Files Changed**:
+- `src/pages/Index.tsx` (line 178-211)
+
+**Fix Summary**:
+1. Removed `authToken` from the dependency array of the `onAuthStateChange` useEffect
+2. Changed `if (!authToken) setAuthToken(...)` to use functional update: `setAuthToken((prev) => prev || session.access_token)`
+3. This avoids needing `authToken` in the closure while still only setting it if not already set
+4. Subscription now only created once per mount (depends only on `embedMode` and `completeOnboarding`)
+
+**Result**: The second infinite loop is eliminated. Auth state changes are handled by a single stable subscription.
+
+---
+
+## Fix #8: Widget-SDK Ping-Pong Loop (Third Infinite Loop)
+
+**Error**: Console shows repeating cycle of `Stored tokens in central bridge`, `Tokens cached locally`, `Auth modal closed`, `Stored onboarding in central bridge: true`, `Onboarding marked complete` - hundreds of times.
+
+**Root Cause**:
+The widget and SDK were echoing messages back and forth in a ping-pong pattern:
+
+1. SDK sends `pidy-auth-token` to widget (cached token)
+2. Widget receives token, calls `supabase.auth.setSession()` (Supabase API call)
+3. Widget sends `pidy-auth-success` BACK to SDK (echo!)
+4. SDK receives `pidy-auth-success`, stores tokens, closes modal
+5. `setSession()` triggers `onAuthStateChange` with `SIGNED_IN` event
+6. `onAuthStateChange` handler sends `pidy-onboarding-complete` to SDK
+7. SDK stores onboarding, sends bridge messages
+8. Multiple places keep sending `pidy-auth-success` on every session check
+
+Three separate echo paths existed:
+- `pidy-auth-token` handler echoed `pidy-auth-success` back to SDK
+- Session check useEffect sent `pidy-auth-success` when finding existing session
+- `onAuthStateChange` handler sent `pidy-onboarding-complete` on every `SIGNED_IN` (including SDK-triggered ones)
+- `tryon-auth-session` handler triggered `onAuthStateChange` which doubled the notifications
+
+**Files Changed**:
+- `src/pages/Index.tsx`
+
+**Fix Summary**:
+1. Added `tokenFromSdkRef` (useRef) to track whether current session came from SDK vs fresh popup
+2. Removed `pidy-auth-success` echo from `pidy-auth-token` handler (SDK already has the token)
+3. Removed `pidy-auth-success` and `pidy-onboarding-complete` sends from session check useEffect (SDK initiated the check)
+4. Guarded `onAuthStateChange` handler: only sends `pidy-onboarding-complete` when `tokenFromSdkRef.current` is false (fresh popup auth)
+5. Set `tokenFromSdkRef.current = true` before ALL `setSession()` calls except fresh popup auth
+6. In `tryon-auth-session` handler, set `tokenFromSdkRef.current = true` to prevent `onAuthStateChange` from double-notifying SDK
+
+**Result**: Messages between widget and SDK are now one-directional per event. No more ping-pong loops.
+
+---
+

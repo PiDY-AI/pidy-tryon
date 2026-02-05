@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
@@ -26,27 +26,33 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [authSucceeded, setAuthSucceeded] = useState(false);
   const { signIn, signUp } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Detect popup closure and notify parent
+  // Detect popup closure and notify parent (only if auth did NOT succeed)
   useEffect(() => {
     const isPopup = searchParams.get('popup');
     if (!isPopup || !window.opener) return;
 
     const handleBeforeUnload = () => {
-      console.log('[Auth] Popup closing - notifying parent');
-      window.opener.postMessage(
-        { type: 'pidy-auth-cancelled' },
-        window.location.origin
-      );
+      // Only send cancelled if auth didn't succeed
+      if (!authSucceeded) {
+        console.log('[Auth] Popup closing without auth - notifying parent');
+        window.opener.postMessage(
+          { type: 'pidy-auth-cancelled' },
+          window.location.origin
+        );
+      } else {
+        console.log('[Auth] Popup closing after successful auth - not sending cancelled');
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [searchParams]);
+  }, [searchParams, authSucceeded]);
 
   const [debugInfo, setDebugInfo] = useState<{
     tokenReceived: boolean;
@@ -125,6 +131,9 @@ const Auth = () => {
     });
     
     if (isPopup && window.opener) {
+      // Mark auth as successful BEFORE sending messages (prevents beforeunload from sending cancelled)
+      setAuthSucceeded(true);
+
       // Send tokens AND onboarding completion to opener widget
       if (tokenReceived && result?.access_token && result?.refresh_token) {
         // First: send session tokens
@@ -199,6 +208,9 @@ const Auth = () => {
               });
               return;
             }
+
+            // Mark auth as successful BEFORE sending messages (prevents beforeunload from sending cancelled)
+            setAuthSucceeded(true);
 
             // Send to widget (same origin)
             window.opener.postMessage(
