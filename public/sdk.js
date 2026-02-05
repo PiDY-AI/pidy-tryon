@@ -26,10 +26,16 @@
 (function(window) {
   'use strict';
 
-  // Support localhost for development
-  const PIDY_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  // Determine the PIDY widget origin.
+  // In development (localhost) or when the SDK is served from the same domain as the widget
+  // (e.g. demo pages on Vercel), use the current origin so the iframe loads from the same host.
+  // Only use the hardcoded production URL when the SDK is loaded on a third-party brand website.
+  const PIDY_HOSTS = ['pidy-tryon.vercel.app', 'pidy-tryon.lovable.app'];
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isSameHost = PIDY_HOSTS.some(function(h) { return window.location.hostname === h; });
+  const PIDY_ORIGIN = (isLocal || isSameHost)
     ? window.location.origin
-    : 'https://pidy-tryon.lovable.app';
+    : 'https://pidy-tryon.vercel.app';
   const AUTH_BRIDGE_URL = PIDY_ORIGIN + '/auth-bridge.html';
   
   // Fallback local storage keys (used alongside central storage)
@@ -244,6 +250,7 @@
 
         // Only accept widget messages from PIDY origin or localhost
         const isValidOrigin = event.origin === PIDY_ORIGIN ||
+                             PIDY_HOSTS.some(function(h) { return event.origin.includes(h); }) ||
                              event.origin.includes('localhost') ||
                              event.origin.includes('127.0.0.1');
         if (!isValidOrigin) return;
