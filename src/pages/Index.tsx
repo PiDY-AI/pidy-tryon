@@ -47,6 +47,10 @@ const Index = () => {
   // back to the SDK, because the SDK already has the token. Echoing creates an infinite loop.
   const tokenFromSdkRef = useRef(false);
 
+  // Mirror authToken in a ref so handleTryOn (called from setTimeout/closures) always reads the latest value.
+  const authTokenRef = useRef<string | null>(null);
+  authTokenRef.current = authToken;
+
   // "user" can be flaky inside third-party iframes; token is the source of truth for backend calls.
   const isAuthed = !!authToken || hasSessionToken;
 
@@ -266,6 +270,7 @@ const Index = () => {
 
         // Use in-memory token as source of truth
         setAuthToken(access_token);
+        authTokenRef.current = access_token; // Eagerly update ref
         setHasSessionToken(true);
         setSessionCheckComplete(true); // Mark session check as done since we got token from SDK
 
@@ -291,6 +296,7 @@ const Index = () => {
           const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (!error) {
             setAuthToken(access_token);
+            authTokenRef.current = access_token; // Eagerly update ref
             setHasSessionToken(true);
             setSessionCheckComplete(true);
             // Do NOT send pidy-auth-success here - the popup already notified the SDK.
@@ -336,14 +342,17 @@ const Index = () => {
         return;
       }
 
-      // Handle sign-out request from SDK
+      // Handle sign-out request from SDK / VirtualTryOnBot
       if (type === 'pidy-sign-out-request') {
         await signOut();
         setAuthToken(null);
+        authTokenRef.current = null;
         setHasSessionToken(false);
         setShowDoorAnimation(false);
         setDoorOpened(false);
         setTryOnResult(null);
+        // Notify parent SDK to clear cached tokens
+        window.parent.postMessage({ type: 'pidy-sign-out', source: 'pidy-widget' }, '*');
         return;
       }
 
@@ -366,6 +375,7 @@ const Index = () => {
 
         // Keep an in-memory token as source of truth for backend calls
         setAuthToken(access_token);
+        authTokenRef.current = access_token; // Eagerly update ref so handleTryOn reads fresh token
 
         // Verify session in iframe context
         const { data: { session } } = await supabase.auth.getSession();
@@ -409,8 +419,8 @@ const Index = () => {
 
         // Handle start try-on request from parent (VirtualTryOnBot)
         if (type === 'pidy-start-tryon') {
-          const { productId: reqProductId, size: reqSize } = event.data || {};
-          console.log('[PIDY Widget] Received start-tryon request:', { reqProductId, reqSize });
+          const { productId: reqProductId, size: reqSize, retry: reqRetry } = event.data || {};
+          console.log('[PIDY Widget] Received start-tryon request:', { reqProductId, reqSize, retry: reqRetry });
 
           // If not authenticated, open auth popup
           if (!isAuthed) {
@@ -439,9 +449,10 @@ const Index = () => {
             sizes: ['S', 'M', 'L', 'XL'],
           };
 
-          console.log('[PIDY Widget] Starting try-on for product:', product.id, 'size:', reqSize);
+          console.log('[PIDY Widget] Starting try-on for product:', product.id, 'size:', reqSize, 'retry:', !!reqRetry);
           setShowDoorAnimation(true);
-          handleTryOn(product, reqSize);
+          // Widget-initiated try-ons always use fast mode (groq-replicate)
+          handleTryOn(product, reqSize, !!reqRetry, 'groq-replicate');
         }
       })().catch((err) => {
         console.error('[PIDY Widget] Message handler error:', err);
@@ -479,13 +490,14 @@ const Index = () => {
   // Note: Removed auto-open popup in embed mode due to popup blockers
   // The SDK button in VirtualTryOnBot.tsx will handle authentication flow
 
-  const handleTryOn = async (product: Product, size?: string, isRetry?: boolean) => {
+  const handleTryOn = async (product: Product, size?: string, isRetry?: boolean, providerOverride?: 'claude-openai' | 'groq-replicate') => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
     setTryOnSequence((v) => v + 1);
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
+    const providerToUse = providerOverride || provider;
 
     // Notify parent that try-on has started (for VirtualTryOnBot loading state)
     window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-started', productId: product.id, size: sizeToUse }, '*');
@@ -494,8 +506,8 @@ const Index = () => {
       const backendResult = await generateTryOn({
         productId: product.id,
         selectedSize: sizeToUse,
-        accessTokenOverride: authToken ?? undefined,
-        provider,
+        accessTokenOverride: authTokenRef.current ?? undefined,
+        provider: providerToUse,
         retry: isRetry,
       });
 

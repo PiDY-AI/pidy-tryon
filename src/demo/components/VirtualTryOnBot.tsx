@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { X } from "lucide-react";
+import { X, LogOut } from "lucide-react";
 import pidyLogo from "@/assets/pidy-logo.png";
 
 interface VirtualTryOnBotProps {
@@ -21,8 +21,11 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [tryOnSize, setTryOnSize] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const widgetContainerRef = useRef<HTMLDivElement>(null);
   const widgetInitializedRef = useRef(false);
+  // Track the last size we generated for, so we know if this is a retry (same size) or new generation
+  const lastGeneratedSizeRef = useRef<string | null>(null);
 
   // Products that support try-on
   const tryOnEnabledProducts = [
@@ -95,12 +98,15 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
           break;
 
         case 'pidy-tryon-result':
-          // Widget has try-on result
+          // Widget has try-on result (user must be authenticated to get here)
           const { images, recommendedSize } = event.data;
           if (images && images.length > 0) {
             setTryOnImage(images[0]);
-            setTryOnSize(recommendedSize || size || 'M');
+            const resultSize = recommendedSize || size || 'M';
+            setTryOnSize(resultSize);
+            lastGeneratedSizeRef.current = resultSize;
             setIsProcessing(false);
+            setIsAuthenticated(true);
           }
           break;
 
@@ -117,10 +123,22 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
         case 'pidy-auth-success':
           // Auth completed, try-on will start automatically
           console.log('[VirtualTryOnBot] Auth success from widget');
+          setIsAuthenticated(true);
           break;
 
         case 'pidy-auth-cancelled':
           setIsProcessing(false);
+          break;
+
+        case 'pidy-sign-out':
+          // User signed out from widget
+          console.log('[VirtualTryOnBot] User signed out');
+          setIsAuthenticated(false);
+          setTryOnImage(null);
+          setTryOnSize(null);
+          setIsProcessing(false);
+          setError(null);
+          lastGeneratedSizeRef.current = null;
           break;
       }
     };
@@ -139,6 +157,9 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
   const handleTryOnClick = () => {
     if (!isSizeSelected) return;
 
+    // If we already have a result for this exact size, it's a retry
+    const isRetry = lastGeneratedSizeRef.current === size;
+
     setIsProcessing(true);
     setError(null);
 
@@ -149,8 +170,9 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
         type: 'pidy-start-tryon',
         productId,
         size,
+        retry: isRetry,
       }, '*');
-      console.log('[VirtualTryOnBot] Sent start-tryon to widget');
+      console.log('[VirtualTryOnBot] Sent start-tryon to widget, retry:', isRetry);
     } else {
       console.error('[VirtualTryOnBot] Widget iframe not found');
       setError('Widget not ready. Please try again.');
@@ -164,6 +186,22 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     setTryOnSize(null);
     setIsProcessing(false);
     setError(null);
+  };
+
+  // Sign out via the widget iframe
+  const handleSignOut = () => {
+    const widgetIframe = widgetContainerRef.current?.querySelector('iframe');
+    if (widgetIframe && widgetIframe.contentWindow) {
+      widgetIframe.contentWindow.postMessage({ type: 'pidy-sign-out-request' }, '*');
+      console.log('[VirtualTryOnBot] Sent sign-out request to widget');
+    }
+    // Reset local state immediately
+    setIsAuthenticated(false);
+    setTryOnImage(null);
+    setTryOnSize(null);
+    setIsProcessing(false);
+    setError(null);
+    lastGeneratedSizeRef.current = null;
   };
 
   return (
@@ -255,25 +293,47 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Tried Size</p>
                 <p className="text-sm font-semibold text-foreground">{tryOnSize}</p>
               </div>
-              <button
-                onClick={() => {
-                  setTryOnImage(null);
-                  setTryOnSize(null);
-                  handleTryOnClick();
-                }}
-                disabled={isProcessing}
-                className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition disabled:opacity-50"
-              >
-                {isProcessing ? 'Retrying...' : 'Retry'}
-              </button>
+              {(() => {
+                const sizeChanged = size !== tryOnSize;
+                const label = isProcessing ? 'Generating...' : sizeChanged ? 'Generate' : 'Retry';
+                return (
+                  <button
+                    onClick={() => {
+                      setTryOnImage(null);
+                      setTryOnSize(null);
+                      handleTryOnClick();
+                    }}
+                    disabled={isProcessing}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-50 ${
+                      sizeChanged
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'border border-border hover:bg-muted'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })()}
             </div>
 
-            {/* Powered by PIDY */}
-            <div className="flex items-center gap-2 pt-2 border-t border-border/30">
-              <img src={pidyLogo} alt="PIDY" className="h-4 w-4" />
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Powered by PIDY
-              </span>
+            {/* Powered by PIDY + Sign Out */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
+              <div className="flex items-center gap-2">
+                <img src={pidyLogo} alt="PIDY" className="h-4 w-4" />
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Powered by PIDY
+                </span>
+              </div>
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition"
+                >
+                  <LogOut className="h-3 w-3" />
+                  Sign Out
+                </button>
+              )}
             </div>
           </div>
         </div>

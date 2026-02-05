@@ -212,3 +212,28 @@ Three separate echo paths existed:
 
 ---
 
+## Fix #9: Try-On Fails With 401 After Sign-Out + Sign-Back-In
+
+**Error**: After signing out from the demo page and signing back in, the try-on request fails with 401 (Unauthorized). The `tryon` edge function receives an expired/null auth token. The VirtualTryOnBot shows "Try-on generation failed" and the spinner stays stuck on "Your look is being prepared..."
+
+**Root Cause**:
+Two issues combined:
+
+1. **Stale auth token in closures**: `handleTryOn` read `authToken` from React state via closure. When called from `setTimeout` inside message handlers (e.g., auto-start after popup auth), the closure captured the old `authToken` value (null after sign-out). React's `setAuthToken(newToken)` is async - the state variable doesn't update until the next render, but the `setTimeout` callback runs with the stale closure.
+
+2. **Sign-out not notifying parent SDK**: When the widget handled `pidy-sign-out-request` from VirtualTryOnBot, it signed out locally but did NOT send `pidy-sign-out` back to the SDK/parent. The SDK's cached tokens were never cleared. On next sign-in, the SDK could still serve stale cached tokens.
+
+**Files Changed**:
+- `src/pages/Index.tsx`
+
+**Fix Summary**:
+1. Added `authTokenRef` (useRef) that mirrors `authToken` state, updated on every render via `authTokenRef.current = authToken`
+2. Changed `handleTryOn` to read `authTokenRef.current` instead of `authToken` from closure
+3. Eagerly set `authTokenRef.current = access_token` alongside every `setAuthToken(access_token)` call (in `tryon-auth-session`, `pidy-auth-token`, and `pidy-onboarding-complete` handlers)
+4. Eagerly set `authTokenRef.current = null` on sign-out
+5. Added `window.parent.postMessage({ type: 'pidy-sign-out', source: 'pidy-widget' }, '*')` to the `pidy-sign-out-request` handler so the SDK clears cached tokens
+
+**Result**: After sign-out + sign-back-in, `handleTryOn` always reads the latest auth token from the ref, and the SDK properly clears stale cached tokens.
+
+---
+
