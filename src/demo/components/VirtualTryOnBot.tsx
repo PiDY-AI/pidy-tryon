@@ -10,6 +10,7 @@ interface VirtualTryOnBotProps {
 export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showWidget, setShowWidget] = useState(false);
 
   // Products that support try-on
   const tryOnEnabledProducts = [
@@ -26,15 +27,20 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     'SWIM-FLOR-BKN-2026-011',
   ];
 
-  // Listen for authentication status and popup close from widget
+  // Listen for authentication from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'pidy-auth-success') {
-        console.log('[VirtualTryOnBot] User authenticated, showing widget');
+      const { type } = event.data || {};
+
+      // Auth successful - these are the messages Auth.tsx sends
+      if (type === 'tryon-auth-session' || type === 'pidy-onboarding-complete' || type === 'pidy-auth-success') {
+        console.log('[VirtualTryOnBot] User authenticated via popup:', type);
         setIsAuthenticated(true);
-      } else if (event.data?.type === 'pidy-auth-cancelled') {
-        console.log('[VirtualTryOnBot] Auth cancelled, resetting button');
+        setShowWidget(true);
+      } else if (type === 'pidy-auth-cancelled') {
+        console.log('[VirtualTryOnBot] Auth cancelled, resetting');
         setIsOpen(false);
+        setShowWidget(false);
       }
     };
 
@@ -42,11 +48,11 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Trigger SDK autoInit when widget opens
+  // Trigger SDK autoInit when widget should show (after auth)
   useEffect(() => {
-    console.log('[VirtualTryOnBot] useEffect triggered', { isOpen, productId, size });
-    if (!isOpen || !productId) {
-      console.log('[VirtualTryOnBot] Skipping autoInit - isOpen:', isOpen, 'productId:', productId);
+    console.log('[VirtualTryOnBot] useEffect triggered', { showWidget, productId, size });
+    if (!showWidget || !productId) {
+      console.log('[VirtualTryOnBot] Skipping autoInit - showWidget:', showWidget, 'productId:', productId);
       return;
     }
 
@@ -59,12 +65,11 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
         (window as any).PidyTryOn.autoInit();
       } else {
         console.error('[VirtualTryOnBot] PidyTryOn SDK not loaded');
-        console.error('[VirtualTryOnBot] Available window properties:', Object.keys(window));
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [isOpen, productId, size]);
+  }, [showWidget, productId, size]);
 
   // Auto-reset if authentication takes too long (user likely closed popup)
   useEffect(() => {
@@ -73,6 +78,7 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
     const timeout = setTimeout(() => {
       console.log('[VirtualTryOnBot] Auth timeout, resetting button');
       setIsOpen(false);
+      setShowWidget(false);
     }, 60000); // 60 seconds timeout
 
     return () => clearTimeout(timeout);
@@ -109,23 +115,34 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
   return (
     <div className="w-full space-y-3">
       {/* Button - directly opens sign-in popup */}
-      <button
-        type="button"
-        onClick={handleOpenSignInPopup}
-        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
-      >
-        <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
-        Virtual Try-On
-      </button>
+      {!showWidget && (
+        <button
+          type="button"
+          onClick={handleOpenSignInPopup}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
+        >
+          <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
+          Virtual Try-On
+        </button>
+      )}
 
-      {/* Widget - shown when button is clicked */}
-      {isOpen && (
+      {/* Waiting for auth indicator */}
+      {isOpen && !showWidget && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          Waiting for sign-in...
+        </div>
+      )}
+
+      {/* Widget - shown only after auth succeeds */}
+      {showWidget && (
         <div className="relative">
           <button
             type="button"
             onClick={() => {
               setIsOpen(false);
               setIsAuthenticated(false);
+              setShowWidget(false);
             }}
             aria-label="Close virtual try-on"
             className="absolute right-2 top-2 z-50 inline-flex h-9 w-9 items-center justify-center rounded-md bg-background/90 text-foreground shadow-lg backdrop-blur transition hover:bg-background"
@@ -135,7 +152,7 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
 
           {/* SDK will inject the iframe here */}
           <div
-            key={`${productId}-${size}`}
+            key={`${productId}-${size}-widget`}
             id="pidy-tryon"
             data-product-id={productId}
             data-size={size || "M"}
@@ -144,25 +161,6 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
               width: "400px",
               height: "620px",
               position: "relative",
-            }}
-          />
-        </div>
-      )}
-
-      {/* Hidden widget container for SDK init when waiting for auth */}
-      {isOpen && !isAuthenticated && (
-        <div style={{ display: 'none' }}>
-          <div
-            key={`${productId}-${size}`}
-            id="pidy-tryon"
-            data-product-id={productId}
-            data-size={size || "M"}
-            data-pidy-tryon
-            style={{
-              width: "1px",
-              height: "1px",
-              position: "absolute",
-              opacity: 0,
             }}
           />
         </div>
