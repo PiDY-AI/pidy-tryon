@@ -28,8 +28,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('headshot');
   const [data, setData] = useState<OnboardingData>({});
 
-  const handleHeadshotComplete = (headshot: File) => {
-    setData((prev) => ({ ...prev, headshot }));
+  const handleHeadshotComplete = (headshotData: {
+    headshot: File;
+    height: number;
+    weight: number;
+    age?: number;
+  }) => {
+    setData((prev) => ({
+      ...prev,
+      headshot: headshotData.headshot,
+      details: {
+        ...prev.details,
+        height: headshotData.height,
+        weight: headshotData.weight,
+        age: headshotData.age,
+        name: prev.details?.name || '',
+        email: prev.details?.email || '',
+        gender: prev.details?.gender,
+      },
+    }));
     setStep('photos');
   };
 
@@ -46,7 +63,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     email: string;
     gender?: Gender;
   }) => {
-    setData((prev) => ({ ...prev, details }));
+    setData((prev) => ({
+      ...prev,
+      details: {
+        ...details,
+        // Keep measurements from step 1, but allow override if changed in step 3
+        height: prev.details?.height || details.height,
+        weight: prev.details?.weight || details.weight,
+        age: prev.details?.age !== undefined ? prev.details.age : details.age,
+      },
+    }));
     setStep('processing');
   };
 
@@ -69,6 +95,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         <OnboardingDetails
           onSubmit={handleDetailsSubmit}
           onBack={() => setStep('photos')}
+          prefilledHeight={data.details?.height}
+          prefilledWeight={data.details?.weight}
+          prefilledAge={data.details?.age}
         />
       )}
       {step === 'processing' && (

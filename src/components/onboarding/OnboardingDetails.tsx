@@ -25,13 +25,22 @@ interface OnboardingDetailsProps {
     gender?: Gender;
   }) => void;
   onBack: () => void;
+  prefilledHeight?: number;
+  prefilledWeight?: number;
+  prefilledAge?: number;
 }
 
-export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) => {
+export const OnboardingDetails = ({
+  onSubmit,
+  onBack,
+  prefilledHeight,
+  prefilledWeight,
+  prefilledAge,
+}: OnboardingDetailsProps) => {
   const [name, setName] = useState('');
-  const [height, setHeight] = useState<number | undefined>(170);
-  const [weight, setWeight] = useState<number | undefined>(70);
-  const [age, setAge] = useState<number | undefined>(15);
+  const [height, setHeight] = useState<number | undefined>(prefilledHeight || 170);
+  const [weight, setWeight] = useState<number | undefined>(prefilledWeight || 70);
+  const [age, setAge] = useState<number | undefined>(prefilledAge || 15);
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -87,33 +96,30 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
     }
   };
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-4">
+    <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
+      {/* Header - compact */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-2">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors text-xs"
+          className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors text-xs mb-2"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
         </button>
-      </div>
-
-      <div className="flex-shrink-0 text-center px-6 pb-2 pt-2">
-        <p className="text-[9px] uppercase tracking-[0.2em] text-primary/70 mb-1">Step 3 of 3</p>
-        <h2 className="font-display text-xl text-foreground">
-          Your Details
-        </h2>
+        <div className="text-center">
+          <p className="text-[9px] uppercase tracking-luxury text-primary mb-0.5">Step 3 of 3</p>
+          <h2 className="font-display text-base text-foreground">Your Details</h2>
+        </div>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-6 overflow-y-auto">
-        {/* Name input - refined */}
-        <div className="space-y-1.5 mb-4">
-          <Label 
-            htmlFor="name" 
-            className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70"
+        {/* Name input - compact */}
+        <div className="space-y-1 mb-3">
+          <Label
+            htmlFor="name"
+            className="text-[9px] uppercase tracking-wider text-muted-foreground/70"
           >
-            Full Name
+            Name
           </Label>
           <Input
             id="name"
@@ -125,82 +131,20 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
             }}
             placeholder="Enter your name"
             className={cn(
-              "h-11 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
+              "h-10 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
               errors.name && 'border-destructive/50'
             )}
           />
           {errors.name && (
-            <p className="text-[10px] text-destructive/80">{errors.name}</p>
+            <p className="text-[9px] text-destructive/80">{errors.name}</p>
           )}
         </div>
 
-        {/* Measurement scroll pickers - centered section */}
-        <div className="py-4 border-y border-border/20">
-          <div className="flex justify-center gap-8">
-            <ScrollPicker
-              label="Height"
-              values={heightValues}
-              value={height}
-              onChange={(v) => {
-                setHeight(v as number);
-                if (errors.height) setErrors((prev) => ({ ...prev, height: '' }));
-              }}
-              unit="cm"
-            />
-            <ScrollPicker
-              label="Weight"
-              values={weightValues}
-              value={weight}
-              onChange={(v) => {
-                setWeight(v as number);
-                if (errors.weight) setErrors((prev) => ({ ...prev, weight: '' }));
-              }}
-              unit="kg"
-            />
-            <ScrollPicker
-              label="Age"
-              values={ageValues}
-              value={age ?? '-'}
-              onChange={(v) => setAge(v === '-' ? undefined : v as number)}
-              unit="yrs"
-            />
-          </div>
-          {(errors.height || errors.weight) && (
-            <p className="text-[10px] text-destructive/80 text-center mt-2">
-              {errors.height || errors.weight}
-            </p>
-          )}
-        </div>
-
-        {/* Gender - minimal chips */}
-        <div className="py-4">
-          <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 block mb-3">
-            Gender <span className="normal-case tracking-normal">(optional)</span>
-          </Label>
-          <div className="flex gap-2">
-            {(['male', 'female', 'other'] as const).map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setGender(gender === g ? undefined : g)}
-                className={cn(
-                  "flex-1 py-2 text-[11px] uppercase tracking-wider border rounded transition-all duration-200",
-                  gender === g 
-                    ? "border-primary/50 bg-primary/10 text-primary" 
-                    : "border-border/30 text-muted-foreground/60 hover:border-border/50 hover:text-muted-foreground"
-                )}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Email input - refined */}
-        <div className="space-y-1.5">
-          <Label 
-            htmlFor="email" 
-            className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70"
+        {/* Email input - compact */}
+        <div className="space-y-1 mb-3">
+          <Label
+            htmlFor="email"
+            className="text-[9px] uppercase tracking-wider text-muted-foreground/70"
           >
             Email
           </Label>
@@ -214,21 +158,85 @@ export const OnboardingDetails = ({ onSubmit, onBack }: OnboardingDetailsProps) 
             }}
             placeholder="your@email.com"
             className={cn(
-              "h-11 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
+              "h-10 bg-transparent border-0 border-b border-border/50 rounded-none px-0 text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 focus-visible:border-primary/50 transition-colors",
               errors.email && 'border-destructive/50'
             )}
           />
           {errors.email && (
-            <p className="text-[10px] text-destructive/80">{errors.email}</p>
+            <p className="text-[9px] text-destructive/80">{errors.email}</p>
           )}
-          <p className="text-[10px] text-muted-foreground/50 pt-1">
-            We'll send your try-on results here
-          </p>
+        </div>
+
+        {/* Measurement scroll pickers - only show if not prefilled */}
+        {!prefilledHeight && !prefilledWeight && (
+          <div className="py-3 border-y border-border/20 mb-3">
+            <div className="flex justify-center gap-8">
+              <ScrollPicker
+                label="Height"
+                values={heightValues}
+                value={height}
+                onChange={(v) => {
+                  setHeight(v as number);
+                  if (errors.height) setErrors((prev) => ({ ...prev, height: '' }));
+                }}
+                unit="cm"
+              />
+              <ScrollPicker
+                label="Weight"
+                values={weightValues}
+                value={weight}
+                onChange={(v) => {
+                  setWeight(v as number);
+                  if (errors.weight) setErrors((prev) => ({ ...prev, weight: '' }));
+                }}
+                unit="kg"
+              />
+              <ScrollPicker
+                label="Age"
+                values={ageValues}
+                value={age ?? '-'}
+                onChange={(v) => setAge(v === '-' ? undefined : v as number)}
+                unit="yrs"
+              />
+            </div>
+            {(errors.height || errors.weight) && (
+              <p className="text-[9px] text-destructive/80 text-center mt-2">
+                {errors.height || errors.weight}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Gender - modern segmented control */}
+        <div className="mb-3">
+          <Label className="text-[9px] uppercase tracking-wider text-muted-foreground/70 block mb-2">
+            Gender <span className="text-[8px] normal-case tracking-normal opacity-60">(optional)</span>
+          </Label>
+          <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-border/20">
+            {(['male', 'female', 'other'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGender(gender === g ? undefined : g)}
+                className={cn(
+                  "flex-1 py-2 px-3 text-[10px] font-medium uppercase tracking-wide rounded-md transition-all duration-200",
+                  gender === g
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                )}
+              >
+                {g === 'male' && '♂'}
+                {g === 'female' && '♀'}
+                {g === 'other' && '⚥'}
+                <span className="ml-1">{g.charAt(0).toUpperCase() + g.slice(1)}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Submit button */}
-        <div className="flex-shrink-0 pt-6 pb-6 mt-auto">
-          <Button 
+        <div className="flex-shrink-0 pt-4 pb-6 mt-auto">
+          <Button
             type="submit"
             className="w-full h-11 rounded-none btn-luxury text-[11px]"
             size="lg"
