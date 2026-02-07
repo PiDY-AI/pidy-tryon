@@ -17,7 +17,7 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [height, setHeight] = useState<number | undefined>(170);
   const [weight, setWeight] = useState<number | undefined>(70);
-  const [age, setAge] = useState<number | string | undefined>('-');
+  const [age, setAge] = useState<number | string | undefined>(21);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -226,14 +226,16 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
 
       {/* Continue button */}
       <div className="flex-shrink-0 px-6 pb-6 pt-2">
-        <Button
-          onClick={handleContinue}
-          disabled={!isComplete}
-          className="w-full h-12 rounded-none btn-luxury"
-          size="lg"
-        >
-          Continue
-        </Button>
+        <div className="border border-border/40 rounded-lg p-3 bg-surface/30">
+          <Button
+            onClick={handleContinue}
+            disabled={!isComplete}
+            className="w-full"
+            size="default"
+          >
+            Continue
+          </Button>
+        </div>
       </div>
     </div>
   );

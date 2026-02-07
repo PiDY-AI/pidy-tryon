@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 
 interface TrialRoomDoorProps {
   isOpening: boolean;

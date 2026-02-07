@@ -1,4 +1,4 @@
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 
 const loadingMessages = [
   "Analyzing your measurements...",

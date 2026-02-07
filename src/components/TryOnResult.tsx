@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TryOnResult as TryOnResultType, Product } from '@/types/measurements';
 import { X } from 'lucide-react';
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 import { Button } from '@/components/ui/button';
 
 interface TryOnResultProps {

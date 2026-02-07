@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { X, LogOut } from "lucide-react";
-import pidyLogo from "@/assets/pidy-logo.png";
+import pidyLogo from "@/assets/pidy_logo_white.png";
+import pidyLogoBlack from "@/assets/pidy_logo_black.png";
 
 interface VirtualTryOnBotProps {
   productId?: string;
@@ -248,7 +249,7 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
             </>
           ) : (
             <>
-              <img src={pidyLogo} alt="Pidy" className="h-4 w-4" />
+              <img src={pidyLogoBlack} alt="Pidy" className="h-4 w-4" />
               Virtual Try-On
             </>
           )}

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Check, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingData } from './OnboardingFlow';
 

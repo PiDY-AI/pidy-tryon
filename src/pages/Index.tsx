@@ -15,8 +15,7 @@ import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, LogOut, Loader2, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import pidyLogo from '@/assets/pidy-logo.png';
-import pidyLogoBlack from '@/assets/pidy-logo-black.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 
 const Index = () => {
   const [searchParams] = useSearchParams();

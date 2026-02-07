@@ -10,7 +10,7 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { OnboardingFlow, OnboardingData } from '@/components/onboarding/OnboardingFlow';
 import type { WidgetScanResult } from '@/components/onboarding/OnboardingProcessing';
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 import { supabase } from '@/integrations/supabase/client';
 

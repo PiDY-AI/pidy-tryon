@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import pidyLogo from '@/assets/pidy-logo.png';
+import pidyLogo from '@/assets/pidy_logo_white.png';
 
 interface AuthGuardProps {
   children: ReactNode;

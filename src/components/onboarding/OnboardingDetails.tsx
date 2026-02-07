@@ -236,13 +236,15 @@ export const OnboardingDetails = ({
 
         {/* Submit button */}
         <div className="flex-shrink-0 pt-4 pb-6 mt-auto">
-          <Button
-            type="submit"
-            className="w-full h-11 rounded-none btn-luxury text-[11px]"
-            size="lg"
-          >
-            Continue
-          </Button>
+          <div className="border border-border/40 rounded-lg p-3 bg-surface/30">
+            <Button
+              type="submit"
+              className="w-full"
+              size="default"
+            >
+              Continue
+            </Button>
+          </div>
         </div>
       </form>
     </div>
