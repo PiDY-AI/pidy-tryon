@@ -338,31 +338,31 @@ const Auth = () => {
       <div className="min-h-screen bg-background">
         {isPopup ? (
           // Compact popup layout
-          <div className="h-screen overflow-y-auto p-4">
-            <div className="max-w-sm mx-auto space-y-4">
+          <div className="h-screen overflow-y-auto px-4 py-3">
+            <div className="max-w-sm mx-auto space-y-3">
               {/* Compact Logo */}
               <div className="text-center">
-                <img src={pidyTextLogo} alt="PIDY" className="h-10 mx-auto object-contain" />
+                <img src={pidyTextLogo} alt="PIDY" className="h-7 mx-auto object-contain" />
               </div>
 
               {/* Unsure about Size */}
               <div className="text-center">
-                <h2 className="text-h4 text-foreground mb-1">Unsure about Size?</h2>
-                <p className="text-caption text-muted-foreground">
+                <h2 className="text-lg font-semibold text-foreground mb-0.5">Unsure about Size?</h2>
+                <p className="text-xs text-muted-foreground">
                   Try before you buy with virtual try-on
                 </p>
               </div>
 
-              {/* Video */}
+              {/* Video - Compact */}
               <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
                 <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center space-y-2">
-                    <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center space-y-1.5">
+                    <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
                       </svg>
                     </div>
-                    <p className="text-micro text-muted-foreground">Watch how it works</p>
+                    <p className="text-[10px] text-muted-foreground">Watch how it works</p>
                   </div>
                 </div>
               </div>
@@ -371,7 +371,7 @@ const Auth = () => {
               <div className="border border-border/40 rounded-lg p-3 bg-surface/30">
                 {!showSignInForm ? (
                   // Sign In Button
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <Button
                       onClick={() => setShowSignInForm(true)}
                       className="w-full"
@@ -383,23 +383,23 @@ const Auth = () => {
                     {/* First time PIDY - with box */}
                     <button
                       onClick={() => setShowOnboarding(true)}
-                      className="w-full text-center group pt-3"
+                      className="w-full text-center group pt-2"
                     >
-                      <div className="glass-card rounded-xl p-5 hover:border-primary/30 transition-colors">
-                        <p className="text-body text-muted-foreground mb-2">First time PIDY?</p>
+                      <div className="glass-card rounded-xl p-3.5 hover:border-primary/30 transition-colors">
+                        <p className="text-xs text-muted-foreground mb-1.5">First time PIDY?</p>
                         <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                          <img src={pidyLogo} alt="PIDY" className="h-5 w-5 object-contain" />
-                          <span className="text-h4 font-semibold">Get started</span>
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
+                          <span className="text-base font-semibold">Get started</span>
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </button>
                   </div>
                 ) : (
                   // Sign In Form
-                  <div className="space-y-4 animate-scale-in">
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-h4 text-foreground">Sign In</h2>
+                  <div className="space-y-3 animate-scale-in">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <h2 className="text-base font-semibold text-foreground">Sign In</h2>
                       <button
                         onClick={() => setShowSignInForm(false)}
                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -408,9 +408,9 @@ const Auth = () => {
                       </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-small text-foreground">Email</Label>
+                    <form onSubmit={handleSubmit} className="space-y-2.5">
+                      <div className="space-y-1">
+                        <Label htmlFor="email" className="text-xs text-foreground">Email</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
@@ -425,8 +425,8 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="password" className="text-small text-foreground">Password</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="password" className="text-xs text-foreground">Password</Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
@@ -444,7 +444,7 @@ const Auth = () => {
 
                       <Button
                         type="submit"
-                        className="w-full mt-4"
+                        className="w-full mt-3"
                         size="default"
                         disabled={isLoading}
                       >
