@@ -103,14 +103,16 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             <img
               src={demoImage}
               alt={`${type} demo`}
-              className="w-full h-full object-cover opacity-60"
+              className="w-full h-full object-cover"
             />
-            {/* Overlay with camera icon */}
-            <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-background/80 backdrop-blur-sm border-2 border-primary/30 flex items-center justify-center shadow-lg">
-                <Camera className="w-8 h-8 text-primary" />
+            {/* Camera button positioned at bottom center */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div className="w-14 h-14 rounded-full bg-background/95 backdrop-blur-sm border-2 border-primary flex items-center justify-center shadow-xl">
+                <Camera className="w-7 h-7 text-primary" />
               </div>
             </div>
+            {/* Subtle vignette overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-background/20 pointer-events-none" />
           </>
         )}
       </div>
