@@ -213,7 +213,7 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
           <img
             src={capturedImage}
             alt="Captured"
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
           />
         ) : (
           <>
@@ -222,7 +222,7 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
             />
 
             {/* Loading overlay */}
