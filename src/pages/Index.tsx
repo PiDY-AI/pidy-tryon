@@ -28,7 +28,8 @@ const Index = () => {
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
-  
+  const [tryOnFailCount, setTryOnFailCount] = useState(0);
+
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
   const { signOut, user, loading: authLoading } = useAuth();
   const { products, isLoading: isProductsLoading } = useProducts();
@@ -527,6 +528,7 @@ const Index = () => {
           prompt: backendResult.prompt,
         };
         setTryOnResult(result);
+        setTryOnFailCount(0); // Reset fail count on success
         toast.success(`Try-on generated for size: ${sizeToUse}`);
 
         // Notify parent (VirtualTryOnBot) with the try-on result
@@ -538,12 +540,16 @@ const Index = () => {
           fitScore: result.fitScore,
         }, '*');
       } else {
+        // Increment fail count
+        setTryOnFailCount((prev) => prev + 1);
         // Notify parent of error
         window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-error', error: tryOnError || 'Try-on generation failed' }, '*');
         toast.error(tryOnError || 'Try-on generation failed. Please try again.');
       }
     } catch (error) {
       console.error('[PIDY Widget] Try-on error:', error);
+      // Increment fail count
+      setTryOnFailCount((prev) => prev + 1);
       // Notify parent of error
       window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-tryon-error', error: error instanceof Error ? error.message : 'Unknown error' }, '*');
       toast.error(error instanceof Error ? error.message : 'Try-on generation failed. Please try again.');
@@ -1042,7 +1048,7 @@ const Index = () => {
                         <p className="text-[10px] uppercase tracking-luxury text-muted-foreground">
                           Try-on completed
                         </p>
-                        <p className="text-sm text-foreground">We didn’t receive an image to display.</p>
+                        <p className="text-sm text-foreground">We didn't receive an image to display.</p>
                         {tryOnError && (
                           <p className="text-xs text-muted-foreground break-words">{tryOnError}</p>
                         )}
@@ -1061,6 +1067,23 @@ const Index = () => {
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Retry
                         </Button>
+                        {tryOnFailCount >= 2 && (
+                          <Button
+                            variant="ghost"
+                            className="w-full text-muted-foreground"
+                            onClick={async () => {
+                              await signOut();
+                              setTryOnFailCount(0);
+                              setShowDoorAnimation(false);
+                              setDoorOpened(false);
+                              setTryOnResult(null);
+                              toast.success('Signed out. Please sign in again.');
+                            }}
+                          >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Sign Out & Try Again
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1185,11 +1208,36 @@ const Index = () => {
                       )}
 
                       {!isTryOnLoading && selectedProduct && !tryOnResult && (
-                        <div className="rounded-lg border border-border/40 bg-background/40 backdrop-blur-sm p-4 text-center space-y-2">
+                        <div className="rounded-lg border border-border/40 bg-background/40 backdrop-blur-sm p-4 text-center space-y-3">
                           <p className="text-[10px] uppercase tracking-luxury text-muted-foreground">Try-on completed</p>
                           <p className="text-sm text-foreground">No image was returned.</p>
                           {tryOnError && (
                             <p className="text-xs text-muted-foreground break-words">{tryOnError}</p>
+                          )}
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handleTryOn(selectedProduct, undefined, true)}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Retry
+                          </Button>
+                          {tryOnFailCount >= 2 && (
+                            <Button
+                              variant="ghost"
+                              className="w-full text-muted-foreground"
+                              onClick={async () => {
+                                await signOut();
+                                setTryOnFailCount(0);
+                                setShowDoorAnimation(false);
+                                setDoorOpened(false);
+                                setTryOnResult(null);
+                                toast.success('Signed out. Please sign in again.');
+                              }}
+                            >
+                              <LogOut className="w-4 h-4 mr-2" />
+                              Sign Out & Try Again
+                            </Button>
                           )}
                         </div>
                       )}
