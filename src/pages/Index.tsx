@@ -355,6 +355,14 @@ const Index = () => {
         return;
       }
 
+      // Handle auth cancelled from SDK (user closed auth modal/popup without signing in)
+      if (type === 'pidy-auth-cancelled') {
+        console.log('[PIDY Widget] Auth cancelled from SDK');
+        // Forward to parent (VirtualTryOnBot) so it can reset the button state
+        window.parent.postMessage({ type: 'pidy-auth-cancelled', source: 'pidy-widget' }, '*');
+        return;
+      }
+
       // Handle auth success from popup (same origin) - this is a FRESH sign-in
       if (event.origin === window.location.origin && type === 'tryon-auth-session') {
         if (!access_token || !refresh_token) {

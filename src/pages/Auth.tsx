@@ -42,7 +42,7 @@ const Auth = () => {
       if (!authSucceeded) {
         console.log('[Auth] Popup closing without auth - notifying parent');
         window.opener.postMessage(
-          { type: 'pidy-auth-cancelled' },
+          { type: 'pidy-auth-cancelled', source: 'pidy-widget' },
           window.location.origin
         );
       } else {

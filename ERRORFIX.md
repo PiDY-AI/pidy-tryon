@@ -237,3 +237,33 @@ Two issues combined:
 
 ---
 
+## Fix #10: Digital Fitting Room Button Stays Spinning When Auth Popup Closed
+
+**Error**: When user clicks "Digital Fitting Room" button and closes the auth popup/modal without signing in, the button stays stuck showing "Your look is being prepared..." spinner instead of resetting to the normal "Digital Fitting Room" state.
+
+**Root Cause**:
+1. When user clicks the button, VirtualTryOnBot sends `pidy-start-tryon` to the widget iframe
+2. Widget iframe (Index.tsx) detects user is not authenticated and opens auth popup via SDK
+3. Widget sends `pidy-auth-required` to VirtualTryOnBot, which sets `isProcessing=true` (shows spinner)
+4. User closes auth popup without signing in
+5. SDK sends `pidy-auth-cancelled` to the widget iframe
+6. Widget iframe did NOT handle this message and did NOT forward it to VirtualTryOnBot
+7. VirtualTryOnBot never received `pidy-auth-cancelled`, so `isProcessing` stayed true (spinner kept showing)
+
+**Files Changed**:
+- `src/pages/Index.tsx` (lines 357-362)
+
+**Fix Summary**:
+1. Added handler for `pidy-auth-cancelled` message in Index.tsx message handler (lines 358-364)
+2. When widget iframe receives `pidy-auth-cancelled` from SDK modal close, it forwards the message to the parent (VirtualTryOnBot) with `source: 'pidy-widget'`
+3. Fixed Auth.tsx (line 45) to include `source: 'pidy-widget'` when sending `pidy-auth-cancelled` from popup `beforeunload` event
+4. VirtualTryOnBot filters messages by `source === 'pidy-widget'`, so without this field the message was being ignored
+
+**Files Changed**:
+- `src/pages/Index.tsx` (lines 358-364)
+- `src/pages/Auth.tsx` (line 45)
+
+**Result**: When user closes auth popup/modal without signing in, the "Digital Fitting Room" button properly resets from spinner state back to normal clickable state.
+
+---
+

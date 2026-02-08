@@ -712,9 +712,12 @@
         this._closeAuthModal();
         // Notify widget that auth was cancelled
         if (this._iframe && this._iframe.contentWindow) {
+          console.log('[PIDY SDK] Sending pidy-auth-cancelled to widget iframe');
           this._iframe.contentWindow.postMessage({
             type: 'pidy-auth-cancelled'
           }, PIDY_ORIGIN);
+        } else {
+          console.warn('[PIDY SDK] Cannot send pidy-auth-cancelled - iframe not available');
         }
       };
 
@@ -766,6 +769,7 @@
         if (e.key === 'Escape') {
           this._closeAuthModal();
           if (this._iframe && this._iframe.contentWindow) {
+            console.log('[PIDY SDK] Sending pidy-auth-cancelled to widget iframe (escape key)');
             this._iframe.contentWindow.postMessage({
               type: 'pidy-auth-cancelled'
             }, PIDY_ORIGIN);
@@ -779,6 +783,7 @@
         if (e.target === overlay) {
           this._closeAuthModal();
           if (this._iframe && this._iframe.contentWindow) {
+            console.log('[PIDY SDK] Sending pidy-auth-cancelled to widget iframe (overlay click)');
             this._iframe.contentWindow.postMessage({
               type: 'pidy-auth-cancelled'
             }, PIDY_ORIGIN);
