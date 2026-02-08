@@ -517,75 +517,105 @@ const Auth = () => {
               {/* Right Column - Auth */}
               <div className="lg:sticky lg:top-8">
                 <div className="glass-card rounded-2xl p-8 max-w-md mx-auto lg:mx-0">
-                  <h2 className="text-h2 text-foreground mb-6">Connect</h2>
+                  {!showSignInForm ? (
+                    // Sign In Button (expandable)
+                    <div className="space-y-4">
+                      <Button
+                        onClick={() => setShowSignInForm(true)}
+                        className="w-full"
+                        size="lg"
+                      >
+                        Sign In
+                      </Button>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-foreground">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 bg-input border-border"
-                          required
-                        />
-                      </div>
+                      {/* First time PIDY - with box */}
+                      <button
+                        onClick={() => setShowOnboarding(true)}
+                        className="w-full text-center group pt-2"
+                      >
+                        <div className="glass-card rounded-xl p-4 hover:border-primary/30 transition-colors relative overflow-hidden">
+                          {/* Subtle gradient background */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-60" />
+
+                          <div className="relative">
+                            <p className="text-sm text-muted-foreground mb-2">First time PIDY?</p>
+                            <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                              <img src={pidyLogo} alt="PIDY" className="h-5 w-5 object-contain" />
+                              <span className="text-lg font-semibold">Get started</span>
+                              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </div>
+                        </div>
+                      </button>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-foreground">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 bg-input border-border"
-                          required
-                          minLength={6}
-                        />
+                  ) : (
+                    // Sign In Form (expanded)
+                    <div className="space-y-4 animate-scale-in">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-h3 text-foreground">Sign In</h2>
+                        <button
+                          onClick={() => setShowSignInForm(false)}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ArrowLeft className="w-5 h-5" />
+                        </button>
                       </div>
+
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-foreground">Email</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              id="email"
+                              type="email"
+                              placeholder="you@example.com"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              className="pl-10 bg-input border-border"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="password" className="text-foreground">Password</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              id="password"
+                              type="password"
+                              placeholder="********"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="pl-10 bg-input border-border"
+                              required
+                              minLength={6}
+                            />
+                          </div>
+                        </div>
+
+                        <Button
+                          type="submit"
+                          className="w-full"
+                          size="lg"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <span className="flex items-center gap-2">
+                              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                              Signing in...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              Sign In
+                              <ArrowRight className="w-4 h-4" />
+                            </span>
+                          )}
+                        </Button>
+                      </form>
                     </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      size="lg"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                          {isLogin ? 'Signing in...' : 'Creating account...'}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          {isLogin ? 'Sign In' : 'Create Account'}
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      )}
-                    </Button>
-                  </form>
-
-                  {/* First time PIDY */}
-                  <div className="mt-8 pt-6 border-t border-border">
-                    <button
-                      onClick={() => setShowOnboarding(true)}
-                      className="w-full text-center group"
-                    >
-                      <p className="text-caption text-muted-foreground mb-2">First time PIDY?</p>
-                      <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                        <span className="text-subtitle">Get started</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
