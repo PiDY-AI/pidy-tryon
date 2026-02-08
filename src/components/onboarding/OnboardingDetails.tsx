@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 
 export type Gender = 'male' | 'female' | 'other';
 
@@ -123,14 +124,19 @@ export const OnboardingDetails = ({
   };
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
-      {/* Header - compact */}
-      <div className="flex-shrink-0 px-6 pt-3 pb-2">
+      {/* PIDY Logo + Back button row */}
+      <div className="flex-shrink-0 pt-3 px-4 flex items-center justify-between">
+        <img src={pidyTextLogo} alt="PIDY" className="h-4 object-contain" />
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors text-xs mb-2"
+          className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors text-xs"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      {/* Header - compact */}
+      <div className="flex-shrink-0 px-6 pt-1 pb-2">
         <div className="text-center">
           <p className="text-[9px] uppercase tracking-luxury text-primary mb-0.5">Step 3 of 3</p>
           <h2 className="font-display text-base text-foreground">Your Details</h2>
@@ -286,7 +292,7 @@ export const OnboardingDetails = ({
               className="w-full"
               size="default"
             >
-              Continue
+              Submit
             </Button>
           </div>
         </div>

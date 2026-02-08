@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollPicker } from '@/components/ui/scroll-picker';
 import { Camera, Check, RotateCcw, Upload } from 'lucide-react';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 
 interface OnboardingHeadshotProps {
   onNext: (data: {
@@ -66,8 +67,13 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
+      {/* PIDY Logo */}
+      <div className="flex-shrink-0 pt-3 px-4">
+        <img src={pidyTextLogo} alt="PIDY" className="h-4 object-contain" />
+      </div>
+
       {/* Header */}
-      <div className="flex-shrink-0 text-center pt-3 px-6">
+      <div className="flex-shrink-0 text-center pt-2 px-6">
         <p className="text-[9px] uppercase tracking-luxury text-primary mb-0.5">Step 1 of 3</p>
         <h2 className="font-display text-sm text-foreground">Take a Selfie</h2>
       </div>

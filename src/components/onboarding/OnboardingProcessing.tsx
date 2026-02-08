@@ -3,6 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { Check, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import pidyLogo from '@/assets/pidy_logo_white.png';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingData } from './OnboardingFlow';
 
@@ -235,7 +236,14 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-secondary/30 to-background p-6">
+    <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background px-6 pb-6">
+      {/* PIDY Logo */}
+      <div className="flex-shrink-0 pt-3 mb-2">
+        <img src={pidyTextLogo} alt="PIDY" className="h-4 object-contain" />
+      </div>
+
+      {/* Centered content */}
+      <div className="flex-1 flex flex-col items-center justify-center">
       {/* Animated logo */}
       <div className="relative w-24 h-24 mb-8">
         <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping opacity-20" />
@@ -334,6 +342,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 };

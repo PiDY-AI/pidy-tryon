@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Check, ArrowLeft } from 'lucide-react';
 import a4FrontDemo from '@/assets/A4_front_demo.jpg';
 import a4SideDemo from '@/assets/A4_side_demo.jpg';
 import bottleFrontDemo from '@/assets/bottle_front_demo.jpeg';
 import bottleSideDemo from '@/assets/bottle_side_demo.jpeg';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
+import { CameraCapture } from './CameraCapture';
 
 interface OnboardingPhotoCaptureProps {
   onNext: (photos: { front: File; back: File }) => void;
@@ -20,9 +22,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [sidePreview, setSidePreview] = useState<string | null>(null);
   const [referenceType, setReferenceType] = useState<ReferenceType>('a4');
-
-  const frontCameraRef = useRef<HTMLInputElement>(null);
-  const sideCameraRef = useRef<HTMLInputElement>(null);
+  const [activeCameraType, setActiveCameraType] = useState<PhotoType | null>(null);
 
   const handleFileSelect = (type: PhotoType, file: File) => {
     const reader = new FileReader();
@@ -39,13 +39,6 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     reader.readAsDataURL(file);
   };
 
-  const handleInputChange = (type: PhotoType) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(type, file);
-    }
-  };
-
   const clearPhoto = (type: PhotoType) => {
     if (type === 'front') {
       setFrontPhoto(null);
@@ -54,6 +47,15 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
       setSidePhoto(null);
       setSidePreview(null);
     }
+  };
+
+  const handleCameraCapture = (type: PhotoType, file: File) => {
+    handleFileSelect(type, file);
+    setActiveCameraType(null);
+  };
+
+  const openCamera = (type: PhotoType) => {
+    setActiveCameraType(type);
   };
 
   const handleContinue = () => {
@@ -68,23 +70,23 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     type,
     preview,
     onClear,
-    cameraRef,
     demoImage,
+    onOpenCamera,
   }: {
     type: PhotoType;
     preview: string | null;
     onClear: () => void;
-    cameraRef: React.RefObject<HTMLInputElement>;
     demoImage: string;
+    onOpenCamera: () => void;
   }) => (
     <div className="flex flex-col items-center">
       <div
-        className={`relative w-full aspect-[3/4] rounded-2xl border-2 transition-all duration-200 overflow-hidden ${
+        className={`relative w-full aspect-[2/3] rounded-2xl border-2 transition-all duration-200 overflow-hidden ${
           preview
             ? 'border-primary'
             : 'border-dashed border-border/50 cursor-pointer hover:border-primary/50'
         }`}
-        onClick={() => !preview && cameraRef.current?.click()}
+        onClick={() => !preview && onOpenCamera()}
       >
         {preview ? (
           <>
@@ -99,20 +101,18 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           </>
         ) : (
           <>
-            {/* Demo image as background */}
+            {/* Demo image as background - fill the container */}
             <img
               src={demoImage}
               alt={`${type} demo`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
             {/* Camera button positioned at bottom center */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-              <div className="w-14 h-14 rounded-full bg-background/95 backdrop-blur-sm border-2 border-primary flex items-center justify-center shadow-xl">
-                <Camera className="w-7 h-7 text-primary" />
+              <div className="w-12 h-12 rounded-full bg-background/95 backdrop-blur-sm border-2 border-primary flex items-center justify-center shadow-xl">
+                <Camera className="w-6 h-6 text-primary" />
               </div>
             </div>
-            {/* Subtle vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-background/20 pointer-events-none" />
           </>
         )}
       </div>
@@ -127,30 +127,25 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           retake
         </button>
       )}
-
-      {/* Hidden camera input - only camera capture, no upload */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleInputChange(type)}
-      />
     </div>
   );
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-background to-background">
-      {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-5 pb-4">
+      {/* PIDY Logo + Back button row */}
+      <div className="flex-shrink-0 pt-3 px-4 flex items-center justify-between">
+        <img src={pidyTextLogo} alt="PIDY" className="h-4 object-contain" />
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm mb-4"
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
         </button>
-        <div className="text-center mb-4">
+      </div>
+
+      {/* Header */}
+      <div className="flex-shrink-0 px-6 pt-2 pb-3">
+        <div className="text-center mb-3">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Step 2 of 3</p>
           <h2 className="font-display text-lg text-foreground mb-1">For <span className="text-primary">Precise</span> Body Measurement</h2>
         </div>
@@ -196,15 +191,15 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             type="front"
             preview={frontPreview}
             onClear={() => clearPhoto('front')}
-            cameraRef={frontCameraRef}
             demoImage={referenceType === 'a4' ? a4FrontDemo : bottleFrontDemo}
+            onOpenCamera={() => openCamera('front')}
           />
           <PhotoCard
             type="side"
             preview={sidePreview}
             onClear={() => clearPhoto('side')}
-            cameraRef={sideCameraRef}
             demoImage={referenceType === 'a4' ? a4SideDemo : bottleSideDemo}
+            onOpenCamera={() => openCamera('side')}
           />
         </div>
       </div>
@@ -222,6 +217,15 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           </Button>
         </div>
       </div>
+
+      {/* Camera capture modal */}
+      {activeCameraType && (
+        <CameraCapture
+          photoType={activeCameraType}
+          onCapture={(file) => handleCameraCapture(activeCameraType, file)}
+          onClose={() => setActiveCameraType(null)}
+        />
+      )}
     </div>
   );
 };
