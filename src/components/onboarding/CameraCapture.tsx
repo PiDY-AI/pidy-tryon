@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Camera, RotateCcw, Check, Timer, SwitchCamera } from 'lucide-react';
+import { X, Camera, RotateCcw, Check, Timer, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CameraCaptureProps {
@@ -300,13 +300,7 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
 
             {/* Capture button with flip camera */}
             <div className="flex justify-center items-center gap-6">
-              <button
-                onClick={flipCamera}
-                disabled={isLoading}
-                className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center disabled:opacity-50"
-              >
-                <SwitchCamera className="w-6 h-6 text-white" />
-              </button>
+              <div className="w-14 h-14" />
               <button
                 onClick={startCountdown}
                 disabled={isLoading}
@@ -314,7 +308,13 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
               >
                 <div className="w-16 h-16 rounded-full bg-white" />
               </button>
-              <div className="w-14 h-14" />
+              <button
+                onClick={flipCamera}
+                disabled={isLoading}
+                className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center disabled:opacity-50"
+              >
+                <RefreshCw className="w-6 h-6 text-white" />
+              </button>
             </div>
 
             <p className="text-center text-white/60 text-xs">
