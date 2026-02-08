@@ -175,7 +175,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
         setProgress(100);
         setCurrentStep(steps.length);
         clearInterval(interval);
-        setTimeout(() => onComplete(result || undefined), 500);
+        onComplete(result || undefined);
         return;
       }
 
@@ -307,24 +307,6 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
         })}
       </div>
 
-      {/* Results summary */}
-      {isComplete && result && (
-        <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 text-center animate-fade-in w-full max-w-xs">
-          {result.measurements?.body_type && (
-            <p className="text-sm text-foreground mb-1">
-              Body type: <span className="font-medium capitalize">{result.measurements.body_type}</span>
-            </p>
-          )}
-          {result.measurements?.overall_confidence !== undefined && (
-            <p className="text-xs text-muted-foreground">
-              Confidence: {Math.round(result.measurements.overall_confidence * 100)}%
-            </p>
-          )}
-          <p className="text-[11px] text-muted-foreground mt-3">
-            Check your email for a link to access your measurements
-          </p>
-        </div>
-      )}
       </div>
     </div>
   );
