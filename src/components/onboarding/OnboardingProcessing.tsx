@@ -21,19 +21,25 @@ export interface WidgetScanResult {
   refresh_token?: string;
   expires_in?: number;
   token_type?: string;
-  measurements?: Array<{
-    name: string;
-    value: number | null;
-    range: number | null;
-    confidence: number | null;
-    unit: string;
-    notes: string;
-  }>;
-  body_type?: string;
-  overall_confidence?: number;
-  pre_analysis_summary?: string;
-  post_analysis_notes?: string;
-  analyzed_at?: string;
+  avatar?: {
+    url: string;
+    storage_path: string;
+  };
+  measurements?: {
+    body_type?: string;
+    overall_confidence?: number;
+    pre_analysis_summary?: string;
+    post_analysis_notes?: string;
+    analyzed_at?: string;
+    items?: Array<{
+      name: string;
+      value: number | null;
+      range: number | null;
+      confidence: number | null;
+      unit: string;
+      notes: string;
+    }>;
+  };
   error?: {
     code: string;
     message: string;
@@ -107,30 +113,32 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
 
       setCurrentStep(1);
 
-      // Step 2: Call widget-scan API
-      console.log('Calling widget-scan API...');
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/widget-scan`, {
+      // Step 2: Call widget-scan-v2 API
+      console.log('Calling widget-scan-v2 API...');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/widget-scan-v2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({
           name: data.details.name,
           email: data.details.email,
-          images: [frontUrl, headshotUrl, backUrl], // front, "side" (headshot), back
+          headshot: headshotUrl,
+          front_photo: frontUrl,
+          side_photo: backUrl, // Using back photo as side photo for v2 API
           height: data.details.height,
           height_unit: 'cm',
           weight: data.details.weight,
           weight_unit: 'kg',
           age: data.details.age,
           gender: data.details.gender,
-          model: 'sonnet',
         }),
       });
 
       console.log('API response status:', response.status);
       const scanResult: WidgetScanResult = await response.json();
-      console.log('[OnboardingProcessing] widget-scan response:', {
+      console.log('[OnboardingProcessing] widget-scan-v2 response:', {
         success: scanResult.success,
         user_id: scanResult.user_id,
         scan_id: scanResult.scan_id,
@@ -138,6 +146,8 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
         token_received: !!scanResult.access_token && !!scanResult.refresh_token,
         expires_in: scanResult.expires_in,
         token_type: scanResult.token_type,
+        avatar_url: scanResult.avatar?.url,
+        body_type: scanResult.measurements?.body_type,
       });
 
       if (!scanResult.success) {
@@ -327,14 +337,14 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
       {/* Results summary */}
       {isComplete && result && (
         <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 text-center animate-fade-in w-full max-w-xs">
-          {result.body_type && (
+          {result.measurements?.body_type && (
             <p className="text-sm text-foreground mb-1">
-              Body type: <span className="font-medium capitalize">{result.body_type}</span>
+              Body type: <span className="font-medium capitalize">{result.measurements.body_type}</span>
             </p>
           )}
-          {result.overall_confidence !== undefined && (
+          {result.measurements?.overall_confidence !== undefined && (
             <p className="text-xs text-muted-foreground">
-              Confidence: {Math.round(result.overall_confidence * 100)}%
+              Confidence: {Math.round(result.measurements.overall_confidence * 100)}%
             </p>
           )}
           <p className="text-[11px] text-muted-foreground mt-3">
