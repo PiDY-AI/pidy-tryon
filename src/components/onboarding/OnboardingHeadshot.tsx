@@ -102,15 +102,15 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                 </div>
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                <Camera className="w-10 h-10 text-primary" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                <Camera className="w-8 h-8 text-primary" />
                 <span className="text-[10px] text-primary/80 font-medium">Tap to capture</span>
               </div>
             )}
           </div>
 
-          {/* Photo actions - minimal */}
-          {preview && (
+          {/* Photo actions */}
+          {preview ? (
             <button
               onClick={() => {
                 setPhoto(null);
@@ -120,6 +120,14 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
             >
               <RotateCcw className="w-2.5 h-2.5" />
               retake
+            </button>
+          ) : (
+            <button
+              onClick={() => uploadInputRef.current?.click()}
+              className="mt-3 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+            >
+              <Upload className="w-3 h-3" />
+              Upload
             </button>
           )}
 

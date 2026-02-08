@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Camera, RotateCcw, Check, Timer } from 'lucide-react';
+import { X, Camera, RotateCcw, Check, Timer, SwitchCamera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CameraCaptureProps {
@@ -21,61 +21,66 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
   const [selectedTimer, setSelectedTimer] = useState<TimerOption>(3);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('user');
 
   const timerOptions: TimerOption[] = [3, 5, 10];
 
   // Initialize camera
-  useEffect(() => {
-    const initCamera = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Request camera with back-facing preference and attempt 1x zoom
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-
-        // Try to set zoom to 1x if supported
-        const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities?.();
-
-        if (capabilities && 'zoom' in capabilities) {
-          const settings = track.getSettings();
-          const minZoom = (capabilities as any).zoom?.min || 1;
-
-          try {
-            await track.applyConstraints({
-              advanced: [{ zoom: minZoom } as any]
-            });
-            console.log('[Camera] Zoom set to minimum:', minZoom);
-          } catch (zoomError) {
-            console.log('[Camera] Could not set zoom:', zoomError);
-          }
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('[Camera] Error accessing camera:', err);
-        setError('Could not access camera. Please ensure camera permissions are granted.');
-        setIsLoading(false);
+  const initCamera = useCallback(async (facing: 'environment' | 'user') => {
+    try {
+      // Stop existing stream first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
-    };
 
-    initCamera();
+      setIsLoading(true);
+      setError(null);
+
+      // Request camera with specified facing mode and attempt 1x zoom
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: facing },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      // Try to set zoom to 1x if supported
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities?.();
+
+      if (capabilities && 'zoom' in capabilities) {
+        const minZoom = (capabilities as any).zoom?.min || 1;
+
+        try {
+          await track.applyConstraints({
+            advanced: [{ zoom: minZoom } as any]
+          });
+          console.log('[Camera] Zoom set to minimum:', minZoom);
+        } catch (zoomError) {
+          console.log('[Camera] Could not set zoom:', zoomError);
+        }
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error('[Camera] Error accessing camera:', err);
+      setError('Could not access camera. Please ensure camera permissions are granted.');
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    initCamera(facingMode);
 
     // Cleanup on unmount
     return () => {
@@ -84,6 +89,12 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
       }
     };
   }, []);
+
+  const flipCamera = useCallback(async () => {
+    const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newFacingMode);
+    await initCamera(newFacingMode);
+  }, [facingMode, initCamera]);
 
   // Handle countdown
   useEffect(() => {
@@ -141,32 +152,8 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
 
   const retakePhoto = useCallback(async () => {
     setCapturedImage(null);
-    setIsLoading(true);
-
-    try {
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      setIsLoading(false);
-    } catch (err) {
-      setError('Could not restart camera.');
-      setIsLoading(false);
-    }
-  }, []);
+    await initCamera(facingMode);
+  }, [facingMode, initCamera]);
 
   const confirmPhoto = useCallback(() => {
     if (!capturedImage || !canvasRef.current) return;
@@ -203,7 +190,7 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
         <div className="text-white text-sm font-medium uppercase tracking-wider">
           {photoType === 'front' ? 'Front View' : 'Side View'}
         </div>
-        <div className="w-10" /> {/* Spacer for centering */}
+        <div className="w-10" />
       </div>
 
       {/* Camera view / Captured image */}
@@ -311,8 +298,15 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
               ))}
             </div>
 
-            {/* Capture button */}
-            <div className="flex justify-center">
+            {/* Capture button with flip camera */}
+            <div className="flex justify-center items-center gap-6">
+              <button
+                onClick={flipCamera}
+                disabled={isLoading}
+                className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center disabled:opacity-50"
+              >
+                <SwitchCamera className="w-6 h-6 text-white" />
+              </button>
               <button
                 onClick={startCountdown}
                 disabled={isLoading}
@@ -320,6 +314,7 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
               >
                 <div className="w-16 h-16 rounded-full bg-white" />
               </button>
+              <div className="w-14 h-14" />
             </div>
 
             <p className="text-center text-white/60 text-xs">
