@@ -385,12 +385,17 @@ const Auth = () => {
                       onClick={() => setShowOnboarding(true)}
                       className="w-full text-center group pt-2"
                     >
-                      <div className="glass-card rounded-xl p-3.5 hover:border-primary/30 transition-colors">
-                        <p className="text-xs text-muted-foreground mb-1.5">First time PIDY?</p>
-                        <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                          <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
-                          <span className="text-base font-semibold">Get started</span>
-                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <div className="glass-card rounded-xl p-3.5 hover:border-primary/30 transition-colors relative overflow-hidden">
+                        {/* Subtle gradient background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-60" />
+
+                        <div className="relative">
+                          <p className="text-xs text-muted-foreground mb-1.5">First time PIDY?</p>
+                          <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                            <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
+                            <span className="text-base font-semibold">Get started</span>
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </div>
                         </div>
                       </div>
                     </button>

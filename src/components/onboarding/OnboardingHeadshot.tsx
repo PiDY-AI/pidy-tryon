@@ -15,27 +15,25 @@ interface OnboardingHeadshotProps {
 export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [height, setHeight] = useState<number | undefined>(170);
+  // Store height in cm internally, but display in feet/inches
+  const [heightCm, setHeightCm] = useState<number>(170);
   const [weight, setWeight] = useState<number | undefined>(70);
   const [age, setAge] = useState<number | string | undefined>(21);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
-  // Generate value ranges for scroll pickers
-  const heightValues = useMemo(() =>
-    Array.from({ length: 151 }, (_, i) => 100 + i), // 100-250 cm
-    []
-  );
+  // Convert cm to feet and inches for display
+  const heightDisplay = useMemo(() => {
+    const totalInches = heightCm / 2.54;
+    const feet = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches % 12);
+    return `${feet}'${inches}"`;
+  }, [heightCm]);
 
-  const weightValues = useMemo(() =>
-    Array.from({ length: 171 }, (_, i) => 30 + i), // 30-200 kg
-    []
-  );
-
-  const ageValues = useMemo(() =>
-    ['-', ...Array.from({ length: 88 }, (_, i) => 13 + i)], // Optional + 13-100
-    []
-  );
+  // Convert slider value (100-250 cm range) to cm
+  const handleHeightChange = (sliderValue: number) => {
+    setHeightCm(sliderValue);
+  };
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader();
@@ -54,17 +52,17 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
   };
 
   const handleContinue = () => {
-    if (photo && height && weight) {
+    if (photo && heightCm && weight) {
       onNext({
         headshot: photo,
-        height: height as number,
+        height: heightCm, // Send height in cm to backend
         weight: weight as number,
         age: age !== '-' ? (age as number) : undefined,
       });
     }
   };
 
-  const isComplete = photo && height && weight;
+  const isComplete = photo && heightCm && weight;
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
@@ -148,7 +146,7 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
 
         {/* Measurements - Visual representation */}
         <div className="py-2 space-y-3 flex-1">
-          {/* Height - with ruler visual */}
+          {/* Height - with ruler visual - displays in feet/inches */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5">
@@ -159,16 +157,27 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                 </div>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Height</span>
               </div>
-              <span className="text-base font-medium text-foreground">{height} <span className="text-[10px] text-muted-foreground">cm</span></span>
+              <span className="text-base font-medium text-foreground">{heightDisplay}</span>
             </div>
-            <input
-              type="range"
-              min="100"
-              max="250"
-              value={height}
-              onChange={(e) => setHeight(parseInt(e.target.value))}
-              className="w-full h-2 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
-            />
+            {/* Slider with markers */}
+            <div className="relative">
+              <input
+                type="range"
+                min="100"
+                max="250"
+                value={heightCm}
+                onChange={(e) => handleHeightChange(parseInt(e.target.value))}
+                className="w-full h-2 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+              />
+              {/* Height markers */}
+              <div className="flex justify-between px-0.5 mt-1.5">
+                <span className="text-[9px] text-muted-foreground font-medium">4'0"</span>
+                <span className="text-[9px] text-muted-foreground font-medium">5'0"</span>
+                <span className="text-[9px] text-muted-foreground font-medium">6'0"</span>
+                <span className="text-[9px] text-muted-foreground font-medium">7'0"</span>
+                <span className="text-[9px] text-muted-foreground font-medium">8'2"</span>
+              </div>
+            </div>
           </div>
 
           {/* Weight - with scale visual */}

@@ -38,28 +38,54 @@ export const OnboardingDetails = ({
   prefilledAge,
 }: OnboardingDetailsProps) => {
   const [name, setName] = useState('');
-  const [height, setHeight] = useState<number | undefined>(prefilledHeight || 170);
+  // Store height internally in cm, but display in feet/inches
+  const [heightCm, setHeightCm] = useState<number | undefined>(prefilledHeight || 170);
+  const [heightFeet, setHeightFeet] = useState<number>(5);
+  const [heightInches, setHeightInches] = useState<number>(7);
   const [weight, setWeight] = useState<number | undefined>(prefilledWeight || 70);
   const [age, setAge] = useState<number | undefined>(prefilledAge || 15);
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Convert cm to feet/inches on mount if prefilled
+  useMemo(() => {
+    if (prefilledHeight) {
+      const totalInches = prefilledHeight / 2.54;
+      const feet = Math.floor(totalInches / 12);
+      const inches = Math.round(totalInches % 12);
+      setHeightFeet(feet);
+      setHeightInches(inches);
+    }
+  }, [prefilledHeight]);
+
   // Generate value ranges
-  const heightValues = useMemo(() => 
-    Array.from({ length: 151 }, (_, i) => 100 + i), // 100-250 cm
+  const feetValues = useMemo(() =>
+    Array.from({ length: 5 }, (_, i) => 4 + i), // 4-8 feet
     []
   );
-  
-  const weightValues = useMemo(() => 
+
+  const inchesValues = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => i), // 0-11 inches
+    []
+  );
+
+  const weightValues = useMemo(() =>
     Array.from({ length: 171 }, (_, i) => 30 + i), // 30-200 kg
     []
   );
-  
-  const ageValues = useMemo(() => 
+
+  const ageValues = useMemo(() =>
     ['-', ...Array.from({ length: 88 }, (_, i) => 13 + i)], // Optional + 13-100
     []
   );
+
+  // Update heightCm whenever feet or inches change
+  const updateHeightCm = (feet: number, inches: number) => {
+    const totalInches = feet * 12 + inches;
+    const cm = Math.round(totalInches * 2.54);
+    setHeightCm(cm);
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -68,7 +94,7 @@ export const OnboardingDetails = ({
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    if (!height || height < 100 || height > 250) {
+    if (!heightCm || heightCm < 100 || heightCm > 250) {
       newErrors.height = 'Select height';
     }
     if (!weight || weight < 30 || weight > 200) {
@@ -87,8 +113,8 @@ export const OnboardingDetails = ({
     if (validate()) {
       onSubmit({
         name: name.trim(),
-        height: height!,
-        weight: weight!,
+        height: heightCm!, // Send height in cm to backend
+        weight: weight!, // Already in kg
         age: typeof age === 'number' ? age : undefined,
         email,
         gender,
@@ -170,17 +196,34 @@ export const OnboardingDetails = ({
         {/* Measurement scroll pickers - only show if not prefilled */}
         {!prefilledHeight && !prefilledWeight && (
           <div className="py-3 border-y border-border/20 mb-3">
-            <div className="flex justify-center gap-8">
+            <div className="flex justify-center gap-6">
+              {/* Height: Feet */}
               <ScrollPicker
-                label="Height"
-                values={heightValues}
-                value={height}
+                label="Feet"
+                values={feetValues}
+                value={heightFeet}
                 onChange={(v) => {
-                  setHeight(v as number);
+                  const feet = v as number;
+                  setHeightFeet(feet);
+                  updateHeightCm(feet, heightInches);
                   if (errors.height) setErrors((prev) => ({ ...prev, height: '' }));
                 }}
-                unit="cm"
+                unit="ft"
               />
+              {/* Height: Inches */}
+              <ScrollPicker
+                label="Inches"
+                values={inchesValues}
+                value={heightInches}
+                onChange={(v) => {
+                  const inches = v as number;
+                  setHeightInches(inches);
+                  updateHeightCm(heightFeet, inches);
+                  if (errors.height) setErrors((prev) => ({ ...prev, height: '' }));
+                }}
+                unit="in"
+              />
+              {/* Weight: kg */}
               <ScrollPicker
                 label="Weight"
                 values={weightValues}
@@ -191,6 +234,7 @@ export const OnboardingDetails = ({
                 }}
                 unit="kg"
               />
+              {/* Age */}
               <ScrollPicker
                 label="Age"
                 values={ageValues}

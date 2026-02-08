@@ -103,7 +103,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             <img
               src={demoImage}
               alt={`${type} demo`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
             {/* Camera button positioned at bottom center */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
@@ -158,26 +158,32 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         {/* Reference type selector */}
         <div className="text-center mb-2">
           <p className="text-xs text-foreground mb-2">What do you have nearby?</p>
-          <div className="inline-flex gap-2 bg-background border border-border/40 rounded-full p-1">
+          <div className="inline-flex gap-2 bg-card/50 border border-border/60 rounded-full p-1.5 shadow-sm">
             <button
               onClick={() => setReferenceType('a4')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${
                 referenceType === 'a4'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                  : 'bg-card/30 text-muted-foreground/70 border-transparent hover:text-foreground hover:bg-card/60'
               }`}
             >
-              A4 Sheet
+              <span className="flex items-center gap-1.5">
+                {referenceType === 'a4' && <Check className="w-3.5 h-3.5" />}
+                A4 Sheet
+              </span>
             </button>
             <button
               onClick={() => setReferenceType('bottle')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${
                 referenceType === 'bottle'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                  : 'bg-card/30 text-muted-foreground/70 border-transparent hover:text-foreground hover:bg-card/60'
               }`}
             >
-              1L Bisleri
+              <span className="flex items-center gap-1.5">
+                {referenceType === 'bottle' && <Check className="w-3.5 h-3.5" />}
+                1L Bisleri
+              </span>
             </button>
           </div>
         </div>

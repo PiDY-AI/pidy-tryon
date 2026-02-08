@@ -221,39 +221,42 @@ export function VirtualTryOnBot({ productId, size }: VirtualTryOnBotProps) {
         }}
       />
 
-      {/* Size selection prompt */}
-      {!hasResult && !isSizeSelected && (
-        <p className="text-sm text-muted-foreground">
-          Please select a size above to try on
-        </p>
-      )}
-
       {/* Try-On Button - visible when no result yet */}
       {!hasResult && (
-        <button
-          type="button"
-          onClick={isSizeSelected && !isProcessing ? handleTryOnClick : undefined}
-          disabled={isProcessing || !isSizeSelected}
-          className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium shadow-lg transition ${
-            !isSizeSelected
-              ? 'bg-muted text-muted-foreground cursor-not-allowed'
-              : isProcessing
-              ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90'
-          }`}
-        >
-          {isProcessing ? (
-            <>
-              <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              Your look is being prepared...
-            </>
-          ) : (
-            <>
-              <img src={pidyLogoBlack} alt="Pidy" className="h-4 w-4" />
-              Virtual Try-On
-            </>
+        <div className="relative group">
+          <button
+            type="button"
+            onClick={isSizeSelected && !isProcessing ? handleTryOnClick : undefined}
+            disabled={isProcessing}
+            className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium shadow-lg transition ${
+              isProcessing
+                ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
+          >
+            {isProcessing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Your look is being prepared...
+              </>
+            ) : (
+              <>
+                <img src={pidyLogoBlack} alt="Pidy" className="h-4 w-4" />
+                Digital Fitting Room
+              </>
+            )}
+          </button>
+
+          {/* Hover tooltip when no size selected */}
+          {!isSizeSelected && !isProcessing && (
+            <div className="absolute left-0 -top-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-foreground text-background px-3 py-1.5 rounded-lg text-xs whitespace-nowrap shadow-lg">
+                Select a size first
+                <div className="absolute left-6 -bottom-1 w-2 h-2 bg-foreground rotate-45" />
+              </div>
+            </div>
           )}
-        </button>
+        </div>
       )}
 
       {/* Error message */}
