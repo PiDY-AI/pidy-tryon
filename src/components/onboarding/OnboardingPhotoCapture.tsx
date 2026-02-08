@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Check, ArrowLeft } from 'lucide-react';
+import { Camera, Check, ArrowLeft, Upload } from 'lucide-react';
 import a4FrontDemo from '@/assets/A4_front_demo.jpg';
 import a4SideDemo from '@/assets/A4_side_demo.jpg';
 import bottleFrontDemo from '@/assets/bottle_front_demo.jpeg';
@@ -23,6 +23,15 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   const [sidePreview, setSidePreview] = useState<string | null>(null);
   const [referenceType, setReferenceType] = useState<ReferenceType>('a4');
   const [activeCameraType, setActiveCameraType] = useState<PhotoType | null>(null);
+  const frontUploadRef = useRef<HTMLInputElement>(null);
+  const sideUploadRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadChange = (type: PhotoType, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(type, file);
+    }
+  };
 
   const handleFileSelect = (type: PhotoType, file: File) => {
     const reader = new FileReader();
@@ -72,12 +81,14 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     onClear,
     demoImage,
     onOpenCamera,
+    onUpload,
   }: {
     type: PhotoType;
     preview: string | null;
     onClear: () => void;
     demoImage: string;
     onOpenCamera: () => void;
+    onUpload: () => void;
   }) => (
     <div className="flex flex-col items-center">
       <div
@@ -117,14 +128,22 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         )}
       </div>
 
-      {/* Retake button when photo exists */}
-      {preview && (
+      {/* Retake button when photo exists, Upload when no photo */}
+      {preview ? (
         <button
           onClick={onClear}
           className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
         >
           <Camera className="w-3 h-3" />
           retake
+        </button>
+      ) : (
+        <button
+          onClick={onUpload}
+          className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+        >
+          <Upload className="w-3 h-3" />
+          Upload
         </button>
       )}
     </div>
@@ -193,6 +212,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             onClear={() => clearPhoto('front')}
             demoImage={referenceType === 'a4' ? a4FrontDemo : bottleFrontDemo}
             onOpenCamera={() => openCamera('front')}
+            onUpload={() => frontUploadRef.current?.click()}
           />
           <PhotoCard
             type="side"
@@ -200,6 +220,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             onClear={() => clearPhoto('side')}
             demoImage={referenceType === 'a4' ? a4SideDemo : bottleSideDemo}
             onOpenCamera={() => openCamera('side')}
+            onUpload={() => sideUploadRef.current?.click()}
           />
         </div>
       </div>
@@ -217,6 +238,22 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           </Button>
         </div>
       </div>
+
+      {/* Hidden file inputs for upload */}
+      <input
+        ref={frontUploadRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleUploadChange('front', e)}
+      />
+      <input
+        ref={sideUploadRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleUploadChange('side', e)}
+      />
 
       {/* Camera capture modal */}
       {activeCameraType && (
