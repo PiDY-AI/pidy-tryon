@@ -65,15 +65,13 @@ export const CameraCapture = ({ onCapture, onClose, photoType }: CameraCapturePr
           await track.applyConstraints({
             advanced: [{ zoom: minZoom } as any]
           });
-          console.log('[Camera] Zoom set to minimum:', minZoom);
-        } catch (zoomError) {
-          console.log('[Camera] Could not set zoom:', zoomError);
+        } catch {
+          // Zoom not supported on this device
         }
       }
 
       setIsLoading(false);
-    } catch (err) {
-      console.error('[Camera] Error accessing camera:', err);
+    } catch {
       setError('Could not access camera. Please ensure camera permissions are granted.');
       setIsLoading(false);
     }

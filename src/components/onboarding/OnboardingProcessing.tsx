@@ -95,8 +95,6 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
       // Generate unique submission ID
       const submissionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      console.log('Starting image upload to widget-uploads bucket...');
-      
       // Step 1: Upload all 3 images
       let frontUrl: string, backUrl: string, headshotUrl: string;
       try {
@@ -105,16 +103,13 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
           uploadImage(data.photos.back, submissionId, 'back'),
           uploadImage(data.headshot, submissionId, 'headshot'),
         ]);
-        console.log('Images uploaded successfully:', { frontUrl, backUrl, headshotUrl });
       } catch (uploadErr) {
-        console.error('Image upload failed:', uploadErr);
         throw new Error(`Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}. Make sure the "widget-uploads" bucket exists and is public.`);
       }
 
       setCurrentStep(1);
 
       // Step 2: Call widget-scan-v2 API
-      console.log('Calling widget-scan-v2 API...');
       const response = await fetch(`${SUPABASE_URL}/functions/v1/widget-scan-v2`, {
         method: 'POST',
         headers: {
@@ -136,19 +131,7 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
         }),
       });
 
-      console.log('API response status:', response.status);
       const scanResult: WidgetScanResult = await response.json();
-      console.log('[OnboardingProcessing] widget-scan-v2 response:', {
-        success: scanResult.success,
-        user_id: scanResult.user_id,
-        scan_id: scanResult.scan_id,
-        is_new_user: scanResult.is_new_user,
-        token_received: !!scanResult.access_token && !!scanResult.refresh_token,
-        expires_in: scanResult.expires_in,
-        token_type: scanResult.token_type,
-        avatar_url: scanResult.avatar?.url,
-        body_type: scanResult.measurements?.body_type,
-      });
 
       if (!scanResult.success) {
         throw new Error(scanResult.error?.message || `API error: ${scanResult.error?.code || 'Unknown'}`);
@@ -156,26 +139,16 @@ export const OnboardingProcessing = ({ onComplete, data }: OnboardingProcessingP
 
       // Set the Supabase session if tokens are returned
       if (scanResult.access_token && scanResult.refresh_token) {
-        console.log('[OnboardingProcessing] Setting session from widget-scan tokens...');
-        const { error: sessionError } = await supabase.auth.setSession({
+        await supabase.auth.setSession({
           access_token: scanResult.access_token,
           refresh_token: scanResult.refresh_token,
         });
-        if (sessionError) {
-          console.error('Failed to set session:', sessionError);
-          // Don't throw - user can still use magic link
-        } else {
-          console.log('[OnboardingProcessing] Session set successfully');
-        }
-      } else {
-        console.log('[OnboardingProcessing] No tokens returned from widget-scan');
       }
 
       setResult(scanResult);
       setApiComplete(true);
       setCurrentStep(3);
     } catch (err) {
-      console.error('Processing error:', err);
       setError(err instanceof Error ? err.message : 'Processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
