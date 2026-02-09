@@ -5,12 +5,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-subtitle font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-subtitle font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [-webkit-tap-highlight-color:transparent]",
   {
     variants: {
       variant: {
         // Primary button with PIDY gradient (#E8C4A0 → #D4A574)
-        default: "rounded-xl bg-gradient-to-r from-[#E8C4A0] to-[#D4A574] text-[#1A1A1A] hover:opacity-90 active:scale-[0.98]",
+        default: "rounded-xl bg-gradient-to-r from-[#E8C4A0] to-[#D4A574] text-[#1A1A1A] hover:opacity-90 active:scale-[0.98] active:bg-gradient-to-r active:from-[#E8C4A0] active:to-[#D4A574]",
         // Secondary button - PIDY spec
         secondary: "rounded-2xl border border-[#333333] bg-transparent text-primary hover:bg-[#333333]/20",
         destructive: "rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90",

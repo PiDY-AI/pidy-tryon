@@ -39,7 +39,7 @@ const Index = () => {
   const [hasSessionToken, setHasSessionToken] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
-  const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('claude-openai');
+  const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('groq-replicate');
   const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
 
   // Track whether the current session was set from an SDK-provided token (not a fresh popup sign-in).
