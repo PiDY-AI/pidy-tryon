@@ -27,6 +27,8 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [authSucceeded, setAuthSucceeded] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const { signIn, signUp } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const { toast } = useToast();
@@ -169,6 +171,39 @@ const Auth = () => {
       title: "You're all set!",
       description: "Check your email to set up your password. You can now try on items!",
     });
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: 'Email required',
+        description: 'Please enter your email address first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetEmailSent(true);
+      toast({
+        title: 'Check your email',
+        description: 'We sent you a password reset link.',
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send reset email.';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -430,41 +465,84 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <Label htmlFor="password" className="text-xs text-foreground">Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-10 bg-input border-border h-10 text-sm"
-                            required
-                            minLength={6}
-                          />
+                      {!showForgotPassword && (
+                        <div className="space-y-1">
+                          <Label htmlFor="password" className="text-xs text-foreground">Password</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              id="password"
+                              type="password"
+                              placeholder="••••••••"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="pl-10 bg-input border-border h-10 text-sm"
+                              required
+                              minLength={6}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      <Button
-                        type="submit"
-                        className="w-full mt-3"
-                        size="default"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <span className="flex items-center gap-2">
-                            <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                            Signing in...
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            Sign In
-                            <ArrowRight className="w-4 h-4" />
-                          </span>
-                        )}
-                      </Button>
+                      {showForgotPassword ? (
+                        <>
+                          {resetEmailSent ? (
+                            <p className="text-xs text-muted-foreground text-center">Check your email for a reset link.</p>
+                          ) : (
+                            <Button
+                              type="button"
+                              onClick={handleForgotPassword}
+                              className="w-full mt-3"
+                              size="default"
+                              disabled={isLoading || !email}
+                            >
+                              {isLoading ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                  Sending...
+                                </span>
+                              ) : (
+                                'Send Reset Link'
+                              )}
+                            </Button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => { setShowForgotPassword(false); setResetEmailSent(false); }}
+                            className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors text-center mt-2"
+                          >
+                            Back to Sign In
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Forgot Password?
+                          </button>
+                          <Button
+                            type="submit"
+                            className="w-full mt-3"
+                            size="default"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <span className="flex items-center gap-2">
+                                <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                Signing in...
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                Sign In
+                                <ArrowRight className="w-4 h-4" />
+                              </span>
+                            )}
+                          </Button>
+                        </>
+                      )}
                     </form>
                   </div>
                 )}
@@ -578,41 +656,84 @@ const Auth = () => {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="password" className="text-foreground">Password</Label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              id="password"
-                              type="password"
-                              placeholder="********"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className="pl-10 bg-input border-border"
-                              required
-                              minLength={6}
-                            />
+                        {!showForgotPassword && (
+                          <div className="space-y-2">
+                            <Label htmlFor="password" className="text-foreground">Password</Label>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Input
+                                id="password"
+                                type="password"
+                                placeholder="********"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="pl-10 bg-input border-border"
+                                required
+                                minLength={6}
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        <Button
-                          type="submit"
-                          className="w-full"
-                          size="lg"
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <span className="flex items-center gap-2">
-                              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                              Signing in...
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              Sign In
-                              <ArrowRight className="w-4 h-4" />
-                            </span>
-                          )}
-                        </Button>
+                        {showForgotPassword ? (
+                          <>
+                            {resetEmailSent ? (
+                              <p className="text-sm text-muted-foreground text-center">Check your email for a reset link.</p>
+                            ) : (
+                              <Button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                className="w-full"
+                                size="lg"
+                                disabled={isLoading || !email}
+                              >
+                                {isLoading ? (
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                    Sending...
+                                  </span>
+                                ) : (
+                                  'Send Reset Link'
+                                )}
+                              </Button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => { setShowForgotPassword(false); setResetEmailSent(false); }}
+                              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center mt-2"
+                            >
+                              Back to Sign In
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setShowForgotPassword(true)}
+                              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Forgot Password?
+                            </button>
+                            <Button
+                              type="submit"
+                              className="w-full"
+                              size="lg"
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                  Signing in...
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-2">
+                                  Sign In
+                                  <ArrowRight className="w-4 h-4" />
+                                </span>
+                              )}
+                            </Button>
+                          </>
+                        )}
                       </form>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 import { AuthGuard } from "./components/AuthGuard";
 import { useHideBrokenImages } from "./hooks/useHideBrokenImages";
 import DemoIndex from "./demo/pages/DemoIndex";
@@ -34,6 +35,7 @@ const App = () => {
                   </AuthGuard>
                 }
               />
+              <Route path="/reset-password" element={<ResetPassword />} />
               {/* Demo Routes - No Auth Required */}
               <Route path="/demo" element={<DemoIndex />} />
               <Route path="/demo/product/:id" element={<ProductDetail />} />
