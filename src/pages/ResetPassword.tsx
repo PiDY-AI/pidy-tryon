@@ -15,24 +15,56 @@ const ResetPassword = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
 
-  // Supabase JS v2 auto-detects recovery tokens from the URL hash.
-  // Listen for the PASSWORD_RECOVERY event instead of manually parsing.
+  // Handle recovery session from Supabase redirect.
+  // Uses both onAuthStateChange and manual hash parsing as fallback.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    let resolved = false;
+
+    const markReady = () => {
+      if (!resolved) {
+        resolved = true;
         setSessionReady(true);
         setError(null);
       }
+    };
+
+    // Method 1: Listen for PASSWORD_RECOVERY event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markReady();
+      }
     });
 
-    // Fallback: if no event fires within 5s, the link is likely invalid/expired
+    // Method 2: Manually parse hash and set session as fallback
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        supabase.auth
+          .setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ error: sessionError }) => {
+            if (sessionError) {
+              if (!resolved) {
+                setError('Invalid or expired reset link. Please request a new one.');
+                resolved = true;
+              }
+            } else {
+              markReady();
+            }
+          });
+      }
+    }
+
+    // Fallback timeout if neither method works
     const timeout = setTimeout(() => {
-      setSessionReady((ready) => {
-        if (!ready) {
-          setError('Invalid or expired reset link. Please request a new one.');
-        }
-        return ready;
-      });
+      if (!resolved) {
+        resolved = true;
+        setError('Invalid or expired reset link. Please request a new one.');
+      }
     }, 5000);
 
     return () => {
