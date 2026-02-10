@@ -15,30 +15,30 @@ const ResetPassword = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
 
-  // Parse tokens from URL hash and set session
+  // Supabase JS v2 auto-detects recovery tokens from the URL hash.
+  // Listen for the PASSWORD_RECOVERY event instead of manually parsing.
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      setError('No reset token found. Please request a new password reset.');
-      return;
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSessionReady(true);
+        setError(null);
+      }
+    });
 
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    const type = params.get('type');
+    // Fallback: if no event fires within 5s, the link is likely invalid/expired
+    const timeout = setTimeout(() => {
+      setSessionReady((ready) => {
+        if (!ready) {
+          setError('Invalid or expired reset link. Please request a new one.');
+        }
+        return ready;
+      });
+    }, 5000);
 
-    if (type === 'recovery' && accessToken && refreshToken) {
-      supabase.auth
-        .setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        .then(() => setSessionReady(true))
-        .catch(() => setError('Invalid or expired reset link.'));
-    } else {
-      setError('Invalid reset link. Please request a new one.');
-    }
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
