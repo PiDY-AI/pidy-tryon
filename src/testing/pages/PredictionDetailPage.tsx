@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, AlertCircle, FlaskConical, Layers, Image,
-  Clock, DollarSign, Hash, ChevronDown,
+  Clock, DollarSign, Hash, ChevronDown, Trash2, Loader2,
 } from 'lucide-react';
 import { TestingLayout } from '../components/TestingLayout';
 import { GenerationCard } from '../components/GenerationCard';
@@ -26,6 +26,8 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const getTimeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -417,7 +419,44 @@ const DetailView = ({ generations, predictionId }: { generations: TryonGeneratio
 // ── Main Page ─────────────────────────────────────────────
 const PredictionDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { prediction, isLoading, error } = usePredictionDetail(id);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!prediction || !window.confirm('Delete this prediction and all its generations? This cannot be undone.')) return;
+
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Please sign in to delete predictions');
+        return;
+      }
+
+      const functionsUrl = `${(supabase as any).functionsUrl || 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1'}`;
+      const response = await fetch(`${functionsUrl}/tryon-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ deletePredictionId: prediction.id }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error?.message || data?.message || 'Failed to delete prediction');
+      }
+
+      toast.success('Prediction deleted');
+      navigate('/testing/predictions');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete prediction');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -479,11 +518,27 @@ const PredictionDetailPage = () => {
                 {prediction.product_name || prediction.product_id}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-muted-foreground" />
-              <span className="text-caption text-muted-foreground">
-                {generations.length} generation{generations.length !== 1 ? 's' : ''}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-muted-foreground" />
+                <span className="text-caption text-muted-foreground">
+                  {generations.length} generation{generations.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="gap-1.5"
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
             </div>
           </div>
 
