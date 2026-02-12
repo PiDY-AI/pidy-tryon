@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -12,6 +13,11 @@ import { AuthGuard } from "./components/AuthGuard";
 import { useHideBrokenImages } from "./hooks/useHideBrokenImages";
 import DemoIndex from "./demo/pages/DemoIndex";
 import ProductDetail from "./demo/pages/ProductDetail";
+
+const TestRunnerPage = lazy(() => import("./testing/pages/TestRunnerPage"));
+const PredictionsPage = lazy(() => import("./testing/pages/PredictionsPage"));
+const PredictionDetailPage = lazy(() => import("./testing/pages/PredictionDetailPage"));
+const GenerationDetailPage = lazy(() => import("./testing/pages/GenerationDetailPage"));
 
 const queryClient = new QueryClient();
 
@@ -39,6 +45,11 @@ const App = () => {
               {/* Demo Routes - No Auth Required */}
               <Route path="/demo" element={<DemoIndex />} />
               <Route path="/demo/product/:id" element={<ProductDetail />} />
+              {/* Testing Routes - Auth Required, Lazy Loaded */}
+              <Route path="/testing" element={<AuthGuard><Suspense fallback={null}><TestRunnerPage /></Suspense></AuthGuard>} />
+              <Route path="/testing/predictions" element={<AuthGuard><Suspense fallback={null}><PredictionsPage /></Suspense></AuthGuard>} />
+              <Route path="/testing/predictions/:id" element={<AuthGuard><Suspense fallback={null}><PredictionDetailPage /></Suspense></AuthGuard>} />
+              <Route path="/testing/predictions/:predictionId/generations/:generationId" element={<AuthGuard><Suspense fallback={null}><GenerationDetailPage /></Suspense></AuthGuard>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

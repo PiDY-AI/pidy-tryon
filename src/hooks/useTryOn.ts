@@ -62,32 +62,25 @@ export const useTryOn = (): UseTryOnReturn => {
         requestBody.retry = true;
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke('tryon', {
-        body: requestBody,
+      // Use fetch directly instead of supabase.functions.invoke.
+      // The Supabase SDK swallows the response body on non-2xx errors,
+      // making it impossible to read error codes like NO_AVATAR.
+      const functionsUrl = `${(supabase as any).functionsUrl || 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1'}`;
+      const response = await fetch(`${functionsUrl}/tryon`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
+        body: JSON.stringify(requestBody),
       });
 
-      if (fnError) {
-        // Try to extract meaningful error from response
-        console.error('[useTryOn] Edge function error:', fnError);
-        const errorMessage = fnError.message || 'Edge function error';
-        
-        // Check for common error codes
-        if (errorMessage.includes('USER_NOT_FOUND') || errorMessage.includes('404')) {
-          throw new Error('Please complete your body scan in the PIDY app first.');
-        }
-        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-          throw new Error('Session expired. Please sign in again.');
-        }
+      const data = await response.json();
+
+      if (!response.ok || data?.success === false || data?.error) {
+        console.error('[useTryOn] Edge function error:', response.status, data);
+        const errorMessage = data?.error?.message || data?.message || 'Try-on generation failed';
         throw new Error(errorMessage);
-      }
-      
-      // Also check if data contains an error (some edge functions return errors in body)
-      if (data?.error) {
-        console.error('[useTryOn] Response error:', data.error);
-        throw new Error(data.error.message || data.error || 'Try-on generation failed');
       }
 
       const tryOnData: TryOnResult = data;
