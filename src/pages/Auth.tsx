@@ -12,6 +12,7 @@ import type { WidgetScanResult } from '@/components/onboarding/OnboardingProcess
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import pidyLogo from '@/assets/pidy_logo_white.png';
 import pidyTextLogo from '@/assets/pidy_full_text_white.png';
+import landingVideo from '@/assets/1770643433403458.mov';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -390,16 +391,14 @@ const Auth = () => {
 
               {/* Video - Compact */}
               <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center space-y-1.5">
-                    <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Watch how it works</p>
-                  </div>
-                </div>
+                <video
+                  src={landingVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               {/* Sign In Container */}
@@ -577,18 +576,16 @@ const Auth = () => {
                   </p>
                 </div>
 
-                {/* Video placeholder */}
+                {/* Video */}
                 <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                      <p className="text-caption text-muted-foreground">Watch how it works</p>
-                    </div>
-                  </div>
+                  <video
+                    src={landingVideo}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
 

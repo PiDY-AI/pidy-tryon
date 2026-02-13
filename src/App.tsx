@@ -18,6 +18,7 @@ const TestRunnerPage = lazy(() => import("./testing/pages/TestRunnerPage"));
 const PredictionsPage = lazy(() => import("./testing/pages/PredictionsPage"));
 const PredictionDetailPage = lazy(() => import("./testing/pages/PredictionDetailPage"));
 const GenerationDetailPage = lazy(() => import("./testing/pages/GenerationDetailPage"));
+const ComparePredictionsPage = lazy(() => import("./testing/pages/ComparePredictionsPage"));
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => {
               {/* Testing Routes - Auth Required, Lazy Loaded */}
               <Route path="/testing" element={<AuthGuard><Suspense fallback={null}><TestRunnerPage /></Suspense></AuthGuard>} />
               <Route path="/testing/predictions" element={<AuthGuard><Suspense fallback={null}><PredictionsPage /></Suspense></AuthGuard>} />
+              <Route path="/testing/predictions/compare" element={<AuthGuard><Suspense fallback={null}><ComparePredictionsPage /></Suspense></AuthGuard>} />
               <Route path="/testing/predictions/:id" element={<AuthGuard><Suspense fallback={null}><PredictionDetailPage /></Suspense></AuthGuard>} />
               <Route path="/testing/predictions/:predictionId/generations/:generationId" element={<AuthGuard><Suspense fallback={null}><GenerationDetailPage /></Suspense></AuthGuard>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

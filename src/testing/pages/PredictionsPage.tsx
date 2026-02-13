@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { LayoutGrid, FlaskConical, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutGrid, FlaskConical, AlertCircle, GitCompareArrows, X } from 'lucide-react';
 import { TestingLayout } from '../components/TestingLayout';
 import { FilterBar } from '../components/FilterBar';
 import { PredictionCard } from '../components/PredictionCard';
@@ -17,11 +18,34 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
+const MAX_COMPARE = 3;
+
 const PredictionsPage = () => {
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTestingFilters();
   const { predictions, totalCount, isLoading, error } = usePredictions(filters);
+  const navigate = useNavigate();
+
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const totalPages = Math.ceil(totalCount / filters.pageSize);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_COMPARE) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setSelectedIds([]);
+  };
+
+  const handleCompare = () => {
+    navigate(`/testing/predictions/compare?ids=${selectedIds.join(',')}`);
+  };
 
   return (
     <TestingLayout>
@@ -31,15 +55,40 @@ const PredictionsPage = () => {
           <div>
             <h1 className="text-h2 text-foreground">Predictions</h1>
             <p className="text-caption text-muted-foreground mt-1">
-              {totalCount > 0 ? `${totalCount} prediction${totalCount !== 1 ? 's' : ''}` : 'Browse your try-on predictions'}
+              {compareMode
+                ? `Select up to ${MAX_COMPARE} predictions to compare (${selectedIds.length} selected)`
+                : totalCount > 0
+                  ? `${totalCount} prediction${totalCount !== 1 ? 's' : ''}`
+                  : 'Browse your try-on predictions'}
             </p>
           </div>
-          <Link to="/testing">
-            <Button variant="secondary" size="sm" className="gap-2">
-              <FlaskConical className="w-4 h-4" />
-              New Test
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {compareMode ? (
+              <Button variant="secondary" size="sm" className="gap-2" onClick={exitCompareMode}>
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setCompareMode(true)}
+                  disabled={predictions.length < 2}
+                >
+                  <GitCompareArrows className="w-4 h-4" />
+                  Compare
+                </Button>
+                <Link to="/testing">
+                  <Button variant="secondary" size="sm" className="gap-2">
+                    <FlaskConical className="w-4 h-4" />
+                    New Test
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -92,7 +141,13 @@ const PredictionsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {predictions.map((prediction) => (
-              <PredictionCard key={prediction.id} prediction={prediction} />
+              <PredictionCard
+                key={prediction.id}
+                prediction={prediction}
+                compareMode={compareMode}
+                isSelected={selectedIds.includes(prediction.id)}
+                onToggleSelect={() => toggleSelect(prediction.id)}
+              />
             ))}
           </div>
         )}
@@ -144,6 +199,22 @@ const PredictionsPage = () => {
           </Pagination>
         )}
       </div>
+
+      {/* Floating compare bar */}
+      {compareMode && selectedIds.length >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl glass-card border border-primary/30 shadow-lg">
+          <span className="text-sm text-foreground font-medium">
+            {selectedIds.length} selected
+          </span>
+          <Button size="sm" className="gap-2" onClick={handleCompare}>
+            <GitCompareArrows className="w-4 h-4" />
+            Compare
+          </Button>
+          <Button variant="ghost" size="sm" onClick={exitCompareMode}>
+            Clear
+          </Button>
+        </div>
+      )}
     </TestingLayout>
   );
 };

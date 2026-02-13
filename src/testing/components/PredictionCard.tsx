@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Image, Layers, AlertTriangle } from 'lucide-react';
+import { Image, Layers, AlertTriangle, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from './StatusBadge';
 import { TryonPrediction } from '../types';
 
 interface PredictionCardProps {
   prediction: TryonPrediction;
+  compareMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 const getTimeAgo = (dateStr: string) => {
@@ -18,7 +21,7 @@ const getTimeAgo = (dateStr: string) => {
   return `${days}d ago`;
 };
 
-export const PredictionCard = ({ prediction }: PredictionCardProps) => {
+export const PredictionCard = ({ prediction, compareMode, isSelected, onToggleSelect }: PredictionCardProps) => {
   const generations = prediction.tryon_generations || [];
   const latestGen = generations.length > 0
     ? generations.reduce((a, b) => (a.generation_number > b.generation_number ? a : b))
@@ -49,13 +52,12 @@ export const PredictionCard = ({ prediction }: PredictionCardProps) => {
 
   const imageUrl = thumbnailUrl || productImage;
 
-  return (
-    <Link
-      to={`/testing/predictions/${prediction.id}`}
-      className={`glass-card rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] block group ${
-        allFailed ? 'ring-1 ring-destructive/30' : ''
-      }`}
-    >
+  const cardClassName = `glass-card rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] block group ${
+    allFailed ? 'ring-1 ring-destructive/30' : ''
+  } ${compareMode && isSelected ? 'ring-2 ring-primary' : ''}`;
+
+  const cardContent = (
+    <>
       {/* Image */}
       <div className="aspect-[3/4] relative overflow-hidden bg-secondary">
         {imageUrl ? (
@@ -80,6 +82,17 @@ export const PredictionCard = ({ prediction }: PredictionCardProps) => {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
             <Image className="w-12 h-12 opacity-30" />
+          </div>
+        )}
+
+        {/* Compare checkbox */}
+        {compareMode && (
+          <div className={`absolute top-2 left-2 z-10 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+            isSelected
+              ? 'bg-primary border-primary'
+              : 'border-white/70 bg-background/50 backdrop-blur-sm'
+          }`}>
+            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
           </div>
         )}
 
@@ -138,6 +151,23 @@ export const PredictionCard = ({ prediction }: PredictionCardProps) => {
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (compareMode) {
+    return (
+      <div
+        className={`${cardClassName} cursor-pointer`}
+        onClick={onToggleSelect}
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link to={`/testing/predictions/${prediction.id}`} className={cardClassName}>
+      {cardContent}
     </Link>
   );
 };
