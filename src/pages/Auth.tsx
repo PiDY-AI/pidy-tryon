@@ -557,6 +557,11 @@ const Auth = () => {
             <div className="grid lg:grid-cols-2 gap-12 items-start">
               {/* Left Column - Info */}
               <div className="space-y-8">
+                {/* Unsure about Size? */}
+                <div>
+                  <h2 className="text-h2 text-foreground mb-3">Unsure about Size?</h2>
+                </div>
+
                 {/* Video */}
                 <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
                   <video
