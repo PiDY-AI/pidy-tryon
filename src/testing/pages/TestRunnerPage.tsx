@@ -217,53 +217,7 @@ const TestRunnerPage = () => {
               </div>
             )}
 
-            {/* Provider Toggle */}
-            <div>
-              <Label className="text-caption text-muted-foreground mb-1.5 block">Provider</Label>
-              <div className="flex gap-2">
-                <Button
-                  variant={provider === 'groq-replicate' ? 'default' : 'secondary'}
-                  size="sm"
-                  onClick={() => setProvider('groq-replicate')}
-                  className="flex-1"
-                >
-                  Groq + Replicate
-                </Button>
-                <Button
-                  variant={provider === 'claude-openai' ? 'default' : 'secondary'}
-                  size="sm"
-                  onClick={() => setProvider('claude-openai')}
-                  className="flex-1"
-                >
-                  Claude + OpenAI
-                </Button>
-              </div>
-            </div>
-
-            {/* Replicate Model (only for groq-replicate) */}
-            {provider === 'groq-replicate' && (
-              <div>
-                <Label className="text-caption text-muted-foreground mb-1.5 block">Image Model</Label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={replicateModel === 'klein-9b' ? 'default' : 'secondary'}
-                    size="sm"
-                    onClick={() => setReplicateModel('klein-9b')}
-                    className="flex-1"
-                  >
-                    Klein 9B
-                  </Button>
-                  <Button
-                    variant={replicateModel === 'flux-2-pro' ? 'default' : 'secondary'}
-                    size="sm"
-                    onClick={() => setReplicateModel('flux-2-pro')}
-                    className="flex-1"
-                  >
-                    Flux 2 Pro
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Provider is always groq-replicate with klein-9b */}
 
             {/* Run Count */}
             <div>
