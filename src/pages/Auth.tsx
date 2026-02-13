@@ -568,14 +568,6 @@ const Auth = () => {
                   </p>
                 </div>
 
-                {/* Try before Buy section */}
-                <div>
-                  <h3 className="text-h3 text-foreground mb-4">Try before Buy</h3>
-                  <p className="text-body text-muted-foreground mb-4">
-                    See how clothes fit on you before purchasing
-                  </p>
-                </div>
-
                 {/* Video */}
                 <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
                   <video
