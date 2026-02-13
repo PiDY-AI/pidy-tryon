@@ -383,10 +383,7 @@ const Auth = () => {
 
               {/* Unsure about Size */}
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-foreground mb-0.5">Unsure about Size?</h2>
-                <p className="text-xs text-muted-foreground">
-                  Try before you buy with virtual try-on
-                </p>
+                <h2 className="text-lg font-semibold text-foreground">Unsure about Size?</h2>
               </div>
 
               {/* Video - Compact */}
@@ -560,14 +557,6 @@ const Auth = () => {
             <div className="grid lg:grid-cols-2 gap-12 items-start">
               {/* Left Column - Info */}
               <div className="space-y-8">
-                {/* Unsure about Size? */}
-                <div>
-                  <h2 className="text-h2 text-foreground mb-3">Unsure about Size?</h2>
-                  <p className="text-body text-muted-foreground">
-                    Try before you buy with PIDY's virtual try-on technology
-                  </p>
-                </div>
-
                 {/* Video */}
                 <div className="aspect-video bg-surface border border-border rounded-lg overflow-hidden">
                   <video
