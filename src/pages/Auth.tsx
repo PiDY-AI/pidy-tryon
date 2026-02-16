@@ -46,7 +46,7 @@ const Auth = () => {
         console.log('[Auth] Popup closing without auth - notifying parent');
         window.opener.postMessage(
           { type: 'pidy-auth-cancelled', source: 'pidy-widget' },
-          window.location.origin
+          '*'
         );
       } else {
         console.log('[Auth] Popup closing after successful auth - not sending cancelled');
@@ -142,7 +142,7 @@ const Auth = () => {
         // First: send session tokens
         window.opener.postMessage(
           { type: 'tryon-auth-session', access_token: result.access_token, refresh_token: result.refresh_token },
-          window.location.origin
+          '*'
         );
       }
 
@@ -156,7 +156,7 @@ const Auth = () => {
           access_token: result?.access_token,
           refresh_token: result?.refresh_token,
         },
-        window.location.origin
+        '*'
       );
 
       // Wait to show debug banner
@@ -251,7 +251,7 @@ const Auth = () => {
             // Send to widget (same origin)
             window.opener.postMessage(
               { type: 'tryon-auth-session', access_token, refresh_token },
-              window.location.origin
+              '*'
             );
 
             // Also store in central auth bridge for cross-brand sharing
