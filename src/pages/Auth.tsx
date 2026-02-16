@@ -38,16 +38,24 @@ const Auth = () => {
   // Detect popup closure and notify parent (only if auth did NOT succeed)
   useEffect(() => {
     const isPopup = searchParams.get('popup');
-    if (!isPopup || !window.opener) return;
+    if (!isPopup) return;
 
     const handleBeforeUnload = () => {
       // Only send cancelled if auth didn't succeed
       if (!authSucceeded) {
         console.log('[Auth] Popup closing without auth - notifying parent');
-        window.opener.postMessage(
-          { type: 'pidy-auth-cancelled', source: 'pidy-widget' },
-          '*'
-        );
+        if (window.opener) {
+          window.opener.postMessage(
+            { type: 'pidy-auth-cancelled', source: 'pidy-widget' },
+            '*'
+          );
+        }
+        // Also notify via BroadcastChannel for cross-origin cases
+        try {
+          const bc = new BroadcastChannel('pidy-auth');
+          bc.postMessage({ type: 'pidy-auth-cancelled', source: 'pidy-widget' });
+          bc.close();
+        } catch (e) { /* ignore */ }
       } else {
         console.log('[Auth] Popup closing after successful auth - not sending cancelled');
       }
@@ -133,31 +141,41 @@ const Auth = () => {
       error: sessionError,
     });
     
-    if (isPopup && window.opener) {
+    if (isPopup) {
       // Mark auth as successful BEFORE sending messages (prevents beforeunload from sending cancelled)
       setAuthSucceeded(true);
 
-      // Send tokens AND onboarding completion to opener widget
-      if (tokenReceived && result?.access_token && result?.refresh_token) {
-        // First: send session tokens
-        window.opener.postMessage(
-          { type: 'tryon-auth-session', access_token: result.access_token, refresh_token: result.refresh_token },
-          '*'
-        );
+      const tokenPayload = tokenReceived && result?.access_token && result?.refresh_token
+        ? { access_token: result.access_token, refresh_token: result.refresh_token }
+        : null;
+
+      const onboardingPayload = {
+        type: 'pidy-onboarding-complete',
+        email: data.details?.email,
+        token_received: tokenReceived,
+        is_new_user: result?.is_new_user,
+        access_token: result?.access_token,
+        refresh_token: result?.refresh_token,
+      };
+
+      // Send via window.opener if available
+      if (window.opener) {
+        if (tokenPayload) {
+          window.opener.postMessage({ type: 'tryon-auth-session', ...tokenPayload }, '*');
+        }
+        window.opener.postMessage(onboardingPayload, '*');
       }
 
-      // Second: notify onboarding completion with tokens (widget uses this to skip sign-in screen)
-      window.opener.postMessage(
-        {
-          type: 'pidy-onboarding-complete',
-          email: data.details?.email,
-          token_received: tokenReceived,
-          is_new_user: result?.is_new_user,
-          access_token: result?.access_token,
-          refresh_token: result?.refresh_token,
-        },
-        '*'
-      );
+      // Also send via BroadcastChannel (same-origin fallback for cross-origin popups)
+      try {
+        const bc = new BroadcastChannel('pidy-auth');
+        if (tokenPayload) {
+          bc.postMessage({ type: 'tryon-auth-session', ...tokenPayload });
+        }
+        bc.postMessage(onboardingPayload);
+        console.log('[Auth] Sent onboarding/tokens via BroadcastChannel');
+        bc.close();
+      } catch (e) { /* ignore */ }
 
       // Wait to show debug banner
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -231,8 +249,8 @@ const Auth = () => {
         } else {
           // Check if this is a popup window
           const isPopup = searchParams.get('popup');
-          console.log('[Auth] Post-signin check:', { isPopup, hasOpener: !!window.opener, openerType: typeof window.opener });
-          if (isPopup && window.opener) {
+          console.log('[Auth] Post-signin check:', { isPopup, hasOpener: !!window.opener });
+          if (isPopup) {
             const access_token = session?.access_token;
             const refresh_token = session?.refresh_token;
 
@@ -249,33 +267,45 @@ const Auth = () => {
             // Mark auth as successful BEFORE sending messages (prevents beforeunload from sending cancelled)
             setAuthSucceeded(true);
 
-            // Send to widget (same origin)
-            window.opener.postMessage(
-              { type: 'tryon-auth-session', access_token, refresh_token },
-              '*'
-            );
+            // Send tokens to opener (brand page) if available
+            if (window.opener) {
+              console.log('[Auth] Sending tryon-auth-session via window.opener');
+              window.opener.postMessage(
+                { type: 'tryon-auth-session', access_token, refresh_token },
+                '*'
+              );
 
-            // Try to store in central auth bridge (will fail cross-origin, which is OK -
-            // the SDK on the brand page will store tokens when it receives tryon-auth-session)
-            try {
-              const bridgeOrigin = window.location.origin;
-              const authBridge = window.opener.document?.getElementById('pidy-auth-bridge') as HTMLIFrameElement | null;
-              if (authBridge && authBridge.contentWindow) {
-                authBridge.contentWindow.postMessage(
-                  {
-                    type: 'pidy-bridge-store-tokens',
-                    access_token,
-                    refresh_token,
-                    expires_in: 3600,
-                    user_email: email
-                  },
-                  bridgeOrigin
-                );
-                console.log('[Auth] Stored tokens in central bridge');
+              // Try to store in central auth bridge (will fail cross-origin)
+              try {
+                const bridgeOrigin = window.location.origin;
+                const authBridge = window.opener.document?.getElementById('pidy-auth-bridge') as HTMLIFrameElement | null;
+                if (authBridge && authBridge.contentWindow) {
+                  authBridge.contentWindow.postMessage(
+                    {
+                      type: 'pidy-bridge-store-tokens',
+                      access_token,
+                      refresh_token,
+                      expires_in: 3600,
+                      user_email: email
+                    },
+                    bridgeOrigin
+                  );
+                  console.log('[Auth] Stored tokens in central bridge');
+                }
+              } catch (e) {
+                console.log('[Auth] Cross-origin bridge access (expected on third-party sites)');
               }
+            }
+
+            // Fallback: use BroadcastChannel so the SDK on the brand page can receive
+            // tokens even if window.opener is null (cross-origin popup restriction)
+            try {
+              const bc = new BroadcastChannel('pidy-auth');
+              bc.postMessage({ type: 'tryon-auth-session', access_token, refresh_token });
+              console.log('[Auth] Sent tokens via BroadcastChannel');
+              bc.close();
             } catch (e) {
-              // Cross-origin: can't access opener's DOM. Expected on third-party brand sites.
-              console.log('[Auth] Cross-origin bridge access (expected on third-party sites)');
+              console.log('[Auth] BroadcastChannel not available');
             }
 
             console.log('[Auth] Popup: calling window.close()');

@@ -495,6 +495,61 @@ const Index = () => {
     return () => clearTimeout(timeout);
   }, [embedMode]); // Only run when embedMode changes (once on mount)
 
+  // Listen for auth tokens via BroadcastChannel (same-origin fallback when window.opener is null)
+  useEffect(() => {
+    if (!embedMode) return;
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('pidy-auth');
+      bc.onmessage = async (event) => {
+        const { type, access_token, refresh_token } = event.data || {};
+        if (type === 'tryon-auth-session' && access_token && refresh_token) {
+          console.log('[PIDY Widget] Received auth via BroadcastChannel');
+
+          tokenFromSdkRef.current = true;
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (error) {
+            console.warn('[PIDY Widget] BroadcastChannel session error:', error.message);
+            return;
+          }
+
+          setAuthToken(access_token);
+          authTokenRef.current = access_token;
+          setHasSessionToken(true);
+          setSessionCheckComplete(true);
+
+          // Notify parent SDK to cache tokens
+          window.parent.postMessage({
+            type: 'pidy-auth-success',
+            access_token,
+            refresh_token,
+            expires_in: 3600
+          }, '*');
+
+          setIsExpanded(true);
+          window.parent.postMessage({ type: 'tryon-expand' }, '*');
+
+          // Auto-start try-on
+          if (selectedProduct) {
+            console.log('[PIDY Widget] Auto-starting try-on after BroadcastChannel auth');
+            setShowDoorAnimation(true);
+            setTimeout(() => {
+              handleTryOn(selectedProduct);
+            }, 100);
+          }
+        }
+      };
+      console.log('[PIDY Widget] BroadcastChannel listener active');
+    } catch (e) {
+      // BroadcastChannel not supported
+    }
+
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [embedMode, selectedProduct]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Note: Removed auto-open popup in embed mode due to popup blockers
   // The SDK button in VirtualTryOnBot.tsx will handle authentication flow
 
