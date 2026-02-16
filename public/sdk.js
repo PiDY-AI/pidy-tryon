@@ -27,16 +27,34 @@
   'use strict';
 
   // Determine the PIDY widget origin.
-  // In development (localhost) or when the SDK is served from the same domain as the widget
-  // (e.g. demo pages on Vercel), use the current origin so the iframe loads from the same host.
-  // Only use the hardcoded production URL when the SDK is loaded on a third-party brand website.
+  // When the SDK is served from the same domain as the widget (e.g. demo pages on Vercel
+  // or the pidy-tryon app running locally), use the current origin.
+  // When loaded cross-origin on a third-party brand website (even on localhost),
+  // use the production URL so the widget iframe loads from the real PIDY app.
   const PIDY_HOSTS = ['pidy-tryon.vercel.app', 'pidy-tryon.lovable.app'];
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isSameHost = PIDY_HOSTS.some(function(h) { return window.location.hostname === h; });
+
+  // Detect if the SDK script itself was loaded from the same origin (local pidy-tryon dev)
+  // vs cross-origin (brand site loading SDK from Vercel).
+  var sdkLoadedFromSameOrigin = false;
+  try {
+    var scripts = document.querySelectorAll('script[src*="sdk.js"]');
+    scripts.forEach(function(s) {
+      var src = s.getAttribute('src') || '';
+      // Relative path or same-origin URL means SDK is co-hosted
+      if (src === '/sdk.js' || src === 'sdk.js' || src.startsWith(window.location.origin)) {
+        sdkLoadedFromSameOrigin = true;
+      }
+    });
+  } catch (e) { /* ignore */ }
+
+  const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && sdkLoadedFromSameOrigin;
   const PIDY_ORIGIN = (isLocal || isSameHost)
     ? window.location.origin
     : 'https://pidy-tryon.vercel.app';
   const AUTH_BRIDGE_URL = PIDY_ORIGIN + '/auth-bridge.html';
+
+  console.log('[PIDY SDK] Origin resolved:', PIDY_ORIGIN, '| isLocal:', isLocal, '| isSameHost:', isSameHost, '| sdkFromSameOrigin:', sdkLoadedFromSameOrigin);
   
   // Fallback local storage keys (used alongside central storage)
   const LOCAL_STORAGE_KEY = 'pidy_auth_token';

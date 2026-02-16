@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIDY Headless Try-On Integration</title>
+  <style>
+    /* ============================================================
+       PIDY HEADLESS TRY-ON - COPY-PASTE INTEGRATION GUIDE
+       ============================================================
+
+       HOW IT WORKS:
+       1. SDK loads invisibly (hidden 1px iframe)
+       2. Your button triggers try-on via postMessage
+       3. If user is NOT signed in → auth popup opens automatically
+       4. If user IS signed in → try-on starts immediately
+       5. Result image comes back via postMessage
+
+       NO visible widget, NO door icon, NO sign-in screen.
+       ============================================================ */
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+    }
+
+    /* ---------- Product Page Layout (YOUR EXISTING STYLES) ---------- */
+    .product-page {
+      display: flex;
+      min-height: 100vh;
+    }
+    .product-image-col {
+      flex: 1;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .product-image-col img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+    .product-info-col {
+      width: 420px;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .product-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .product-price {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .tax-note {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+    .size-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    .size-options {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .size-btn {
+      min-width: 48px;
+      height: 48px;
+      padding: 0 16px;
+      border: 2px solid #ddd;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .size-btn:hover { border-color: #333; }
+    .size-btn.selected {
+      border-color: #1a1a1a;
+      background: #1a1a1a;
+      color: white;
+    }
+    .add-to-cart {
+      width: 100%;
+      height: 56px;
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    .add-to-cart:hover { background: #333; }
+
+    /* ---------- PIDY TRY-ON BUTTON (STYLE THIS HOWEVER YOU WANT) ---------- */
+    .pidy-tryon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #c9a862;
+      color: white;
+      box-shadow: 0 4px 12px rgba(201, 168, 98, 0.3);
+    }
+    .pidy-tryon-btn:hover { background: #b89852; }
+    .pidy-tryon-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .pidy-tryon-btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .pidy-tryon-btn .pidy-icon {
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #c9a862;
+    }
+
+    /* Size required tooltip */
+    .size-tooltip {
+      display: none;
+      font-size: 12px;
+      color: #e53e3e;
+      margin-top: 6px;
+    }
+    .size-tooltip.show { display: block; }
+
+    /* ---------- RESULT DISPLAY ---------- */
+    .pidy-result {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e5e5;
+      background: white;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pidy-result img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: contain;
+      background: #f5f5f5;
+    }
+    .pidy-result-footer {
+      padding: 16px;
+      border-top: 1px solid #eee;
+    }
+    .pidy-result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pidy-result-size-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #888;
+    }
+    .pidy-result-size-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .pidy-retry-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pidy-retry-btn:hover { background: #f5f5f5; }
+    .pidy-retry-btn.generate {
+      background: #c9a862;
+      color: white;
+      border-color: #c9a862;
+    }
+    .pidy-close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+    .pidy-powered {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      margin-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #999;
+    }
+    .pidy-signout {
+      font-size: 10px;
+      color: #999;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .pidy-signout:hover { color: #333; }
+    .pidy-error {
+      font-size: 13px;
+      color: #e53e3e;
+      margin-top: 8px;
+    }
+
+    /* Hidden widget container - keeps SDK iframe invisible */
+    .pidy-hidden-widget,
+    .pidy-hidden-widget * {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      clip: rect(0, 0, 0, 0) !important;
+      clip-path: inset(50%) !important;
+      white-space: nowrap !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       IMPORTANT: This file MUST be served from a web server.
+       Opening via file:// WILL NOT WORK because:
+       - postMessage is blocked between file:// and https:// origins
+       - Auth popup cannot communicate back to the parent page
+       - Auth bridge iframe cannot store/retrieve tokens
+
+       TO TEST LOCALLY:
+       1. Copy this file to your project's public/ folder
+       2. Run: npm run dev
+       3. Open: http://localhost:5173/headless-embed.html
+
+       OR deploy to any web host (Vercel, Netlify, etc.)
+       ============================================================ -->
+
+  <!-- ============================================================
+       EXAMPLE PRODUCT PAGE
+       Replace this with your actual product page layout.
+       The only PIDY-specific parts are marked with PIDY comments.
+       ============================================================ -->
+
+  <div class="product-page">
+    <!-- Product Image -->
+    <div class="product-image-col">
+      <img id="product-image" src="https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=1000&fit=crop" alt="Product">
+    </div>
+
+    <!-- Product Info -->
+    <div class="product-info-col">
+      <div class="breadcrumb">Home / Jackets / Stanford Varsity Jacket</div>
+      <div class="product-title">Stanford Varsity Jacket</div>
+      <div class="product-price">Rs. 12,999</div>
+      <div class="tax-note">Inclusive of all taxes</div>
+
+      <!-- Size Selector -->
+      <div class="size-label">Size</div>
+      <div class="size-options" id="size-options">
+        <button class="size-btn" data-size="S">S</button>
+        <button class="size-btn" data-size="M">M</button>
+        <button class="size-btn" data-size="L">L</button>
+        <button class="size-btn" data-size="XL">XL</button>
+      </div>
+
+      <!-- ============================================================
+           PIDY: TRY-ON SECTION - ADD THIS TO YOUR PRODUCT PAGE
+           ============================================================ -->
+
+      <!-- 1. Hidden SDK widget (invisible, handles auth + API calls) -->
+      <div id="pidy-widget" class="pidy-hidden-widget"></div>
+
+      <!-- 2. Your try-on button -->
+      <div id="pidy-tryon-section">
+        <button id="pidy-tryon-btn" class="pidy-tryon-btn" onclick="pidyTryOn()">
+          <span class="pidy-icon">P</span>
+          Digital Fitting Room
+        </button>
+        <div id="pidy-size-tooltip" class="size-tooltip">Please select a size first</div>
+        <div id="pidy-error" class="pidy-error" style="display:none"></div>
+      </div>
+
+      <!-- 3. Result display (hidden until result arrives) -->
+      <div id="pidy-result" class="pidy-result" style="display:none">
+        <button class="pidy-close-btn" onclick="pidyClose()">&times;</button>
+        <img id="pidy-result-image" src="" alt="Virtual Try-On Result">
+        <div class="pidy-result-footer">
+          <div class="pidy-result-row">
+            <div>
+              <div class="pidy-result-size-label">Tried Size</div>
+              <div class="pidy-result-size-value" id="pidy-result-size">M</div>
+            </div>
+            <button id="pidy-retry-btn" class="pidy-retry-btn" onclick="pidyRetry()">Retry</button>
+          </div>
+          <div class="pidy-powered">
+            <span>Powered by PIDY</span>
+            <button id="pidy-signout-btn" class="pidy-signout" onclick="pidySignOut()" style="display:none">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           END PIDY SECTION
+           ============================================================ -->
+
+      <button class="add-to-cart">ADD TO CART</button>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       PIDY SDK SCRIPT
+       Load this ONCE, anywhere on the page.
+       For local dev use /sdk.js, for production use the full URL.
+       ============================================================ -->
+  <script src="/sdk.js"></script>
+
+
+  <!-- ============================================================
+       PIDY INTEGRATION LOGIC
+       Copy this entire script block into your page.
+       ============================================================ -->
+  <script>
+    // ---- CONFIGURATION ----
+    // Change this to match your product
+    const PRODUCT_ID = 'OVO-STAN-VRS-2025-001';
+
+    // ---- STATE ----
+    let selectedSize = null;
+    let isProcessing = false;
+    let isAuthenticated = false;
+    let tryOnImage = null;
+    let tryOnSize = null;
+    let lastGeneratedSize = null;
+    let widgetInitialized = false;
+
+    // ---- SIZE SELECTOR (your existing logic) ----
+    document.querySelectorAll('.size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedSize = btn.dataset.size;
+        document.getElementById('pidy-size-tooltip').classList.remove('show');
+      });
+    });
+
+    // ---- INITIALIZE HIDDEN SDK WIDGET ----
+    // This creates an invisible iframe that handles auth + try-on API calls.
+    // No visible UI is rendered from the SDK.
+    function initPidyWidget() {
+      if (widgetInitialized) return;
+      if (!window.PidyTryOn) {
+        console.error('[PIDY] SDK not loaded');
+        return;
+      }
+
+      window.PidyTryOn.init({
+        container: '#pidy-widget',
+        productId: PRODUCT_ID,
+        size: selectedSize || undefined,
+        authMethod: 'popup',   // 'popup' or 'modal'
+        width: 380,
+        height: 580,
+      });
+
+      // Re-hide container after SDK overrides its inline styles
+      const container = document.getElementById('pidy-widget');
+      container.style.cssText = 'position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;';
+
+      widgetInitialized = true;
+      console.log('[PIDY] Hidden widget initialized');
+    }
+
+    // Init when SDK is ready
+    if (window.PidyTryOn) {
+      setTimeout(initPidyWidget, 100);
+    } else {
+      // SDK loads async, poll for it
+      const interval = setInterval(() => {
+        if (window.PidyTryOn) {
+          clearInterval(interval);
+          setTimeout(initPidyWidget, 100);
+        }
+      }, 200);
+    }
+
+    // ---- LISTEN FOR SDK MESSAGES ----
+    window.addEventListener('message', (event) => {
+      const { type, source } = event.data || {};
+
+      // Only handle messages from PIDY widget
+      if (source !== 'pidy-widget') return;
+
+      console.log('[PIDY] Message:', type, event.data);
+
+      switch (type) {
+        case 'pidy-tryon-started':
+          setProcessing(true);
+          hideError();
+          break;
+
+        case 'pidy-tryon-result':
+          // SUCCESS - got the try-on image
+          const { images, recommendedSize } = event.data;
+          if (images && images.length > 0) {
+            tryOnImage = images[0];
+            tryOnSize = recommendedSize || selectedSize || 'M';
+            lastGeneratedSize = tryOnSize;
+            isAuthenticated = true;
+            setProcessing(false);
+            showResult();
+          }
+          break;
+
+        case 'pidy-tryon-error':
+          showError(event.data.error || 'Try-on failed. Please try again.');
+          setProcessing(false);
+          break;
+
+        case 'pidy-auth-required':
+          // SDK will open auth popup automatically
+          setProcessing(true);
+          break;
+
+        case 'pidy-auth-success':
+          // Auth done, try-on will start automatically
+          isAuthenticated = true;
+          break;
+
+        case 'pidy-auth-cancelled':
+          setProcessing(false);
+          break;
+
+        case 'pidy-sign-out':
+          isAuthenticated = false;
+          pidyClose();
+          break;
+      }
+    });
+
+    // ---- BUTTON HANDLERS ----
+
+    // Main try-on button click
+    function pidyTryOn() {
+      if (!selectedSize) {
+        document.getElementById('pidy-size-tooltip').classList.add('show');
+        return;
+      }
+      if (isProcessing) return;
+
+      const isRetry = lastGeneratedSize === selectedSize;
+
+      setProcessing(true);
+      hideError();
+
+      // Send message to hidden SDK iframe
+      const iframe = document.querySelector('#pidy-widget iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'pidy-start-tryon',
+          productId: PRODUCT_ID,
+          size: selectedSize,
+          retry: isRetry,
+        }, '*');
+        console.log('[PIDY] Start try-on, size:', selectedSize, 'retry:', isRetry);
+      } else {
+        showError('Widget not ready. Please refresh and try again.');
+        setProcessing(false);
+      }
+    }
+
+    // Retry / Generate with new size
+    function pidyRetry() {
+      tryOnImage = null;
+      tryOnSize = null;
+      document.getElementById('pidy-result').style.display = 'none';
+      document.getElementById('pidy-tryon-section').style.display = 'block';
+      pidyTryOn();
+    }
+
+    // Close result
+    function pidyClose() {
+      tryOnImage = null;
+      tryOnSize = null;
+      document.getElementById('pidy-result').style.display = 'none';
+      document.getElementById('pidy-tryon-section').style.display = 'block';
+      setProcessing(false);
+    }
+
+    // Sign out
+    function pidySignOut() {
+      const iframe = document.querySelector('#pidy-widget iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'pidy-sign-out-request' }, '*');
+      }
+      isAuthenticated = false;
+      pidyClose();
+    }
+
+    // ---- UI HELPERS ----
+
+    function setProcessing(processing) {
+      isProcessing = processing;
+      const btn = document.getElementById('pidy-tryon-btn');
+      btn.disabled = processing;
+      btn.innerHTML = processing
+        ? '<span class="spinner"></span> Your look is being prepared...'
+        : '<span class="pidy-icon">P</span> Digital Fitting Room';
+    }
+
+    function showResult() {
+      document.getElementById('pidy-tryon-section').style.display = 'none';
+      document.getElementById('pidy-result').style.display = 'block';
+      document.getElementById('pidy-result-image').src = tryOnImage;
+      document.getElementById('pidy-result-size').textContent = tryOnSize;
+
+      // Update retry button label
+      const retryBtn = document.getElementById('pidy-retry-btn');
+      const sizeChanged = selectedSize !== tryOnSize;
+      retryBtn.textContent = sizeChanged ? 'Generate' : 'Retry';
+      retryBtn.className = sizeChanged ? 'pidy-retry-btn generate' : 'pidy-retry-btn';
+
+      // Show sign out if authenticated
+      document.getElementById('pidy-signout-btn').style.display = isAuthenticated ? 'inline' : 'none';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('pidy-error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('pidy-error').style.display = 'none';
+    }
+  </script>
+
+  <!-- ============================================================
+       SUMMARY FOR LOVABLE
+
+       WHAT TO COPY:
+       1. The hidden widget div:  <div id="pidy-widget" class="pidy-hidden-widget"></div>
+       2. Your custom button + result display HTML
+       3. The SDK script:  <script src="https://pidy-tryon.vercel.app/sdk.js"></script>
+       4. The integration JS (init, message listener, handlers)
+
+       WHAT TO CHANGE:
+       - PRODUCT_ID: set to your actual product ID
+       - Styling: make the button/result match your brand
+       - Size selector: wire up to your existing size picker
+
+       WHAT NOT TO DO:
+       - Do NOT use data-pidy-tryon or data-pidy-auto attributes
+       - Do NOT call PidyTryOn.autoInit()
+       - Do NOT make the widget container visible
+       - These ^ will render the default widget with door icon + sign-in screen
+
+       FLOW:
+       User clicks button
+         -> Is signed in?  YES -> try-on starts immediately
+         -> Is signed in?  NO  -> auth popup opens automatically
+                                  -> user signs in
+                                  -> try-on starts automatically
+         -> Result image returned via postMessage
+         -> Display in your UI
+       ============================================================ -->
+
+</body>
+</html>
