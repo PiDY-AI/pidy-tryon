@@ -389,11 +389,17 @@ const Index = () => {
         const { data: { session } } = await supabase.auth.getSession();
         const ok = !!session?.access_token;
         setHasSessionToken(ok);
+        setSessionCheckComplete(true);
 
         if (!ok) {
           toast.message('Signed in (limited)', {
             description: 'Your browser blocked embedded storage. Try-on will still work for this session.',
           });
+        }
+
+        // Mark onboarding complete so subsequent pidy-start-tryon doesn't re-trigger it
+        if (session?.user?.user_metadata?.onboarding_complete === true) {
+          completeOnboarding();
         }
 
         // Notify parent SDK to cache the tokens (this is the ONE place we tell SDK about popup auth)
@@ -430,6 +436,11 @@ const Index = () => {
             authTokenRef.current = recheckSession.access_token;
             setHasSessionToken(true);
             setSessionCheckComplete(true);
+
+            // Mark onboarding complete from user metadata
+            if (recheckSession.user?.user_metadata?.onboarding_complete === true) {
+              completeOnboarding();
+            }
 
             window.parent.postMessage({
               type: 'pidy-auth-success',
@@ -556,6 +567,12 @@ const Index = () => {
           setHasSessionToken(true);
           setSessionCheckComplete(true);
 
+          // Mark onboarding complete from user metadata
+          const { data: { session: bcSession } } = await supabase.auth.getSession();
+          if (bcSession?.user?.user_metadata?.onboarding_complete === true) {
+            completeOnboarding();
+          }
+
           // Notify parent SDK to cache tokens
           window.parent.postMessage({
             type: 'pidy-auth-success',
@@ -621,6 +638,8 @@ const Index = () => {
         };
         setTryOnResult(result);
         setTryOnFailCount(0); // Reset fail count on success
+        // If try-on succeeded, user clearly doesn't need onboarding anymore
+        completeOnboarding();
         toast.success(`Try-on generated for size: ${sizeToUse}`);
 
         // Notify parent (VirtualTryOnBot) with the try-on result
