@@ -345,6 +345,7 @@
             // In cross-origin mode, the popup's window.opener is the brand page,
             // not the widget iframe. The SDK must forward the tokens.
             console.log('[PIDY SDK] Relaying tryon-auth-session to widget');
+            this._popupAuthReceived = true; // prevent duplicate from close-detection poll
             if (this._iframe && this._iframe.contentWindow) {
               this._iframe.contentWindow.postMessage({
                 type: 'tryon-auth-session',
@@ -682,12 +683,44 @@
           this._openAuthModal(url, width, height);
         } else {
           console.log('[PIDY SDK] Popup opened successfully');
+          this._popupRef = popup;
+          this._startPopupCloseDetection();
         }
       } catch (error) {
         console.error('[PIDY SDK] Error opening popup:', error);
         // Fallback to modal
         this._openAuthModal(url, width, height);
       }
+    },
+
+    /**
+     * Poll for popup close and notify widget iframe to recheck auth.
+     * This is the reliable fallback when window.opener.postMessage fails
+     * (e.g. cross-origin popup restrictions, message lost before close).
+     */
+    _startPopupCloseDetection: function() {
+      var self = this;
+      // Clear any existing poll
+      if (this._popupPollTimer) clearInterval(this._popupPollTimer);
+      // Track whether we already received tokens via postMessage
+      this._popupAuthReceived = false;
+
+      this._popupPollTimer = setInterval(function() {
+        if (!self._popupRef || self._popupRef.closed) {
+          clearInterval(self._popupPollTimer);
+          self._popupPollTimer = null;
+          console.log('[PIDY SDK] Popup closed detected, authReceived:', self._popupAuthReceived);
+
+          if (!self._popupAuthReceived && self._iframe && self._iframe.contentWindow) {
+            // Popup closed but we never got tokens via postMessage.
+            // Tell widget to recheck its Supabase session (popup and widget share origin,
+            // so Supabase may have persisted the session via cookies).
+            console.log('[PIDY SDK] Sending pidy-recheck-auth to widget');
+            self._iframe.contentWindow.postMessage({ type: 'pidy-recheck-auth' }, PIDY_ORIGIN);
+          }
+          self._popupRef = null;
+        }
+      }, 500);
     },
 
     /**

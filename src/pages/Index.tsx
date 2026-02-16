@@ -419,6 +419,43 @@ const Index = () => {
         return;
       }
 
+        // Handle recheck-auth from SDK (popup closed without postMessage delivery)
+        if (type === 'pidy-recheck-auth') {
+          console.log('[PIDY Widget] Received pidy-recheck-auth from SDK, checking session...');
+          const { data: { session: recheckSession } } = await supabase.auth.getSession();
+          if (recheckSession?.access_token) {
+            console.log('[PIDY Widget] Session found after recheck!');
+            tokenFromSdkRef.current = true;
+            setAuthToken(recheckSession.access_token);
+            authTokenRef.current = recheckSession.access_token;
+            setHasSessionToken(true);
+            setSessionCheckComplete(true);
+
+            window.parent.postMessage({
+              type: 'pidy-auth-success',
+              access_token: recheckSession.access_token,
+              refresh_token: recheckSession.refresh_token,
+              expires_in: 3600
+            }, '*');
+
+            setIsExpanded(true);
+            window.parent.postMessage({ type: 'tryon-expand' }, '*');
+
+            // Auto-start try-on
+            if (selectedProduct) {
+              console.log('[PIDY Widget] Auto-starting try-on after recheck auth');
+              setShowDoorAnimation(true);
+              setTimeout(() => {
+                handleTryOn(selectedProduct);
+              }, 100);
+            }
+          } else {
+            console.log('[PIDY Widget] No session found after recheck');
+            window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-auth-cancelled' }, '*');
+          }
+          return;
+        }
+
         // Handle expand command from parent
         if (type === 'tryon-expand' || type === 'pidy-expand') {
           setIsExpanded(true);

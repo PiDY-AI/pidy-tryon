@@ -308,8 +308,12 @@ const Auth = () => {
               console.log('[Auth] BroadcastChannel not available');
             }
 
-            console.log('[Auth] Popup: calling window.close()');
-            window.close();
+            // Delay close slightly so postMessage has time to dispatch
+            console.log('[Auth] Popup: scheduling window.close() after delay');
+            setTimeout(() => {
+              console.log('[Auth] Popup: calling window.close()');
+              window.close();
+            }, 300);
           } else {
             console.log('[Auth] NOT popup mode - redirecting');
             // Regular redirect
