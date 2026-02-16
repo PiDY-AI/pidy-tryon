@@ -364,8 +364,8 @@ const Index = () => {
         return;
       }
 
-      // Handle auth success from popup (same origin) - this is a FRESH sign-in
-      if (event.origin === window.location.origin && type === 'tryon-auth-session') {
+      // Handle auth success from popup (same origin) or SDK relay (cross-origin brand sites)
+      if (type === 'tryon-auth-session' && (event.origin === window.location.origin || event.source === window.parent)) {
         if (!access_token || !refresh_token) {
           toast.error('Auth session missing! Please sign in again.');
           return;

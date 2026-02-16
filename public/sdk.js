@@ -304,9 +304,24 @@
             break;
 
           case 'pidy-onboarding-complete':
-            // Onboarding completed in popup - store locally
+            // Onboarding completed in popup - store locally and relay to widget iframe
             this._setOnboardingComplete(true);
             console.log('[PIDY SDK] Onboarding marked complete');
+            if (this._iframe && this._iframe.contentWindow) {
+              this._iframe.contentWindow.postMessage({
+                type: 'pidy-onboarding-complete',
+                access_token: access_token,
+                refresh_token: refresh_token,
+                email: payload.email,
+                token_received: payload.token_received,
+                is_new_user: payload.is_new_user
+              }, PIDY_ORIGIN);
+              console.log('[PIDY SDK] Relayed pidy-onboarding-complete to widget');
+            }
+            if (access_token) {
+              this._storeTokensCentral(access_token, refresh_token, 3600);
+              this._cacheTokensLocal(access_token, refresh_token, 3600);
+            }
             break;
 
           case 'pidy-sign-out':
@@ -323,6 +338,27 @@
           case 'tryon-collapse':
             // Widget collapsed
             this._container.classList.remove('pidy-expanded');
+            break;
+
+          case 'tryon-auth-session':
+            // Relay auth tokens from popup to widget iframe.
+            // In cross-origin mode, the popup's window.opener is the brand page,
+            // not the widget iframe. The SDK must forward the tokens.
+            console.log('[PIDY SDK] Relaying tryon-auth-session to widget');
+            if (this._iframe && this._iframe.contentWindow) {
+              this._iframe.contentWindow.postMessage({
+                type: 'tryon-auth-session',
+                access_token: access_token,
+                refresh_token: refresh_token
+              }, PIDY_ORIGIN);
+            }
+            if (access_token) {
+              this._storeTokensCentral(access_token, refresh_token, 3600);
+              this._cacheTokensLocal(access_token, refresh_token, 3600);
+              this._startTokenRefresh(3600 * 1000);
+            }
+            // Close modal if auth was via modal overlay
+            this._closeAuthModal();
             break;
         }
       });

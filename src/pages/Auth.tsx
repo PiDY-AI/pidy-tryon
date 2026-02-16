@@ -254,22 +254,27 @@ const Auth = () => {
               '*'
             );
 
-            // Also store in central auth bridge for cross-brand sharing
-            // Find the auth bridge iframe in the opener or create reference
-            const bridgeOrigin = window.location.origin;
-            const authBridge = window.opener.document?.getElementById('pidy-auth-bridge') as HTMLIFrameElement | null;
-            if (authBridge && authBridge.contentWindow) {
-              authBridge.contentWindow.postMessage(
-                { 
-                  type: 'pidy-bridge-store-tokens', 
-                  access_token, 
-                  refresh_token,
-                  expires_in: 3600,
-                  user_email: email
-                },
-                bridgeOrigin
-              );
-              console.log('[Auth] Stored tokens in central bridge');
+            // Try to store in central auth bridge (will fail cross-origin, which is OK -
+            // the SDK on the brand page will store tokens when it receives tryon-auth-session)
+            try {
+              const bridgeOrigin = window.location.origin;
+              const authBridge = window.opener.document?.getElementById('pidy-auth-bridge') as HTMLIFrameElement | null;
+              if (authBridge && authBridge.contentWindow) {
+                authBridge.contentWindow.postMessage(
+                  {
+                    type: 'pidy-bridge-store-tokens',
+                    access_token,
+                    refresh_token,
+                    expires_in: 3600,
+                    user_email: email
+                  },
+                  bridgeOrigin
+                );
+                console.log('[Auth] Stored tokens in central bridge');
+              }
+            } catch (e) {
+              // Cross-origin: can't access opener's DOM. Expected on third-party brand sites.
+              console.log('[Auth] Cross-origin bridge access (expected on third-party sites)');
             }
 
             window.close();
