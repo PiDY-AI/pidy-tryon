@@ -231,6 +231,7 @@ const Auth = () => {
         } else {
           // Check if this is a popup window
           const isPopup = searchParams.get('popup');
+          console.log('[Auth] Post-signin check:', { isPopup, hasOpener: !!window.opener, openerType: typeof window.opener });
           if (isPopup && window.opener) {
             const access_token = session?.access_token;
             const refresh_token = session?.refresh_token;
@@ -277,8 +278,10 @@ const Auth = () => {
               console.log('[Auth] Cross-origin bridge access (expected on third-party sites)');
             }
 
+            console.log('[Auth] Popup: calling window.close()');
             window.close();
           } else {
+            console.log('[Auth] NOT popup mode - redirecting');
             // Regular redirect
             const productId = searchParams.get('productId');
             const embedMode = searchParams.get('embed');
