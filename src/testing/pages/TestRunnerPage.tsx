@@ -29,7 +29,7 @@ import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 type TestMode = 'new' | 'add-generation';
-type Provider = 'groq-replicate' | 'claude-openai';
+type Provider = 'cerebras-replicate' | 'claude-openai';
 type ReplicateModel = 'klein-9b' | 'flux-2-pro';
 
 const TestRunnerPage = () => {
@@ -40,7 +40,7 @@ const TestRunnerPage = () => {
   const [mode, setMode] = useState<TestMode>('new');
   const [productId, setProductId] = useState('');
   const [size, setSize] = useState('');
-  const [provider, setProvider] = useState<Provider>('groq-replicate');
+  const [provider, setProvider] = useState<Provider>('cerebras-replicate');
   const [replicateModel, setReplicateModel] = useState<ReplicateModel>('klein-9b');
   const [predictionId, setPredictionId] = useState('');
   const [tags, setTags] = useState('');
@@ -76,7 +76,7 @@ const TestRunnerPage = () => {
     }
 
     request.provider = provider;
-    if (provider === 'groq-replicate') {
+    if (provider === 'cerebras-replicate') {
       request.replicateModel = replicateModel;
     }
 
@@ -217,7 +217,7 @@ const TestRunnerPage = () => {
               </div>
             )}
 
-            {/* Provider is always groq-replicate with klein-9b */}
+            {/* Provider is always cerebras-replicate with klein-9b */}
 
             {/* Run Count */}
             <div>

@@ -39,7 +39,7 @@ const Index = () => {
   const [hasSessionToken, setHasSessionToken] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
-  const [provider, setProvider] = useState<'claude-openai' | 'groq-replicate'>('groq-replicate');
+  const [provider, setProvider] = useState<'claude-openai' | 'cerebras-replicate'>('cerebras-replicate');
   const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
 
   // Track whether the current session was set from an SDK-provided token (not a fresh popup sign-in).
@@ -507,8 +507,8 @@ const Index = () => {
 
           console.log('[PIDY Widget] Starting try-on for product:', product.id, 'size:', reqSize, 'retry:', !!reqRetry);
           setShowDoorAnimation(true);
-          // Widget-initiated try-ons always use fast mode (groq-replicate)
-          handleTryOn(product, reqSize, !!reqRetry, 'groq-replicate');
+          // Widget-initiated try-ons always use fast mode (cerebras-replicate)
+          handleTryOn(product, reqSize, !!reqRetry, 'cerebras-replicate');
         }
       })().catch((err) => {
         console.error('[PIDY Widget] Message handler error:', err);
@@ -607,7 +607,7 @@ const Index = () => {
   // Note: Removed auto-open popup in embed mode due to popup blockers
   // The SDK button in VirtualTryOnBot.tsx will handle authentication flow
 
-  const handleTryOn = async (product: Product, size?: string, isRetry?: boolean, providerOverride?: 'claude-openai' | 'groq-replicate') => {
+  const handleTryOn = async (product: Product, size?: string, isRetry?: boolean, providerOverride?: 'claude-openai' | 'cerebras-replicate') => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
@@ -977,9 +977,9 @@ const Index = () => {
                         Best Quality
                       </button>
                       <button
-                        onClick={() => setProvider('groq-replicate')}
+                        onClick={() => setProvider('cerebras-replicate')}
                         className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 ${
-                          provider === 'groq-replicate'
+                          provider === 'cerebras-replicate'
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:text-foreground'
                         }`}
@@ -1411,9 +1411,9 @@ const Index = () => {
                       Best Quality
                     </button>
                     <button
-                      onClick={() => setProvider('groq-replicate')}
+                      onClick={() => setProvider('cerebras-replicate')}
                       className={`px-3 py-1.5 text-[10px] uppercase tracking-wider transition-all duration-300 rounded-sm ${
-                        provider === 'groq-replicate'
+                        provider === 'cerebras-replicate'
                           ? 'bg-primary text-primary-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}

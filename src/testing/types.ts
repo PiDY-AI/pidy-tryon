@@ -65,7 +65,7 @@ export interface TryonTestRequest {
   productId?: string;
   predictionId?: string;
   size?: string;
-  provider?: 'claude-openai' | 'groq-replicate';
+  provider?: 'claude-openai' | 'cerebras-replicate';
   replicateModel?: 'klein-9b' | 'flux-2-pro';
   notes?: string;
   tags?: string[];

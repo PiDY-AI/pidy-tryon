@@ -12,7 +12,7 @@ interface GenerateTryOnOptions {
   productId: string;
   selectedSize: string;
   accessTokenOverride?: string;
-  provider?: 'claude-openai' | 'groq-replicate';
+  provider?: 'claude-openai' | 'cerebras-replicate';
   retry?: boolean;
 }
 
