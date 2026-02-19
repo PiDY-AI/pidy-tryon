@@ -616,7 +616,14 @@ const Index = () => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
-    setTryOnSequence((v) => v + 1);
+    setTryOnSequence((v) => {
+      const next = v + 1;
+      console.log(`[VoiceFeedback] tryOnSequence: ${next}, threshold: 3, remaining: ${Math.max(0, 3 - next)}`);
+      if (next >= 3) {
+        console.log('[VoiceFeedback] Threshold reached - prompt will show after result loads');
+      }
+      return next;
+    });
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
     const providerToUse = providerOverride || provider;
@@ -643,6 +650,7 @@ const Index = () => {
         };
         setTryOnResult(result);
         setTryOnFailCount(0); // Reset fail count on success
+        console.log(`[VoiceFeedback] Result loaded. tryOnSequence will be checked for prompt. dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}`);
         // If try-on succeeded, user clearly doesn't need onboarding anymore
         completeOnboarding();
         toast.success(`Try-on generated for size: ${sizeToUse}`);
@@ -1093,6 +1101,27 @@ const Index = () => {
                       </div>
                     )}
 
+                    {/* Voice feedback prompt - right after result for visibility */}
+                    {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+                      <div className="animate-reveal-up" style={{ animationDelay: '0.1s' }}>
+                        <VoiceFeedbackPrompt
+                          productId={selectedProduct?.id}
+                          tryOnCount={tryOnSequence}
+                          widgetMode={embedMode ? 'embed' : 'standalone'}
+                          accessTokenOverride={authTokenRef.current ?? undefined}
+                          onComplete={() => {
+                            setVoiceFeedbackSubmitted(true);
+                            window.parent.postMessage({
+                              source: 'pidy-widget',
+                              type: 'pidy-voice-feedback-submitted',
+                              tryOnCount: tryOnSequence,
+                            }, '*');
+                          }}
+                          onDismiss={() => setVoiceFeedbackDismissed(true)}
+                        />
+                      </div>
+                    )}
+
                     {/* Size selector + actions after result */}
                     {!isTryOnLoading && tryOnResult && selectedProduct && (
                       <div className="animate-reveal-up space-y-3" style={{ animationDelay: '0.2s' }}>
@@ -1145,25 +1174,6 @@ const Index = () => {
                             ))}
                           </div>
                         </div>
-
-                        {/* Voice feedback prompt after 3+ try-ons */}
-                        {tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-                          <VoiceFeedbackPrompt
-                            productId={selectedProduct?.id}
-                            tryOnCount={tryOnSequence}
-                            widgetMode={embedMode ? 'embed' : 'standalone'}
-                            accessTokenOverride={authTokenRef.current ?? undefined}
-                            onComplete={() => {
-                              setVoiceFeedbackSubmitted(true);
-                              window.parent.postMessage({
-                                source: 'pidy-widget',
-                                type: 'pidy-voice-feedback-submitted',
-                                tryOnCount: tryOnSequence,
-                              }, '*');
-                            }}
-                            onDismiss={() => setVoiceFeedbackDismissed(true)}
-                          />
-                        )}
 
                         {/* Close button */}
                         <Button
@@ -1330,17 +1340,7 @@ const Index = () => {
                             </div>
                           )}
 
-                          <TryOnResult
-                            result={tryOnResult}
-                            product={selectedProduct}
-                            onClose={() => {
-                              setSelectedProduct(null);
-                              setTryOnResult(null);
-                              setDoorOpened(false);
-                            }}
-                          />
-
-                          {/* Voice feedback prompt after 3+ try-ons */}
+                          {/* Voice feedback prompt - before result image for visibility */}
                           {tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
                             <VoiceFeedbackPrompt
                               productId={selectedProduct?.id}
@@ -1352,6 +1352,16 @@ const Index = () => {
                               onDismiss={() => setVoiceFeedbackDismissed(true)}
                             />
                           )}
+
+                          <TryOnResult
+                            result={tryOnResult}
+                            product={selectedProduct}
+                            onClose={() => {
+                              setSelectedProduct(null);
+                              setTryOnResult(null);
+                              setDoorOpened(false);
+                            }}
+                          />
                         </div>
                       )}
 

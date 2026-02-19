@@ -38,6 +38,11 @@ export function VoiceFeedbackPrompt({
     reset,
   } = useVoiceFeedback();
 
+  useEffect(() => {
+    console.log(`[VoiceFeedback] Prompt MOUNTED - tryOnCount=${tryOnCount}, widgetMode=${widgetMode}, productId=${productId}`);
+    return () => console.log('[VoiceFeedback] Prompt UNMOUNTED');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-submit after recording stops (when we have duration > 0 and not recording)
   const handleStop = () => {
     stopRecording();
