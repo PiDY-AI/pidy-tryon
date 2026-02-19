@@ -207,7 +207,7 @@
       // and to prevent white flashes/overlays on some browsers during iframe paint.
       iframe.style.background = '#0d0d0d';
       iframe.style.display = 'block';
-      iframe.allow = 'clipboard-write';
+      iframe.allow = 'clipboard-write; microphone';
       iframe.setAttribute('allowtransparency', 'true');
 
       // Ensure the container itself doesn't show through if the iframe is still painting.

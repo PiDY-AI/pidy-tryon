@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, LogOut, Loader2, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import pidyLogo from '@/assets/pidy_logo_white.png';
+import { VoiceFeedbackPrompt } from '@/components/VoiceFeedbackPrompt';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,8 @@ const Index = () => {
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
   const [provider, setProvider] = useState<'claude-openai' | 'cerebras-replicate'>('cerebras-replicate');
   const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
+  const [voiceFeedbackDismissed, setVoiceFeedbackDismissed] = useState(false);
+  const [voiceFeedbackSubmitted, setVoiceFeedbackSubmitted] = useState(false);
 
   // Track whether the current session was set from an SDK-provided token (not a fresh popup sign-in).
   // When true, onAuthStateChange should NOT echo pidy-auth-success / pidy-onboarding-complete
@@ -351,6 +354,8 @@ const Index = () => {
         setShowDoorAnimation(false);
         setDoorOpened(false);
         setTryOnResult(null);
+        setVoiceFeedbackDismissed(false);
+        setVoiceFeedbackSubmitted(false);
         // Notify parent SDK to clear cached tokens
         window.parent.postMessage({ type: 'pidy-sign-out', source: 'pidy-widget' }, '*');
         return;
@@ -1141,6 +1146,25 @@ const Index = () => {
                           </div>
                         </div>
 
+                        {/* Voice feedback prompt after 3+ try-ons */}
+                        {tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+                          <VoiceFeedbackPrompt
+                            productId={selectedProduct?.id}
+                            tryOnCount={tryOnSequence}
+                            widgetMode={embedMode ? 'embed' : 'standalone'}
+                            accessTokenOverride={authTokenRef.current ?? undefined}
+                            onComplete={() => {
+                              setVoiceFeedbackSubmitted(true);
+                              window.parent.postMessage({
+                                source: 'pidy-widget',
+                                type: 'pidy-voice-feedback-submitted',
+                                tryOnCount: tryOnSequence,
+                              }, '*');
+                            }}
+                            onDismiss={() => setVoiceFeedbackDismissed(true)}
+                          />
+                        )}
+
                         {/* Close button */}
                         <Button
                           className="w-full"
@@ -1315,6 +1339,19 @@ const Index = () => {
                               setDoorOpened(false);
                             }}
                           />
+
+                          {/* Voice feedback prompt after 3+ try-ons */}
+                          {tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+                            <VoiceFeedbackPrompt
+                              productId={selectedProduct?.id}
+                              tryOnCount={tryOnSequence}
+                              widgetMode="standalone"
+                              onComplete={() => {
+                                setVoiceFeedbackSubmitted(true);
+                              }}
+                              onDismiss={() => setVoiceFeedbackDismissed(true)}
+                            />
+                          )}
                         </div>
                       )}
 
