@@ -29,6 +29,7 @@ const Index = () => {
   const [showDoorAnimation, setShowDoorAnimation] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
   const [tryOnSequence, setTryOnSequence] = useState(0);
+  const tryOnSequenceRef = useRef(0);
   const [tryOnFailCount, setTryOnFailCount] = useState(0);
 
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
@@ -544,7 +545,7 @@ const Index = () => {
                 mimeType: mimeType || 'audio/webm',
                 durationSeconds: durationSeconds || 0,
                 productId: fbProductId,
-                tryOnCount: tryOnSequence,
+                tryOnCount: tryOnSequenceRef.current,
                 widgetMode: embedMode ? 'embed' : 'standalone',
               }),
             });
@@ -561,7 +562,7 @@ const Index = () => {
               type: 'pidy-voice-feedback-submitted',
               transcript: data.transcript,
               confidence: data.confidence,
-              tryOnCount: tryOnSequence,
+              tryOnCount: tryOnSequenceRef.current,
             }, '*');
           } catch (err) {
             console.error('[VoiceFeedback] Submit error:', err);
@@ -678,7 +679,11 @@ const Index = () => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
-    setTryOnSequence((v) => v + 1);
+    setTryOnSequence((v) => {
+      const next = v + 1;
+      tryOnSequenceRef.current = next;
+      return next;
+    });
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
     const providerToUse = providerOverride || provider;
