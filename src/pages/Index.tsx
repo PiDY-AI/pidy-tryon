@@ -864,22 +864,14 @@ const Index = () => {
 
           {/* Voice feedback prompt - in flex flow between header and content */}
           {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-            <div className="flex-shrink-0 px-3 py-2" style={{ border: '2px solid red' }}>
-              <VoiceFeedbackPrompt
-                productId={selectedProduct?.id}
-                tryOnCount={tryOnSequence}
-                widgetMode="embed"
-                accessTokenOverride={authTokenRef.current ?? undefined}
-                onComplete={() => {
-                  setVoiceFeedbackSubmitted(true);
-                  window.parent.postMessage({
-                    source: 'pidy-widget',
-                    type: 'pidy-voice-feedback-submitted',
-                    tryOnCount: tryOnSequence,
-                  }, '*');
-                }}
-                onDismiss={() => setVoiceFeedbackDismissed(true)}
-              />
+            <div style={{ flexShrink: 0, padding: '12px', background: '#ff0000', color: '#ffffff', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', zIndex: 9999 }}>
+              VOICE FEEDBACK - Try #{tryOnSequence} - Tap to record
+              <button
+                onClick={() => setVoiceFeedbackDismissed(true)}
+                style={{ marginLeft: '8px', background: '#ffffff', color: '#000000', padding: '4px 8px', borderRadius: '4px', border: 'none' }}
+              >
+                X
+              </button>
             </div>
           )}
 
