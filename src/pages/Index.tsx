@@ -650,7 +650,7 @@ const Index = () => {
         };
         setTryOnResult(result);
         setTryOnFailCount(0); // Reset fail count on success
-        console.log(`[VoiceFeedback] Result loaded. tryOnSequence will be checked for prompt. dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}`);
+        console.log(`[VoiceFeedback] Result loaded. tryOnSequence will be checked for prompt. dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}, doorOpened=${doorOpened}`);
         // If try-on succeeded, user clearly doesn't need onboarding anymore
         completeOnboarding();
         toast.success(`Try-on generated for size: ${sizeToUse}`);
@@ -1078,35 +1078,15 @@ const Index = () => {
                 </div>
               ) : (
                 // Door animation and try-on
-                <TrialRoomDoor 
+                <div className="relative w-full h-full">
+                <TrialRoomDoor
                   key={tryOnSequence}
-                  isOpening={showDoorAnimation} 
+                  isOpening={showDoorAnimation}
                   isLoading={isTryOnLoading}
                   onDoorOpened={handleDoorOpened}
                 >
                   {/* Scrollable content inside the room */}
                   <div className="h-full overflow-y-auto p-4 space-y-3">
-                    {/* Voice feedback prompt - sticky at top for visibility */}
-                    {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-                      <div className="sticky top-0 z-10 animate-reveal-up">
-                        <VoiceFeedbackPrompt
-                          productId={selectedProduct?.id}
-                          tryOnCount={tryOnSequence}
-                          widgetMode={embedMode ? 'embed' : 'standalone'}
-                          accessTokenOverride={authTokenRef.current ?? undefined}
-                          onComplete={() => {
-                            setVoiceFeedbackSubmitted(true);
-                            window.parent.postMessage({
-                              source: 'pidy-widget',
-                              type: 'pidy-voice-feedback-submitted',
-                              tryOnCount: tryOnSequence,
-                            }, '*');
-                          }}
-                          onDismiss={() => setVoiceFeedbackDismissed(true)}
-                        />
-                      </div>
-                    )}
-
                     {/* Try-On Result with reveal animation */}
                     {!isTryOnLoading && tryOnResult && selectedProduct && (
                       <div className="animate-reveal-up">
@@ -1233,6 +1213,28 @@ const Index = () => {
                     )}
                   </div>
                 </TrialRoomDoor>
+
+                {/* Voice feedback overlay - rendered OUTSIDE TrialRoomDoor so it's always visible */}
+                {!isTryOnLoading && tryOnResult && selectedProduct && doorOpened && tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+                  <div className="absolute bottom-16 left-3 right-3 z-40 animate-reveal-up">
+                    <VoiceFeedbackPrompt
+                      productId={selectedProduct?.id}
+                      tryOnCount={tryOnSequence}
+                      widgetMode={embedMode ? 'embed' : 'standalone'}
+                      accessTokenOverride={authTokenRef.current ?? undefined}
+                      onComplete={() => {
+                        setVoiceFeedbackSubmitted(true);
+                        window.parent.postMessage({
+                          source: 'pidy-widget',
+                          type: 'pidy-voice-feedback-submitted',
+                          tryOnCount: tryOnSequence,
+                        }, '*');
+                      }}
+                      onDismiss={() => setVoiceFeedbackDismissed(true)}
+                    />
+                  </div>
+                )}
+                </div>
               )}
           </div>
         </div>
