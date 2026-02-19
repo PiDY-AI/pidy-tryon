@@ -813,7 +813,6 @@ const Index = () => {
   // Embed mode - show panel directly (no button)
   if (embedMode) {
     return (
-      <>
       <div className="w-full h-full min-h-screen bg-[#0d0d0d]">
         <Helmet>
           <title>Virtual Try-On</title>
@@ -860,6 +859,27 @@ const Index = () => {
                   <LogOut className="w-4 h-4" />
                 </Button>
               )}
+            </div>
+          )}
+
+          {/* Voice feedback prompt - in flex flow between header and content */}
+          {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+            <div className="flex-shrink-0 px-3 py-2" style={{ border: '2px solid red' }}>
+              <VoiceFeedbackPrompt
+                productId={selectedProduct?.id}
+                tryOnCount={tryOnSequence}
+                widgetMode="embed"
+                accessTokenOverride={authTokenRef.current ?? undefined}
+                onComplete={() => {
+                  setVoiceFeedbackSubmitted(true);
+                  window.parent.postMessage({
+                    source: 'pidy-widget',
+                    type: 'pidy-voice-feedback-submitted',
+                    tryOnCount: tryOnSequence,
+                  }, '*');
+                }}
+                onDismiss={() => setVoiceFeedbackDismissed(true)}
+              />
             </div>
           )}
 
@@ -1218,31 +1238,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Voice feedback - fixed overlay at bottom of viewport, outside all containers */}
-      {(() => {
-        console.log(`[VoiceFeedback] RENDER CHECK: loading=${isTryOnLoading}, hasResult=${!!tryOnResult}, hasProduct=${!!selectedProduct}, seq=${tryOnSequence}, dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}, SHOW=${!isTryOnLoading && !!tryOnResult && !!selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted}`);
-        return null;
-      })()}
-      {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-        <div className="fixed bottom-4 left-3 right-3 z-[9999]" style={{ border: '3px solid red', background: '#1a1a2e' }}>
-          <VoiceFeedbackPrompt
-            productId={selectedProduct?.id}
-            tryOnCount={tryOnSequence}
-            widgetMode={embedMode ? 'embed' : 'standalone'}
-            accessTokenOverride={authTokenRef.current ?? undefined}
-            onComplete={() => {
-              setVoiceFeedbackSubmitted(true);
-              window.parent.postMessage({
-                source: 'pidy-widget',
-                type: 'pidy-voice-feedback-submitted',
-                tryOnCount: tryOnSequence,
-              }, '*');
-            }}
-            onDismiss={() => setVoiceFeedbackDismissed(true)}
-          />
-        </div>
-      )}
-      </>
     );
   }
 
