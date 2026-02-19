@@ -618,8 +618,8 @@ const Index = () => {
     setDoorOpened(false);
     setTryOnSequence((v) => {
       const next = v + 1;
-      console.log(`[VoiceFeedback] tryOnSequence: ${next}, threshold: 3, remaining: ${Math.max(0, 3 - next)}`);
-      if (next >= 3) {
+      console.log(`[VoiceFeedback] tryOnSequence: ${next}, threshold: 1, remaining: ${Math.max(0, 1 - next)}`);
+      if (next >= 1) {
         console.log('[VoiceFeedback] Threshold reached - prompt will show after result loads');
       }
       return next;
@@ -1219,8 +1219,12 @@ const Index = () => {
       </div>
 
       {/* Voice feedback - fixed overlay at bottom of viewport, outside all containers */}
-      {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-        <div className="fixed bottom-4 left-3 right-3 z-[9999]">
+      {(() => {
+        console.log(`[VoiceFeedback] RENDER CHECK: loading=${isTryOnLoading}, hasResult=${!!tryOnResult}, hasProduct=${!!selectedProduct}, seq=${tryOnSequence}, dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}, SHOW=${!isTryOnLoading && !!tryOnResult && !!selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted}`);
+        return null;
+      })()}
+      {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
+        <div className="fixed bottom-4 left-3 right-3 z-[9999]" style={{ border: '3px solid red', background: '#1a1a2e' }}>
           <VoiceFeedbackPrompt
             productId={selectedProduct?.id}
             tryOnCount={tryOnSequence}
