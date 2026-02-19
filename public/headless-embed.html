@@ -261,6 +261,87 @@
       margin-top: 8px;
     }
 
+    /* ---------- VOICE FEEDBACK ---------- */
+    .pidy-voice-feedback {
+      display: none;
+      margin-top: 8px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid #e5e5e5;
+      background: #fafafa;
+      animation: slideUp 0.3s ease-out;
+    }
+    .pidy-voice-feedback.show { display: block; }
+    .pidy-voice-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pidy-voice-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pidy-voice-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .pidy-voice-icon.prompt { background: #f0e6cc; }
+    .pidy-voice-icon.recording { background: #fee2e2; animation: pulse 1.5s infinite; }
+    .pidy-voice-icon.done { background: #dcfce7; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pidy-voice-text {
+      font-size: 13px;
+      color: #333;
+    }
+    .pidy-voice-sub {
+      font-size: 10px;
+      color: #999;
+      font-family: monospace;
+    }
+    .pidy-voice-btn {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .pidy-voice-btn.record { background: #c9a862; color: white; }
+    .pidy-voice-btn.record:hover { background: #b89852; }
+    .pidy-voice-btn.stop { background: #ef4444; color: white; }
+    .pidy-voice-btn.stop:hover { background: #dc2626; }
+    .pidy-voice-dismiss {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #999;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pidy-voice-dismiss:hover { color: #333; background: #f0f0f0; }
+    .pidy-voice-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     /* Hidden widget container - keeps SDK iframe invisible */
     .pidy-hidden-widget,
     .pidy-hidden-widget * {
@@ -353,6 +434,49 @@
           <div class="pidy-powered">
             <span>Powered by PIDY</span>
             <button id="pidy-signout-btn" class="pidy-signout" onclick="pidySignOut()" style="display:none">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Voice feedback (shown after 3+ try-ons) -->
+      <div id="pidy-voice-feedback" class="pidy-voice-feedback">
+        <!-- Prompt state -->
+        <div id="pidy-voice-prompt" class="pidy-voice-row">
+          <div class="pidy-voice-left">
+            <div class="pidy-voice-icon prompt">&#127908;</div>
+            <span class="pidy-voice-text">How does it look?</span>
+          </div>
+          <div class="pidy-voice-btns">
+            <button class="pidy-voice-dismiss" onclick="pidyVoiceDismiss()">&times;</button>
+            <button class="pidy-voice-btn record" onclick="pidyVoiceRecord()">&#127908; Record</button>
+          </div>
+        </div>
+        <!-- Recording state -->
+        <div id="pidy-voice-recording" class="pidy-voice-row" style="display:none">
+          <div class="pidy-voice-left">
+            <div class="pidy-voice-icon recording">&#127908;</div>
+            <div>
+              <span class="pidy-voice-text">Recording...</span>
+              <div class="pidy-voice-sub" id="pidy-voice-timer">0:00</div>
+            </div>
+          </div>
+          <div class="pidy-voice-btns">
+            <button class="pidy-voice-dismiss" onclick="pidyVoiceDismiss()">&times;</button>
+            <button class="pidy-voice-btn stop" onclick="pidyVoiceStop()">&#9632; Stop</button>
+          </div>
+        </div>
+        <!-- Submitting state -->
+        <div id="pidy-voice-submitting" class="pidy-voice-row" style="display:none">
+          <div class="pidy-voice-left">
+            <div class="pidy-voice-icon prompt"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div></div>
+            <span class="pidy-voice-text" style="color:#888">Submitting feedback...</span>
+          </div>
+        </div>
+        <!-- Done state -->
+        <div id="pidy-voice-done" class="pidy-voice-row" style="display:none">
+          <div class="pidy-voice-left">
+            <div class="pidy-voice-icon done">&#10003;</div>
+            <span class="pidy-voice-text">Thanks for your feedback!</span>
           </div>
         </div>
       </div>
@@ -493,6 +617,22 @@
           isAuthenticated = false;
           pidyClose();
           break;
+
+        case 'pidy-voice-feedback-prompt':
+          console.log('[PIDY] Voice feedback prompt, tryOnCount:', event.data.tryOnCount);
+          showVoiceFeedback();
+          break;
+
+        case 'pidy-voice-feedback-submitted':
+          console.log('[PIDY] Voice feedback submitted, transcript:', event.data.transcript);
+          showVoiceState('done');
+          setTimeout(() => hideVoiceFeedback(), 3000);
+          break;
+
+        case 'pidy-voice-feedback-error':
+          console.error('[PIDY] Voice feedback error:', event.data.error);
+          showVoiceState('prompt');
+          break;
       }
     });
 
@@ -590,6 +730,125 @@
 
     function hideError() {
       document.getElementById('pidy-error').style.display = 'none';
+    }
+
+    // ---- VOICE FEEDBACK ----
+    let voiceRecorder = null;
+    let voiceStream = null;
+    let voiceChunks = [];
+    let voiceTimer = null;
+    let voiceDuration = 0;
+    let voiceMimeType = 'audio/webm';
+    let voiceDismissed = false;
+
+    function getSupportedMimeType() {
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      for (const t of types) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t;
+      }
+      return 'audio/webm';
+    }
+
+    function showVoiceFeedback() {
+      if (voiceDismissed) return;
+      const el = document.getElementById('pidy-voice-feedback');
+      el.classList.add('show');
+      showVoiceState('prompt');
+    }
+
+    function hideVoiceFeedback() {
+      const el = document.getElementById('pidy-voice-feedback');
+      el.classList.remove('show');
+    }
+
+    function showVoiceState(state) {
+      document.getElementById('pidy-voice-prompt').style.display = state === 'prompt' ? 'flex' : 'none';
+      document.getElementById('pidy-voice-recording').style.display = state === 'recording' ? 'flex' : 'none';
+      document.getElementById('pidy-voice-submitting').style.display = state === 'submitting' ? 'flex' : 'none';
+      document.getElementById('pidy-voice-done').style.display = state === 'done' ? 'flex' : 'none';
+    }
+
+    function pidyVoiceDismiss() {
+      if (voiceRecorder && voiceRecorder.state !== 'inactive') voiceRecorder.stop();
+      if (voiceStream) voiceStream.getTracks().forEach(t => t.stop());
+      if (voiceTimer) clearInterval(voiceTimer);
+      voiceDismissed = true;
+      hideVoiceFeedback();
+      // Notify widget
+      const iframe = document.querySelector('#pidy-widget iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'pidy-voice-feedback-dismissed' }, '*');
+      }
+    }
+
+    async function pidyVoiceRecord() {
+      try {
+        voiceChunks = [];
+        voiceDuration = 0;
+        voiceMimeType = getSupportedMimeType();
+
+        voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceRecorder = new MediaRecorder(voiceStream, { mimeType: voiceMimeType });
+
+        voiceRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) voiceChunks.push(e.data);
+        };
+
+        voiceRecorder.onstop = () => {
+          const blob = new Blob(voiceChunks, { type: voiceMimeType });
+          submitVoiceFeedback(blob);
+        };
+
+        voiceRecorder.start(1000);
+        showVoiceState('recording');
+
+        voiceTimer = setInterval(() => {
+          voiceDuration++;
+          const m = Math.floor(voiceDuration / 60);
+          const s = voiceDuration % 60;
+          document.getElementById('pidy-voice-timer').textContent = m + ':' + String(s).padStart(2, '0');
+          if (voiceDuration >= 60) pidyVoiceStop();
+        }, 1000);
+      } catch (err) {
+        console.error('[PIDY] Mic access error:', err);
+        alert('Microphone access denied. Please allow microphone permission.');
+      }
+    }
+
+    function pidyVoiceStop() {
+      if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+      if (voiceRecorder && voiceRecorder.state !== 'inactive') voiceRecorder.stop();
+      if (voiceStream) { voiceStream.getTracks().forEach(t => t.stop()); voiceStream = null; }
+    }
+
+    function submitVoiceFeedback(blob) {
+      showVoiceState('submitting');
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result.split(',')[1];
+
+        // Send audio to widget iframe for submission via edge function
+        const iframe = document.querySelector('#pidy-widget iframe');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'pidy-voice-feedback-audio',
+            audio: base64,
+            mimeType: voiceMimeType,
+            durationSeconds: voiceDuration,
+            productId: PRODUCT_ID,
+          }, '*');
+          console.log('[PIDY] Sent voice audio to widget for submission');
+        } else {
+          console.error('[PIDY] Widget iframe not found');
+          showVoiceState('prompt');
+        }
+      };
+      reader.onerror = () => {
+        console.error('[PIDY] Failed to read audio blob');
+        showVoiceState('prompt');
+      };
+      reader.readAsDataURL(blob);
     }
   </script>
 

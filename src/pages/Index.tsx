@@ -515,6 +515,68 @@ const Index = () => {
           // Widget-initiated try-ons always use fast mode (cerebras-replicate)
           handleTryOn(product, reqSize, !!reqRetry, 'cerebras-replicate');
         }
+
+        // Handle voice feedback audio from parent
+        if (type === 'pidy-voice-feedback-audio') {
+          const { audio, mimeType, durationSeconds, productId: fbProductId } = event.data || {};
+          console.log('[VoiceFeedback] Received audio from parent, submitting to edge function');
+
+          try {
+            let accessToken = authTokenRef.current;
+            if (!accessToken) {
+              const { data: { session } } = await supabase.auth.getSession();
+              accessToken = session?.access_token;
+            }
+            if (!accessToken) {
+              window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-voice-feedback-error', error: 'Not authenticated' }, '*');
+              return;
+            }
+
+            const functionsUrl = `${(supabase as any).functionsUrl || 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1'}`;
+            const response = await fetch(`${functionsUrl}/voice-feedback`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                audio,
+                mimeType: mimeType || 'audio/webm',
+                durationSeconds: durationSeconds || 0,
+                productId: fbProductId,
+                tryOnCount: tryOnSequence,
+                widgetMode: embedMode ? 'embed' : 'standalone',
+              }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data?.success === false) {
+              throw new Error(data?.error?.message || 'Failed to submit voice feedback');
+            }
+
+            console.log('[VoiceFeedback] Submitted successfully, transcript:', data.transcript);
+            setVoiceFeedbackSubmitted(true);
+            window.parent.postMessage({
+              source: 'pidy-widget',
+              type: 'pidy-voice-feedback-submitted',
+              transcript: data.transcript,
+              confidence: data.confidence,
+              tryOnCount: tryOnSequence,
+            }, '*');
+          } catch (err) {
+            console.error('[VoiceFeedback] Submit error:', err);
+            window.parent.postMessage({
+              source: 'pidy-widget',
+              type: 'pidy-voice-feedback-error',
+              error: err instanceof Error ? err.message : 'Failed to submit feedback',
+            }, '*');
+          }
+        }
+
+        // Handle voice feedback dismissed from parent
+        if (type === 'pidy-voice-feedback-dismissed') {
+          setVoiceFeedbackDismissed(true);
+        }
       })().catch((err) => {
         console.error('[PIDY Widget] Message handler error:', err);
       });
@@ -616,14 +678,7 @@ const Index = () => {
     setSelectedProduct(product);
     setTryOnResult(null);
     setDoorOpened(false);
-    setTryOnSequence((v) => {
-      const next = v + 1;
-      console.log(`[VoiceFeedback] tryOnSequence: ${next}, threshold: 1, remaining: ${Math.max(0, 1 - next)}`);
-      if (next >= 1) {
-        console.log('[VoiceFeedback] Threshold reached - prompt will show after result loads');
-      }
-      return next;
-    });
+    setTryOnSequence((v) => v + 1);
 
     const sizeToUse = size || brandSize || product.sizes[0] || 'M';
     const providerToUse = providerOverride || provider;
@@ -650,7 +705,6 @@ const Index = () => {
         };
         setTryOnResult(result);
         setTryOnFailCount(0); // Reset fail count on success
-        console.log(`[VoiceFeedback] Result loaded. tryOnSequence will be checked for prompt. dismissed=${voiceFeedbackDismissed}, submitted=${voiceFeedbackSubmitted}, doorOpened=${doorOpened}`);
         // If try-on succeeded, user clearly doesn't need onboarding anymore
         completeOnboarding();
         toast.success(`Try-on generated for size: ${sizeToUse}`);
@@ -663,6 +717,21 @@ const Index = () => {
           recommendedSize: result.recommendedSize,
           fitScore: result.fitScore,
         }, '*');
+
+        // Send voice feedback prompt to parent after 3+ try-ons
+        // Use callback to get latest tryOnSequence value
+        setTryOnSequence((currentSeq) => {
+          if (currentSeq >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted) {
+            console.log(`[VoiceFeedback] Sending prompt to parent, tryOnSequence=${currentSeq}`);
+            window.parent.postMessage({
+              source: 'pidy-widget',
+              type: 'pidy-voice-feedback-prompt',
+              tryOnCount: currentSeq,
+              productId: product.id,
+            }, '*');
+          }
+          return currentSeq; // don't change the value
+        });
       } else {
         // Increment fail count
         setTryOnFailCount((prev) => prev + 1);
@@ -862,18 +931,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* Voice feedback prompt - in flex flow between header and content */}
-          {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 1 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-            <div style={{ flexShrink: 0, padding: '12px', background: '#ff0000', color: '#ffffff', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', zIndex: 9999 }}>
-              VOICE FEEDBACK - Try #{tryOnSequence} - Tap to record
-              <button
-                onClick={() => setVoiceFeedbackDismissed(true)}
-                style={{ marginLeft: '8px', background: '#ffffff', color: '#000000', padding: '4px 8px', borderRadius: '4px', border: 'none' }}
-              >
-                X
-              </button>
-            </div>
-          )}
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
