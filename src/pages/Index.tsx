@@ -1086,24 +1086,9 @@ const Index = () => {
                 >
                   {/* Scrollable content inside the room */}
                   <div className="h-full overflow-y-auto p-4 space-y-3">
-                    {/* Try-On Result with reveal animation */}
-                    {!isTryOnLoading && tryOnResult && selectedProduct && (
-                      <div className="animate-reveal-up">
-                        <TryOnResult
-                          result={tryOnResult}
-                          product={selectedProduct}
-                          onClose={() => {
-                            setTryOnResult(null);
-                            setShowDoorAnimation(false);
-                            setDoorOpened(false);
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Voice feedback prompt - right after result for visibility */}
+                    {/* Voice feedback prompt - sticky at top for visibility */}
                     {!isTryOnLoading && tryOnResult && selectedProduct && tryOnSequence >= 3 && !voiceFeedbackDismissed && !voiceFeedbackSubmitted && (
-                      <div className="animate-reveal-up" style={{ animationDelay: '0.1s' }}>
+                      <div className="sticky top-0 z-10 animate-reveal-up">
                         <VoiceFeedbackPrompt
                           productId={selectedProduct?.id}
                           tryOnCount={tryOnSequence}
@@ -1118,6 +1103,21 @@ const Index = () => {
                             }, '*');
                           }}
                           onDismiss={() => setVoiceFeedbackDismissed(true)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Try-On Result with reveal animation */}
+                    {!isTryOnLoading && tryOnResult && selectedProduct && (
+                      <div className="animate-reveal-up">
+                        <TryOnResult
+                          result={tryOnResult}
+                          product={selectedProduct}
+                          onClose={() => {
+                            setTryOnResult(null);
+                            setShowDoorAnimation(false);
+                            setDoorOpened(false);
+                          }}
                         />
                       </div>
                     )}

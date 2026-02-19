@@ -71,7 +71,7 @@ export function VoiceFeedbackPrompt({
   // Complete state
   if (isComplete) {
     return (
-      <div className="mx-4 mb-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+      <div className="mb-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
             <Check className="w-4 h-4 text-primary" />
@@ -85,7 +85,7 @@ export function VoiceFeedbackPrompt({
   // Submitting state
   if (isSubmitting) {
     return (
-      <div className="mx-4 mb-3 p-3 rounded-lg border border-border/40 bg-secondary/20">
+      <div className="mb-3 p-3 rounded-lg border border-border/40 bg-secondary/20">
         <div className="flex items-center gap-2">
           <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
           <p className="text-xs text-muted-foreground">Transcribing...</p>
@@ -97,7 +97,7 @@ export function VoiceFeedbackPrompt({
   // Recording state
   if (isRecording) {
     return (
-      <div className="mx-4 mb-3 p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+      <div className="mb-3 p-3 rounded-lg border border-red-500/30 bg-red-500/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center animate-pulse">
@@ -132,7 +132,7 @@ export function VoiceFeedbackPrompt({
 
   // Prompt state (initial)
   return (
-    <div className="mx-4 mb-3 p-3 rounded-lg border border-primary/20 bg-secondary/20">
+    <div className="mb-3 p-3 rounded-lg border border-primary/20 bg-background/95 backdrop-blur-sm shadow-md">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
