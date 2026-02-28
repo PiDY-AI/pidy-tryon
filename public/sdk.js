@@ -950,11 +950,11 @@
         console.log('[PIDY SDK] Attempting token refresh...');
 
         // Call Supabase refresh endpoint
-        const response = await fetch('https://owipkfsjnmydsjhbfjqu.supabase.co/auth/v1/token?grant_type=refresh_token', {
+        const response = await fetch('https://api.pidy.ai/auth/v1/token?grant_type=refresh_token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': 'sb_publishable_m9E_wkaJKaJQ6lSyZXfnZg_9pS_G5VX'
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sZ2RpY21wZ2l1YXNpemZyenBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTMzNjUsImV4cCI6MjA4NzM2OTM2NX0.jiAlfO0X5KPaRF0aQ3DsFGSZ_SrYhMWiyx8RQyFO3q4'
           },
           body: JSON.stringify({
             refresh_token: refreshToken

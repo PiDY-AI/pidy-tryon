@@ -52,7 +52,7 @@ export const useTryonTest = (): UseTryonTestReturn => {
     // Use fetch directly instead of supabase.functions.invoke.
     // The Supabase SDK swallows the response body on non-2xx errors,
     // making it impossible to read error codes like NO_AVATAR.
-    const functionsUrl = `${(supabase as any).functionsUrl || 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1'}`;
+    const functionsUrl = `${(supabase as any).functionsUrl || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`}`;
     const response = await fetch(`${functionsUrl}/tryon-test`, {
       method: 'POST',
       headers: {

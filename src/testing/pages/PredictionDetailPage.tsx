@@ -434,7 +434,7 @@ const PredictionDetailPage = () => {
         return;
       }
 
-      const functionsUrl = `${(supabase as any).functionsUrl || 'https://owipkfsjnmydsjhbfjqu.supabase.co/functions/v1'}`;
+      const functionsUrl = `${(supabase as any).functionsUrl || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`}`;
       const response = await fetch(`${functionsUrl}/tryon-test`, {
         method: 'POST',
         headers: {

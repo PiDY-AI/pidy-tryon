@@ -47,7 +47,7 @@ export interface WidgetScanResult {
   };
 }
 
-const SUPABASE_URL = "https://owipkfsjnmydsjhbfjqu.supabase.co";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const steps = [
   { label: 'Uploading photos', duration: 3000 },
