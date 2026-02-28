@@ -48,6 +48,17 @@ export const useAuth = () => {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    const redirectUrl = `${window.location.origin}/`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+    return { data, error };
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
 
@@ -67,6 +78,7 @@ export const useAuth = () => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
   };
 };
