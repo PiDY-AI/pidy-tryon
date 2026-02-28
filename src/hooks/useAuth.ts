@@ -5,7 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 // --- Google Identity Services (GIS) helpers ---
 // Uses the same ID-token flow as pidy-app: no redirect, no redirect_uri needed.
 
-const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID;
+// Public client ID — safe to embed (same as pidy-app).
+// Hardcoded because Vercel intermittently fails to pass VITE_ env vars to the Vite build.
+const GOOGLE_WEB_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID ||
+  '63693284509-el5itsl7ruqrthtvik6f8i3akkvj3hr9.apps.googleusercontent.com';
 
 let gisScriptReady: Promise<void> | null = null;
 
