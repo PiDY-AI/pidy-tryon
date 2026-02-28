@@ -364,21 +364,65 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await signInWithGoogle();
+      const { session, error } = await signInWithGoogle();
       if (error) {
         toast({
           title: 'Google Sign In failed',
           description: error.message,
           variant: 'destructive',
         });
+        return;
       }
-      // OAuth redirects away — no need to handle success here
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to start Google Sign In.',
-        variant: 'destructive',
-      });
+
+      if (!session) {
+        toast({
+          title: 'Google Sign In failed',
+          description: 'No session created. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Session created — handle popup vs regular navigation (same as email sign-in)
+      const isPopup = searchParams.get('popup');
+      if (isPopup) {
+        const { access_token, refresh_token } = session;
+        setAuthSucceeded(true);
+
+        if (window.opener) {
+          window.opener.postMessage(
+            { type: 'tryon-auth-session', access_token, refresh_token },
+            '*'
+          );
+        }
+
+        try {
+          const bc = new BroadcastChannel('pidy-auth');
+          bc.postMessage({ type: 'tryon-auth-session', access_token, refresh_token });
+          bc.close();
+        } catch (e) { /* ignore */ }
+
+        setTimeout(() => window.close(), 300);
+      } else {
+        const productId = searchParams.get('productId');
+        const embedMode = searchParams.get('embed');
+        let redirectPath = '/';
+        if (productId) {
+          redirectPath = `/?productId=${productId}`;
+          if (embedMode) redirectPath += '&embed=true';
+        }
+        navigate(redirectPath);
+      }
+    } catch (err: any) {
+      const message = err?.message || 'Failed to start Google Sign In.';
+      // Don't show toast for user-cancelled actions
+      if (message !== 'Authentication was cancelled') {
+        toast({
+          title: 'Google Sign In failed',
+          description: message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
