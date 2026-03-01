@@ -342,15 +342,6 @@
             this._clearTokensLocal();
             break;
 
-          case 'pidy-resize':
-            // Widget content height changed - auto-resize iframe to eliminate black space
-            if (payload.height && this._iframe) {
-              var maxH = this._config.height || 740;
-              var newHeight = Math.min(payload.height, maxH);
-              this._iframe.style.height = newHeight + 'px';
-            }
-            break;
-
           case 'tryon-expand':
             // Widget expanded - could trigger parent UI changes
             this._container.classList.add('pidy-expanded');

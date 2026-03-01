@@ -94,7 +94,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
   }) => (
     <div className="flex-1 flex flex-col items-center">
       <div
-        className="relative w-full aspect-[2/3] rounded-xl overflow-hidden border border-border bg-background cursor-pointer"
+        className="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-border bg-background cursor-pointer"
         onClick={() => preview ? onClear() : onOpenCamera()}
       >
         {preview ? (
@@ -135,8 +135,8 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         {/* Header */}
         <div className="text-center mb-2">
           <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Step 2 of 3</p>
-          <h2 className="font-display text-base text-foreground mb-0.5">For <span className="text-primary">Precise</span> Body Measurement</h2>
-          <p className="text-[11px] text-muted-foreground">Place one of these next to you</p>
+          <h2 className="font-display text-sm text-foreground mb-0.5">For <span className="text-primary">Precise</span> Body Measurement</h2>
+          <p className="text-[10px] text-muted-foreground">Place one of these next to you</p>
         </div>
 
         {/* Dropdown */}
@@ -174,13 +174,13 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         </div>
 
         {/* Motivation + Tips */}
-        <div className="text-center mb-3">
-          <p className="text-[11px] text-muted-foreground leading-relaxed mb-2">
-            Yes, it's a bit of effort — but just once.{'\n'}Then you can try clothes on any partner brand, <span className="text-primary font-bold">instantly</span>!
+        <div className="text-center mb-2">
+          <p className="text-[10px] text-muted-foreground leading-relaxed mb-1.5">
+            A bit of effort — but just once. Then try clothes on any brand, <span className="text-primary font-bold">instantly</span>!
           </p>
-          <div className="flex justify-center gap-1.5">
+          <div className="flex justify-center flex-wrap gap-1">
             {TIPS.map((tip) => (
-              <span key={tip} className="text-[10px] font-semibold text-primary border border-primary rounded-full px-2.5 py-1 tracking-wide">
+              <span key={tip} className="text-[9px] font-semibold text-primary border border-primary rounded-full px-2 py-0.5">
                 {tip}
               </span>
             ))}
