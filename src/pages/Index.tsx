@@ -13,9 +13,11 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, LogOut, Loader2, X, RotateCcw, ArrowRight } from 'lucide-react';
+import { ShoppingBag, LogOut, Loader2, X, RotateCcw, ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import pidyLogo from '@/assets/pidy_logo_white.png';
+import pidyTextLogo from '@/assets/pidy_full_text_white.png';
+import landingVideo from '@/assets/1770643433403458.mov';
 import { VoiceFeedbackPrompt } from '@/components/VoiceFeedbackPrompt';
 
 const Index = () => {
@@ -33,7 +35,7 @@ const Index = () => {
   const [tryOnFailCount, setTryOnFailCount] = useState(0);
 
   const { generateTryOn, isLoading: isTryOnLoading, error: tryOnError } = useTryOn();
-  const { signOut, user, loading: authLoading } = useAuth();
+  const { signIn, signInWithGoogle, signOut, user, loading: authLoading } = useAuth();
   const { products, isLoading: isProductsLoading } = useProducts();
   const { needsOnboarding, isLoading: isOnboardingLoading, completeOnboarding } = useOnboarding();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -45,6 +47,15 @@ const Index = () => {
   const [sdkOnboardingReceived, setSdkOnboardingReceived] = useState(false);
   const [voiceFeedbackDismissed, setVoiceFeedbackDismissed] = useState(false);
   const [voiceFeedbackSubmitted, setVoiceFeedbackSubmitted] = useState(false);
+
+  // Inline auth state (embed mode)
+  const [embedAuthView, setEmbedAuthView] = useState<'landing' | 'signIn' | 'forgotPassword'>('landing');
+  const [embedEmail, setEmbedEmail] = useState('');
+  const [embedPassword, setEmbedPassword] = useState('');
+  const [embedShowPassword, setEmbedShowPassword] = useState(false);
+  const [embedAuthLoading, setEmbedAuthLoading] = useState(false);
+  const [embedAuthError, setEmbedAuthError] = useState<string | null>(null);
+  const [embedResetSent, setEmbedResetSent] = useState(false);
 
   // Track whether the current session was set from an SDK-provided token (not a fresh popup sign-in).
   // When true, onAuthStateChange should NOT echo pidy-auth-success / pidy-onboarding-complete
@@ -806,6 +817,76 @@ const Index = () => {
     }
   }, [user, authLoading, embedMode]);
 
+  // Inline auth handlers for embed mode
+  const handleInlineAuthSuccess = (session: { access_token: string; refresh_token: string }) => {
+    tokenFromSdkRef.current = false;
+    setAuthToken(session.access_token);
+    setHasSessionToken(true);
+    setSessionCheckComplete(true);
+    // Notify SDK to cache tokens
+    window.parent.postMessage({
+      type: 'pidy-auth-success',
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_in: 3600
+    }, '*');
+  };
+
+  const handleEmbedEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmbedAuthError(null);
+    setEmbedAuthLoading(true);
+    try {
+      const { error, session } = await signIn(embedEmail, embedPassword);
+      if (error) {
+        setEmbedAuthError(error.message || 'Sign in failed');
+      } else if (session) {
+        handleInlineAuthSuccess(session);
+      }
+    } catch (err: any) {
+      setEmbedAuthError(err?.message || 'Sign in failed');
+    } finally {
+      setEmbedAuthLoading(false);
+    }
+  };
+
+  const handleEmbedGoogleSignIn = async () => {
+    setEmbedAuthError(null);
+    setEmbedAuthLoading(true);
+    try {
+      const { session, error } = await signInWithGoogle();
+      if (error) {
+        setEmbedAuthError(error.message || 'Google sign in failed');
+      } else if (session) {
+        handleInlineAuthSuccess(session);
+      }
+    } catch (err: any) {
+      setEmbedAuthError(err?.message || 'Google sign in failed');
+    } finally {
+      setEmbedAuthLoading(false);
+    }
+  };
+
+  const handleEmbedForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmbedAuthError(null);
+    setEmbedAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(embedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        setEmbedAuthError(error.message);
+      } else {
+        setEmbedResetSent(true);
+      }
+    } catch (err: any) {
+      setEmbedAuthError(err?.message || 'Failed to send reset link');
+    } finally {
+      setEmbedAuthLoading(false);
+    }
+  };
+
   const handleOpenAuthPopup = (options?: { onboarding?: boolean }) => {
     console.log('[PIDY Widget] Opening auth popup', { options, embedMode });
 
@@ -951,64 +1032,194 @@ const Index = () => {
                 </div>
               ) : !isAuthed ? (
                 embedMode ? (
-                  // Sign-in UI for embed mode with popup delegation
-                  <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background p-6">
-                    <div className="text-center max-w-xs space-y-4">
-                      <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                      <div>
-                        <h3 className="text-h4 text-foreground mb-1">Digital Fitting Room</h3>
-                        <p className="text-caption text-muted-foreground">
-                          Sign in to see how this looks on you
-                        </p>
-                      </div>
-                      <div className="space-y-2.5">
-                        <button
-                          onClick={() => handleOpenAuthPopup()}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-border bg-white text-black text-sm font-medium hover:bg-gray-50 transition-colors"
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                          </svg>
-                          Continue with Google
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-px bg-border" />
-                          <span className="text-xs text-muted-foreground">or</span>
-                          <div className="flex-1 h-px bg-border" />
+                  // Inline auth for embed mode — no popups
+                  <div className="h-full flex flex-col bg-background">
+                    {embedAuthView === 'landing' ? (
+                      <>
+                        {/* Branding + Video */}
+                        <div className="flex-shrink-0 pt-3 pb-2 px-5">
+                          <img src={pidyTextLogo} alt="PIDY" className="h-8 mx-auto object-contain mb-2" onError={(e) => e.currentTarget.style.display = 'none'} />
+                          <h2 className="font-display text-base text-foreground text-center mb-2"><span className="text-primary">Sure</span> about your size?</h2>
+                        </div>
+                        <div className="flex-shrink-0 mx-5 rounded-xl overflow-hidden aspect-video bg-black">
+                          <video src={landingVideo} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                         </div>
 
-                        <Button
-                          onClick={() => handleOpenAuthPopup()}
-                          className="w-full"
-                          size="default"
-                          variant="outline"
-                        >
-                          Sign In with Email
-                        </Button>
+                        {/* Auth buttons — tight below video */}
+                        <div className="flex-shrink-0 px-5 pt-3 pb-3 space-y-2.5">
+                          {embedAuthError && (
+                            <p className="text-xs text-red-400 text-center">{embedAuthError}</p>
+                          )}
 
-                        {/* Get Started */}
-                        <button
-                          onClick={() => handleOpenAuthPopup({ onboarding: true })}
-                          className="w-full text-center group pt-1"
-                        >
-                          <div className="glass-card rounded-xl p-3.5 hover:border-primary/30 transition-colors relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-60" />
-                            <div className="relative">
-                              <p className="text-xs text-muted-foreground mb-1.5">First time PIDY?</p>
-                              <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                                <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
-                                <span className="text-base font-semibold">Get started</span>
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          <button
+                            onClick={handleEmbedGoogleSignIn}
+                            disabled={embedAuthLoading}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-border bg-white text-black text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24">
+                              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            </svg>
+                            {embedAuthLoading ? 'Signing in...' : 'Continue with Google'}
+                          </button>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-xs text-muted-foreground">or</span>
+                            <div className="flex-1 h-px bg-border" />
+                          </div>
+
+                          <Button
+                            onClick={() => { setEmbedAuthView('signIn'); setEmbedAuthError(null); }}
+                            className="w-full"
+                            size="default"
+                            variant="outline"
+                          >
+                            Sign In with Email
+                          </Button>
+
+                          {/* Get Started — Google is fastest path for new users */}
+                          <button
+                            onClick={handleEmbedGoogleSignIn}
+                            disabled={embedAuthLoading}
+                            className="w-full text-center group pt-1"
+                          >
+                            <div className="glass-card rounded-xl p-3 hover:border-primary/30 transition-colors relative overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-60" />
+                              <div className="relative">
+                                <p className="text-xs text-muted-foreground mb-1">First time PIDY?</p>
+                                <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                                  <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
+                                  <span className="text-base font-semibold">Get started</span>
+                                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          </button>
+                        </div>
+                      </>
+                    ) : embedAuthView === 'signIn' ? (
+                      /* Email sign-in form */
+                      <div className="h-full flex flex-col p-5">
+                        <button
+                          onClick={() => { setEmbedAuthView('landing'); setEmbedAuthError(null); }}
+                          className="self-start text-muted-foreground hover:text-foreground transition-colors mb-4"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
                         </button>
+
+                        <div className="flex-1 flex flex-col justify-center">
+                          <img src={pidyTextLogo} alt="PIDY" className="h-5 mx-auto object-contain mb-4" onError={(e) => e.currentTarget.style.display = 'none'} />
+                          <h3 className="text-base font-semibold text-foreground text-center mb-4">Sign In</h3>
+
+                          {embedAuthError && (
+                            <p className="text-xs text-red-400 text-center mb-3">{embedAuthError}</p>
+                          )}
+
+                          <form onSubmit={handleEmbedEmailSignIn} className="space-y-3">
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <input
+                                type="email"
+                                placeholder="Email"
+                                value={embedEmail}
+                                onChange={(e) => setEmbedEmail(e.target.value)}
+                                required
+                                className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <input
+                                type={embedShowPassword ? 'text' : 'password'}
+                                placeholder="Password"
+                                value={embedPassword}
+                                onChange={(e) => setEmbedPassword(e.target.value)}
+                                required
+                                className="w-full pl-10 pr-10 py-2.5 rounded-md border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setEmbedShowPassword(!embedShowPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {embedShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+
+                            <div className="text-right">
+                              <button
+                                type="button"
+                                onClick={() => { setEmbedAuthView('forgotPassword'); setEmbedAuthError(null); setEmbedResetSent(false); }}
+                                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                Forgot password?
+                              </button>
+                            </div>
+
+                            <Button type="submit" disabled={embedAuthLoading} className="w-full" size="default">
+                              {embedAuthLoading ? 'Signing in...' : 'Sign In'}
+                            </Button>
+                          </form>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Forgot password */
+                      <div className="h-full flex flex-col p-5">
+                        <button
+                          onClick={() => { setEmbedAuthView('signIn'); setEmbedAuthError(null); setEmbedResetSent(false); }}
+                          className="self-start text-muted-foreground hover:text-foreground transition-colors mb-4"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                        </button>
+
+                        <div className="flex-1 flex flex-col justify-center">
+                          <img src={pidyTextLogo} alt="PIDY" className="h-5 mx-auto object-contain mb-4" onError={(e) => e.currentTarget.style.display = 'none'} />
+                          <h3 className="text-base font-semibold text-foreground text-center mb-2">Reset Password</h3>
+                          <p className="text-xs text-muted-foreground text-center mb-4">
+                            Enter your email and we'll send a reset link
+                          </p>
+
+                          {embedAuthError && (
+                            <p className="text-xs text-red-400 text-center mb-3">{embedAuthError}</p>
+                          )}
+
+                          {embedResetSent ? (
+                            <div className="text-center space-y-3">
+                              <p className="text-sm text-primary font-medium">Reset link sent!</p>
+                              <p className="text-xs text-muted-foreground">Check your email and follow the link to reset your password.</p>
+                              <Button
+                                onClick={() => { setEmbedAuthView('signIn'); setEmbedResetSent(false); }}
+                                variant="outline"
+                                size="default"
+                                className="w-full"
+                              >
+                                Back to Sign In
+                              </Button>
+                            </div>
+                          ) : (
+                            <form onSubmit={handleEmbedForgotPassword} className="space-y-3">
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <input
+                                  type="email"
+                                  placeholder="Email"
+                                  value={embedEmail}
+                                  onChange={(e) => setEmbedEmail(e.target.value)}
+                                  required
+                                  className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                              </div>
+                              <Button type="submit" disabled={embedAuthLoading} className="w-full" size="default">
+                                {embedAuthLoading ? 'Sending...' : 'Send Reset Link'}
+                              </Button>
+                            </form>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   // Full sign-in screen for non-embed mode
