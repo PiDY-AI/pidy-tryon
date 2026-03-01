@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Check, ArrowLeft, Upload } from 'lucide-react';
+import { Camera, Check, ArrowLeft, Upload, ChevronDown } from 'lucide-react';
 import a4FrontDemo from '@/assets/A4_front_demo.jpg';
 import a4SideDemo from '@/assets/A4_side_demo.jpg';
 import bottleFrontDemo from '@/assets/bottle_front_demo.jpeg';
 import bottleSideDemo from '@/assets/bottle_side_demo.jpeg';
+import noteFrontDemo from '@/assets/note_front_demo.jpg';
+import noteSideDemo from '@/assets/note_side_demo.jpg';
 import pidyTextLogo from '@/assets/pidy_full_text_white.png';
 import { CameraCapture } from './CameraCapture';
 
@@ -14,14 +16,31 @@ interface OnboardingPhotoCaptureProps {
 }
 
 type PhotoType = 'front' | 'side';
-type ReferenceType = 'a4' | 'bottle';
+type ReferenceType = 'a4' | 'bottle' | 'note_500' | 'note_200' | 'note_100';
+
+const REFERENCE_OBJECTS: { key: ReferenceType; label: string; subtitle: string }[] = [
+  { key: 'a4', label: 'A4 Sheet', subtitle: '29.7 x 21 cm' },
+  { key: 'bottle', label: '1L Bisleri', subtitle: '28 cm tall' },
+  { key: 'note_500', label: '₹500 Note', subtitle: '15.0 x 6.6 cm' },
+  { key: 'note_200', label: '₹200 Note', subtitle: '14.6 x 6.6 cm' },
+  { key: 'note_100', label: '₹100 Note', subtitle: '14.2 x 6.6 cm' },
+];
+
+const demoImages: Record<ReferenceType, { front: string; side: string }> = {
+  a4: { front: a4FrontDemo, side: a4SideDemo },
+  bottle: { front: bottleFrontDemo, side: bottleSideDemo },
+  note_100: { front: noteFrontDemo, side: noteSideDemo },
+  note_200: { front: noteFrontDemo, side: noteSideDemo },
+  note_500: { front: noteFrontDemo, side: noteSideDemo },
+};
 
 export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptureProps) => {
   const [frontPhoto, setFrontPhoto] = useState<File | null>(null);
   const [sidePhoto, setSidePhoto] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [sidePreview, setSidePreview] = useState<string | null>(null);
-  const [referenceType, setReferenceType] = useState<ReferenceType>('a4');
+  const [referenceType, setReferenceType] = useState<ReferenceType>('note_100');
+  const [showDropdown, setShowDropdown] = useState(false);
   const [activeCameraType, setActiveCameraType] = useState<PhotoType | null>(null);
   const frontUploadRef = useRef<HTMLInputElement>(null);
   const sideUploadRef = useRef<HTMLInputElement>(null);
@@ -73,7 +92,19 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
     }
   };
 
+  const handleReferenceChange = (key: ReferenceType) => {
+    if (key !== referenceType) {
+      setReferenceType(key);
+      setFrontPhoto(null);
+      setFrontPreview(null);
+      setSidePhoto(null);
+      setSidePreview(null);
+    }
+    setShowDropdown(false);
+  };
+
   const isComplete = frontPhoto && sidePhoto;
+  const selectedLabel = REFERENCE_OBJECTS.find(o => o.key === referenceType)?.label;
 
   const PhotoCard = ({
     type,
@@ -112,13 +143,11 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
           </>
         ) : (
           <>
-            {/* Demo image as background - fill the container */}
             <img
               src={demoImage}
               alt={`${type} demo`}
               className="w-full h-full object-cover"
             />
-            {/* Camera button positioned at bottom center */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
               <div className="w-12 h-12 rounded-full bg-background/95 backdrop-blur-sm border-2 border-primary flex items-center justify-center shadow-xl">
                 <Camera className="w-6 h-6 text-primary" />
@@ -128,7 +157,6 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         )}
       </div>
 
-      {/* Retake button when photo exists, Upload when no photo */}
       {preview ? (
         <button
           onClick={onClear}
@@ -167,50 +195,63 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
         <div className="text-center mb-3">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Step 2 of 3</p>
           <h2 className="font-display text-lg text-foreground mb-1">For <span className="text-primary">Precise</span> Body Measurement</h2>
+          <p className="text-xs text-muted-foreground">Place one of these next to you</p>
         </div>
 
-        {/* Reference type selector */}
-        <div className="text-center mb-2">
-          <p className="text-xs text-foreground mb-2">What do you have nearby?</p>
-          <div className="inline-flex gap-2 bg-card/50 border border-border/60 rounded-full p-1.5 shadow-sm">
-            <button
-              onClick={() => setReferenceType('a4')}
-              className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${
-                referenceType === 'a4'
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
-                  : 'bg-card/30 text-muted-foreground/70 border-transparent hover:text-foreground hover:bg-card/60'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                {referenceType === 'a4' && <Check className="w-3.5 h-3.5" />}
-                A4 Sheet
-              </span>
-            </button>
-            <button
-              onClick={() => setReferenceType('bottle')}
-              className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${
-                referenceType === 'bottle'
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
-                  : 'bg-card/30 text-muted-foreground/70 border-transparent hover:text-foreground hover:bg-card/60'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                {referenceType === 'bottle' && <Check className="w-3.5 h-3.5" />}
-                1L Bisleri
-              </span>
-            </button>
-          </div>
+        {/* Reference type dropdown */}
+        <div className="relative flex justify-center mb-2" style={{ zIndex: 10 }}>
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border-[1.5px] border-primary bg-background text-primary font-semibold text-sm transition-all"
+          >
+            {selectedLabel}
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {showDropdown && (
+            <>
+              <div
+                className="fixed inset-0"
+                style={{ zIndex: 11 }}
+                onClick={() => setShowDropdown(false)}
+              />
+              <div
+                className="absolute top-full mt-1 left-1/2 -translate-x-1/2 w-48 bg-card border border-border rounded-xl overflow-hidden shadow-xl"
+                style={{ zIndex: 12 }}
+              >
+                {REFERENCE_OBJECTS.map((obj) => {
+                  const isSelected = referenceType === obj.key;
+                  return (
+                    <button
+                      key={obj.key}
+                      onClick={() => handleReferenceChange(obj.key)}
+                      className={`w-full flex items-center gap-2 px-4 py-3 text-left text-sm border-b border-border/50 last:border-0 transition-colors ${
+                        isSelected
+                          ? 'bg-primary/10 text-primary font-semibold'
+                          : 'text-muted-foreground hover:bg-card/80 hover:text-foreground'
+                      }`}
+                    >
+                      <span className="flex-1">{obj.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Photo grid - centered */}
-      <div className="flex-1 flex items-center justify-center px-6 py-2">
+      {/* Photo grid - scrollable */}
+      <div className="flex-1 flex items-center justify-center px-6 py-2 overflow-y-auto">
         <div className="grid grid-cols-2 gap-4 w-full max-w-md">
           <PhotoCard
             type="front"
             preview={frontPreview}
             onClear={() => clearPhoto('front')}
-            demoImage={referenceType === 'a4' ? a4FrontDemo : bottleFrontDemo}
+            demoImage={demoImages[referenceType].front}
             onOpenCamera={() => openCamera('front')}
             onUpload={() => frontUploadRef.current?.click()}
           />
@@ -218,7 +259,7 @@ export const OnboardingPhotoCapture = ({ onNext, onBack }: OnboardingPhotoCaptur
             type="side"
             preview={sidePreview}
             onClear={() => clearPhoto('side')}
-            demoImage={referenceType === 'a4' ? a4SideDemo : bottleSideDemo}
+            demoImage={demoImages[referenceType].side}
             onOpenCamera={() => openCamera('side')}
             onUpload={() => sideUploadRef.current?.click()}
           />
