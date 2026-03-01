@@ -107,6 +107,8 @@ const Index = () => {
     if (embedMode) {
       console.log('[PIDY Widget] Sending onboarding completion to parent SDK');
       window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+      // Signal PidyTryOn that auth+onboarding is done — close modal, show button
+      window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-ready' }, '*');
     }
 
     toast.success('Profile created! You can now try on clothes.');
@@ -230,6 +232,14 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, [embedMode, completeOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Notify PidyTryOn when widget is ready (auth + onboarding both complete)
+  useEffect(() => {
+    if (embedMode && isAuthed && !needsOnboarding && sessionCheckComplete && !isOnboardingLoading) {
+      console.log('[PIDY Widget] Auth + onboarding complete, sending pidy-ready');
+      window.parent.postMessage({ source: 'pidy-widget', type: 'pidy-ready' }, '*');
+    }
+  }, [embedMode, isAuthed, needsOnboarding, sessionCheckComplete, isOnboardingLoading]);
 
   // Auto-select product from URL parameter (embed-safe)
   // In real brand embeds, the productId may not exist in our products table.

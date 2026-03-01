@@ -91,6 +91,7 @@
         width: 400,
         height: 740,
         debug: false,
+        hidden: false,
         authMethod: 'popup', // Default to popup - doesn't cover brand website
         ...config
       };
@@ -180,7 +181,7 @@
      * Create the iframe widget
      */
     _createWidget: function() {
-      const { productId, size, width, height, debug } = this._config;
+      const { productId, size, width, height, debug, hidden } = this._config;
 
       // Build URL with parameters
       let url = PIDY_ORIGIN + '/?productId=' + encodeURIComponent(productId);
@@ -195,40 +196,46 @@
         console.log('[PIDY SDK] iframe src:', url);
       }
 
-      // Create iframe - responsive to viewport
-      var viewportH = window.innerHeight || document.documentElement.clientHeight;
-      var iframeHeight = Math.min(height, viewportH - 20);
-
       const iframe = document.createElement('iframe');
       iframe.src = url;
-      iframe.style.width = '100%';
-      iframe.style.maxWidth = width + 'px';
-      iframe.style.height = iframeHeight + 'px';
-      iframe.style.border = 'none';
-      iframe.style.borderRadius = '12px';
-      iframe.style.overflow = 'hidden';
-      iframe.style.background = '#0d0d0d';
-      iframe.style.display = 'block';
-      iframe.style.margin = '0 auto';
       iframe.allow = 'clipboard-write; microphone';
       iframe.setAttribute('allowtransparency', 'true');
 
-      // Resize iframe when viewport changes (orientation, keyboard, etc.)
-      var resizeTimer;
-      window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-          var newH = Math.min(height, (window.innerHeight || document.documentElement.clientHeight) - 20);
-          iframe.style.height = newH + 'px';
-        }, 100);
-      });
+      if (hidden) {
+        // Hidden mode: iframe created but not visible. Managed externally (e.g. PidyTryOn component).
+        iframe.style.cssText = 'width:0;height:0;border:none;visibility:hidden;position:absolute;';
+      } else {
+        // Visible mode: standard embed
+        var viewportH = window.innerHeight || document.documentElement.clientHeight;
+        var iframeHeight = Math.min(height, viewportH - 20);
 
-      try {
-        this._container.style.background = '#0d0d0d';
-        this._container.style.borderRadius = '12px';
-        this._container.style.overflow = 'hidden';
-      } catch (e) {
-        // ignore
+        iframe.style.width = '100%';
+        iframe.style.maxWidth = width + 'px';
+        iframe.style.height = iframeHeight + 'px';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = '12px';
+        iframe.style.overflow = 'hidden';
+        iframe.style.background = '#0d0d0d';
+        iframe.style.display = 'block';
+        iframe.style.margin = '0 auto';
+
+        // Resize iframe when viewport changes (orientation, keyboard, etc.)
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(function() {
+            var newH = Math.min(height, (window.innerHeight || document.documentElement.clientHeight) - 20);
+            iframe.style.height = newH + 'px';
+          }, 100);
+        });
+
+        try {
+          this._container.style.background = '#0d0d0d';
+          this._container.style.borderRadius = '12px';
+          this._container.style.overflow = 'hidden';
+        } catch (e) {
+          // ignore
+        }
       }
 
       this._container.innerHTML = '';
