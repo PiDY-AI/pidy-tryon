@@ -26,6 +26,16 @@
 
   <body style="margin: 0; padding: 0; background-color: #0d0d0d; min-height: 100vh;">
     <div id="root" style="background-color: #0d0d0d; min-height: 100vh;"></div>
+    <!-- Auto-resize: tell parent SDK our content height so iframe fits snugly -->
+    <script>
+      if (window.parent !== window) {
+        var _lastH = 0;
+        new ResizeObserver(function() {
+          var h = document.documentElement.scrollHeight;
+          if (h !== _lastH) { _lastH = h; window.parent.postMessage({ type: 'pidy-resize', height: h }, '*'); }
+        }).observe(document.documentElement);
+      }
+    </script>
     <!-- Pidy Try-On SDK -->
     <script src="/sdk.js"></script>
     <script type="module" src="/src/main.tsx"></script>

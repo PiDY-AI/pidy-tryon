@@ -195,12 +195,15 @@
         console.log('[PIDY SDK] iframe src:', url);
       }
 
-      // Create iframe - responsive by default
+      // Create iframe - responsive to viewport
+      var viewportH = window.innerHeight || document.documentElement.clientHeight;
+      var iframeHeight = Math.min(height, viewportH - 20);
+
       const iframe = document.createElement('iframe');
       iframe.src = url;
       iframe.style.width = '100%';
       iframe.style.maxWidth = width + 'px';
-      iframe.style.height = height + 'px';
+      iframe.style.height = iframeHeight + 'px';
       iframe.style.border = 'none';
       iframe.style.borderRadius = '12px';
       iframe.style.overflow = 'hidden';
@@ -209,6 +212,16 @@
       iframe.style.margin = '0 auto';
       iframe.allow = 'clipboard-write; microphone';
       iframe.setAttribute('allowtransparency', 'true');
+
+      // Resize iframe when viewport changes (orientation, keyboard, etc.)
+      var resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          var newH = Math.min(height, (window.innerHeight || document.documentElement.clientHeight) - 20);
+          iframe.style.height = newH + 'px';
+        }, 100);
+      });
 
       try {
         this._container.style.background = '#0d0d0d';
@@ -327,6 +340,15 @@
             // User signed out - clear all tokens
             this._clearTokensCentral();
             this._clearTokensLocal();
+            break;
+
+          case 'pidy-resize':
+            // Widget content height changed - auto-resize iframe to eliminate black space
+            if (payload.height && this._iframe) {
+              var maxH = this._config.height || 740;
+              var newHeight = Math.min(payload.height, maxH);
+              this._iframe.style.height = newHeight + 'px';
+            }
             break;
 
           case 'tryon-expand':

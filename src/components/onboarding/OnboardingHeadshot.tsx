@@ -68,22 +68,22 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-secondary/30 to-background">
       {/* PIDY Logo */}
-      <div className="flex-shrink-0 pt-3 px-4">
+      <div className="flex-shrink-0 pt-2 px-4">
         <img src={pidyTextLogo} alt="PIDY" className="h-4 object-contain" />
       </div>
 
       {/* Header */}
-      <div className="flex-shrink-0 text-center pt-2 px-6">
+      <div className="flex-shrink-0 text-center pt-1 px-6">
         <p className="text-[9px] uppercase tracking-luxury text-primary mb-0.5">Step 1 of 3</p>
         <h2 className="font-display text-sm text-foreground">Take a Selfie</h2>
       </div>
 
-      {/* Content - scrollable so Continue stays pinned */}
-      <div className="flex-1 px-6 py-3 flex flex-col overflow-y-auto">
-        {/* Photo area - PROMINENT and centered */}
-        <div className="flex flex-col items-center mb-4">
+      {/* Content */}
+      <div className="flex-1 px-6 py-2 flex flex-col overflow-y-auto min-h-0">
+        {/* Photo area */}
+        <div className="flex flex-col items-center mb-2">
           <div
-            className={`relative w-32 h-32 rounded-full border-2 transition-all duration-200 overflow-hidden ${
+            className={`relative w-24 h-24 rounded-full border-2 transition-all duration-200 overflow-hidden ${
               preview
                 ? 'border-primary bg-primary/5'
                 : 'border-dashed border-primary/40 bg-card/30 cursor-pointer hover:border-primary/60 hover:bg-card/40 hover:scale-105'
@@ -97,14 +97,14 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                   alt="Headshot"
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="w-3 h-3 text-primary-foreground" />
+                <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-primary-foreground" />
                 </div>
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                <Camera className="w-8 h-8 text-primary" />
-                <span className="text-[10px] text-primary/80 font-medium">Tap to capture</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+                <Camera className="w-6 h-6 text-primary" />
+                <span className="text-[9px] text-primary/80 font-medium">Tap to capture</span>
               </div>
             )}
           </div>
@@ -116,7 +116,7 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                 setPhoto(null);
                 setPreview(null);
               }}
-              className="mt-2 text-[9px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              className="mt-1 text-[9px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
               <RotateCcw className="w-2.5 h-2.5" />
               retake
@@ -124,9 +124,9 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
           ) : (
             <button
               onClick={() => uploadInputRef.current?.click()}
-              className="mt-3 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+              className="mt-1.5 text-[9px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
-              <Upload className="w-3 h-3" />
+              <Upload className="w-2.5 h-2.5" />
               Upload
             </button>
           )}
@@ -149,63 +149,35 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
           />
         </div>
 
-        {/* Divider with "Then add your details" text */}
-        {preview && (
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 h-px bg-border/30"></div>
-            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Then add details</span>
-            <div className="flex-1 h-px bg-border/30"></div>
-          </div>
-        )}
-
-        {/* Measurements - Visual representation */}
-        <div className="py-2 space-y-3 flex-1">
-          {/* Height - with ruler visual - displays in feet/inches */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-lg bg-card/50 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                </div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Height</span>
-              </div>
-              <span className="text-base font-medium text-foreground">{heightDisplay}</span>
+        {/* Measurements */}
+        <div className="space-y-2.5 flex-1">
+          {/* Height */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Height</span>
+              <span className="text-sm font-medium text-foreground">{heightDisplay}</span>
             </div>
-            {/* Slider with markers */}
-            <div className="relative">
-              <input
-                type="range"
-                min="100"
-                max="250"
-                value={heightCm}
-                onChange={(e) => handleHeightChange(parseInt(e.target.value))}
-                className="w-full h-2 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
-              />
-              {/* Height markers */}
-              <div className="flex justify-between px-0.5 mt-1.5">
-                <span className="text-[9px] text-muted-foreground font-medium">4'0"</span>
-                <span className="text-[9px] text-muted-foreground font-medium">5'0"</span>
-                <span className="text-[9px] text-muted-foreground font-medium">6'0"</span>
-                <span className="text-[9px] text-muted-foreground font-medium">7'0"</span>
-                <span className="text-[9px] text-muted-foreground font-medium">8'2"</span>
-              </div>
+            <input
+              type="range"
+              min="100"
+              max="250"
+              value={heightCm}
+              onChange={(e) => handleHeightChange(parseInt(e.target.value))}
+              className="w-full h-1.5 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+            />
+            <div className="flex justify-between px-0.5">
+              <span className="text-[8px] text-muted-foreground/60">4'0"</span>
+              <span className="text-[8px] text-muted-foreground/60">5'6"</span>
+              <span className="text-[8px] text-muted-foreground/60">7'0"</span>
+              <span className="text-[8px] text-muted-foreground/60">8'2"</span>
             </div>
           </div>
 
-          {/* Weight - with scale visual */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-lg bg-card/50 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                  </svg>
-                </div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Weight</span>
-              </div>
-              <span className="text-base font-medium text-foreground">{weight} <span className="text-[10px] text-muted-foreground">kg</span></span>
+          {/* Weight */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Weight</span>
+              <span className="text-sm font-medium text-foreground">{weight} <span className="text-[9px] text-muted-foreground">kg</span></span>
             </div>
             <input
               type="range"
@@ -213,23 +185,16 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
               max="200"
               value={weight}
               onChange={(e) => setWeight(parseInt(e.target.value))}
-              className="w-full h-2 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+              className="w-full h-1.5 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
             />
           </div>
 
-          {/* Age - with calendar visual */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-lg bg-card/50 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Age</span>
-              </div>
-              <span className="text-base font-medium text-foreground">
-                {age === '-' ? <span className="text-xs text-muted-foreground">Skip</span> : <>{age} <span className="text-[10px] text-muted-foreground">yrs</span></>}
+          {/* Age */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Age</span>
+              <span className="text-sm font-medium text-foreground">
+                {age === '-' ? <span className="text-xs text-muted-foreground">Skip</span> : <>{age} <span className="text-[9px] text-muted-foreground">yrs</span></>}
               </span>
             </div>
             <input
@@ -241,24 +206,22 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
                 const val = parseInt(e.target.value);
                 setAge(val === 0 ? '-' : val + 13);
               }}
-              className="w-full h-2 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+              className="w-full h-1.5 bg-card/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
             />
           </div>
         </div>
       </div>
 
       {/* Continue button */}
-      <div className="flex-shrink-0 px-6 pb-6 pt-2">
-        <div className="border border-border/40 rounded-lg p-3 bg-surface/30">
-          <Button
-            onClick={handleContinue}
-            disabled={!isComplete}
-            className="w-full"
-            size="default"
-          >
-            Continue
-          </Button>
-        </div>
+      <div className="flex-shrink-0 px-6 pb-4 pt-1">
+        <Button
+          onClick={handleContinue}
+          disabled={!isComplete}
+          className="w-full"
+          size="default"
+        >
+          Continue
+        </Button>
       </div>
     </div>
   );
