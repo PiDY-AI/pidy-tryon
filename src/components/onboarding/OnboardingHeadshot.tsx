@@ -78,8 +78,8 @@ export const OnboardingHeadshot = ({ onNext }: OnboardingHeadshotProps) => {
         <h2 className="font-display text-sm text-foreground">Take a Selfie</h2>
       </div>
 
-      {/* Content - compact */}
-      <div className="flex-1 px-6 py-3 flex flex-col">
+      {/* Content - scrollable so Continue stays pinned */}
+      <div className="flex-1 px-6 py-3 flex flex-col overflow-y-auto">
         {/* Photo area - PROMINENT and centered */}
         <div className="flex flex-col items-center mb-4">
           <div

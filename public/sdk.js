@@ -195,22 +195,21 @@
         console.log('[PIDY SDK] iframe src:', url);
       }
 
-      // Create iframe
+      // Create iframe - responsive by default
       const iframe = document.createElement('iframe');
       iframe.src = url;
-      iframe.width = width;
-      iframe.height = height;
+      iframe.style.width = '100%';
+      iframe.style.maxWidth = width + 'px';
+      iframe.style.height = height + 'px';
       iframe.style.border = 'none';
       iframe.style.borderRadius = '12px';
       iframe.style.overflow = 'hidden';
-      // IMPORTANT: Use a solid background to avoid parent-page background bleeding through
-      // and to prevent white flashes/overlays on some browsers during iframe paint.
       iframe.style.background = '#0d0d0d';
       iframe.style.display = 'block';
+      iframe.style.margin = '0 auto';
       iframe.allow = 'clipboard-write; microphone';
       iframe.setAttribute('allowtransparency', 'true');
 
-      // Ensure the container itself doesn't show through if the iframe is still painting.
       try {
         this._container.style.background = '#0d0d0d';
         this._container.style.borderRadius = '12px';
