@@ -3,7 +3,7 @@
  * 
  * Usage:
  * 1. Add this script to your page:
- *    <script src="https://pidy-tryon.lovable.app/sdk.js"></script>
+ *    <script src="https://pidy-internal.vercel.app/sdk.js"></script>
  * 
  * 2. Initialize and embed:
  *    <div id="pidy-tryon"></div>
@@ -31,7 +31,7 @@
   // or the pidy-tryon app running locally), use the current origin.
   // When loaded cross-origin on a third-party brand website (even on localhost),
   // use the production URL so the widget iframe loads from the real PIDY app.
-  const PIDY_HOSTS = ['pidy-tryon.vercel.app', 'pidy-tryon.lovable.app'];
+  const PIDY_HOSTS = ['pidy-internal.vercel.app', 'pidy-tryon.vercel.app', 'pidy-tryon.lovable.app'];
   const isSameHost = PIDY_HOSTS.some(function(h) { return window.location.hostname === h; });
 
   // Detect if the SDK script itself was loaded from the same origin (local pidy-tryon dev)
@@ -51,7 +51,7 @@
   const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && sdkLoadedFromSameOrigin;
   const PIDY_ORIGIN = (isLocal || isSameHost)
     ? window.location.origin
-    : 'https://pidy-tryon.vercel.app';
+    : 'https://pidy-internal.vercel.app';
   const AUTH_BRIDGE_URL = PIDY_ORIGIN + '/auth-bridge.html';
 
   console.log('[PIDY SDK] Origin resolved:', PIDY_ORIGIN, '| isLocal:', isLocal, '| isSameHost:', isSameHost, '| sdkFromSameOrigin:', sdkLoadedFromSameOrigin);
