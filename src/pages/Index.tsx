@@ -13,7 +13,7 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, TryOnResult as TryOnResultType } from '@/types/measurements';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, LogOut, Loader2, X, RotateCcw } from 'lucide-react';
+import { ShoppingBag, LogOut, Loader2, X, RotateCcw, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import pidyLogo from '@/assets/pidy_logo_white.png';
 import { VoiceFeedbackPrompt } from '@/components/VoiceFeedbackPrompt';
@@ -887,12 +887,12 @@ const Index = () => {
   // Embed mode - show panel directly (no button)
   if (embedMode) {
     return (
-      <div className="w-full h-full min-h-screen bg-[#0d0d0d]">
+      <div className="w-full h-full bg-[#0d0d0d] flex items-center justify-center">
         <Helmet>
-          <title>Virtual Try-On</title>
+          <title>Digital Fitting Room</title>
         </Helmet>
 
-        <div className="w-[380px] h-[580px] flex flex-col bg-[#0d0d0d] border border-[#c9a862]/20 rounded-xl overflow-hidden shadow-2xl">
+        <div className="w-full h-full max-w-[420px] max-h-[740px] flex flex-col bg-[#0d0d0d] overflow-hidden">
           {/* Header - luxury minimal - hide when showing sign-in UI */}
           {isAuthed && (
             <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-background/50 backdrop-blur-xl z-10">
@@ -954,31 +954,59 @@ const Index = () => {
                   // Sign-in UI for embed mode with popup delegation
                   <div className="h-full flex items-center justify-center bg-gradient-to-b from-secondary/50 to-background p-6">
                     <div className="text-center max-w-xs space-y-4">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <img src={pidyLogo} alt="PIDY" className="w-8 h-8 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                      </div>
+                      <img src={pidyLogo} alt="PIDY" className="w-12 h-12 mx-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
                       <div>
-                        <h3 className="text-h4 text-foreground mb-1">Virtual Try-On</h3>
+                        <h3 className="text-h4 text-foreground mb-1">Digital Fitting Room</h3>
                         <p className="text-caption text-muted-foreground">
                           Sign in to see how this looks on you
                         </p>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
+                        <button
+                          onClick={() => handleOpenAuthPopup()}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-border bg-white text-black text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                          </svg>
+                          Continue with Google
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground">or</span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+
                         <Button
                           onClick={() => handleOpenAuthPopup()}
                           className="w-full"
                           size="default"
-                        >
-                          Sign In
-                        </Button>
-                        <Button
-                          onClick={() => handleOpenAuthPopup({ onboarding: true })}
                           variant="outline"
-                          className="w-full"
-                          size="default"
                         >
-                          First Time PIDY
+                          Sign In with Email
                         </Button>
+
+                        {/* Get Started */}
+                        <button
+                          onClick={() => handleOpenAuthPopup({ onboarding: true })}
+                          className="w-full text-center group pt-1"
+                        >
+                          <div className="glass-card rounded-xl p-3.5 hover:border-primary/30 transition-colors relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-60" />
+                            <div className="relative">
+                              <p className="text-xs text-muted-foreground mb-1.5">First time PIDY?</p>
+                              <div className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                                <img src={pidyLogo} alt="PIDY" className="h-4 w-4 object-contain" />
+                                <span className="text-base font-semibold">Get started</span>
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                              </div>
+                            </div>
+                          </div>
+                        </button>
                       </div>
                     </div>
                   </div>
