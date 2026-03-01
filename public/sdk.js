@@ -84,12 +84,12 @@
      * @param {string} [config.authMethod='modal'] - Auth method: 'modal' (recommended), 'popup', or 'redirect'
      * @param {boolean} [config.debug=false] - Enables debug logging + widget debug overlay
      * @param {number} [config.width=400] - Widget width in pixels
-     * @param {number} [config.height=620] - Widget height in pixels
+     * @param {number} [config.height=740] - Widget height in pixels
      */
     init: function(config) {
       this._config = {
         width: 400,
-        height: 620,
+        height: 740,
         debug: false,
         authMethod: 'popup', // Default to popup - doesn't cover brand website
         ...config
@@ -130,7 +130,7 @@
         const debug = el.dataset.debug === 'true';
         const authMethod = el.dataset.authMethod || 'popup'; // 'modal', 'popup', or 'redirect'
         const width = parseInt(el.dataset.width) || 400;
-        const height = parseInt(el.dataset.height) || 620;
+        const height = parseInt(el.dataset.height) || 740;
 
         if (!productId) {
           console.warn('[PIDY SDK] Element missing data-product-id:', el);
@@ -1071,7 +1071,7 @@
       const debug = el.dataset.debug === 'true';
       const authMethod = el.dataset.authMethod || 'modal';
       const width = parseInt(el.dataset.width) || 400;
-      const height = parseInt(el.dataset.height) || 620;
+      const height = parseInt(el.dataset.height) || 740;
 
       // Generate unique ID if needed
       if (!el.id) {
