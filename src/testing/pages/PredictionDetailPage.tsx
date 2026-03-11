@@ -593,6 +593,56 @@ const PredictionDetailPage = () => {
           </Collapsible>
         )}
 
+        {/* Voting Result */}
+        {prediction.voting_result && (
+          <Collapsible>
+            <div className="glass-card rounded-xl p-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full">
+                <h3 className="text-small text-primary uppercase tracking-wider">
+                  Voting Result
+                  {prediction.voting_result.winning_fit && (
+                    <span className="ml-2 text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                      {prediction.voting_result.winning_fit}
+                    </span>
+                  )}
+                </h3>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+                  <div className="flex justify-between"><span>Winning Fit</span><span className="text-foreground">{prediction.voting_result.winning_fit || '-'}</span></div>
+                  <div className="flex justify-between"><span>All Votes</span><span className="text-foreground">{prediction.voting_result.all_votes?.join(', ') || '-'}</span></div>
+                  <div className="flex justify-between"><span>Category Layer Fits</span><span className="text-foreground">{prediction.voting_result.category_layer_fits?.join(', ') || '-'}</span></div>
+                  <div className="flex justify-between"><span>Voters Used</span><span className="text-foreground">{prediction.voting_result.voters_used?.join(', ') || '-'}</span></div>
+                  <div className="flex justify-between"><span>Voters Skipped</span><span className="text-foreground">{prediction.voting_result.voters_skipped?.join(', ') || '-'}</span></div>
+                </div>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+        )}
+
+        {/* Category Layer */}
+        {prediction.category_layer_result && (
+          <Collapsible>
+            <div className="glass-card rounded-xl p-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full">
+                <h3 className="text-small text-primary uppercase tracking-wider">
+                  Category Layer
+                  {prediction.category_layer_result.fallback_used && (
+                    <span className="ml-2 text-[10px] px-2 py-0.5 bg-secondary text-muted-foreground rounded-full">fallback</span>
+                  )}
+                </h3>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <pre className="mt-3 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap">
+                  {JSON.stringify(prediction.category_layer_result.prompt_rows, null, 2)}
+                </pre>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+        )}
+
         {/* Body Measurements */}
         {prediction.body_measurements && (
           <Collapsible>
