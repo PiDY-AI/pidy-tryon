@@ -12,6 +12,17 @@ export interface TryonPrediction {
   body_type: string | null;
   human_image_url: string | null;
   fit_calculations: Record<string, any> | null;
+  voting_result: {
+    winning_fit: string;
+    all_votes: string[];
+    category_layer_fits: string[];
+    voters_used: string[];
+    voters_skipped: string[];
+  } | null;
+  category_layer_result: {
+    prompt_rows: Record<string, string[]>;
+    fallback_used: boolean;
+  } | null;
   notes: string | null;
   tags: string[];
   created_at: string;

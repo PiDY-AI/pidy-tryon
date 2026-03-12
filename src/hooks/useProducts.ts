@@ -43,15 +43,18 @@ export const useProducts = (): UseProductsReturn => {
         }
         const previewImage = imagesArray.length > 0 ? imagesArray[0] : '';
         
-        // sizes is a jsonb array - ensure it's parsed correctly
         let sizesArray: string[] = ['S', 'M', 'L', 'XL'];
         if (Array.isArray(item.sizes)) {
           sizesArray = item.sizes;
+        } else if (item.sizes && typeof item.sizes === 'object') {
+          sizesArray = Object.keys(item.sizes);
         } else if (typeof item.sizes === 'string') {
           try {
             const parsed = JSON.parse(item.sizes);
             if (Array.isArray(parsed)) {
               sizesArray = parsed;
+            } else if (parsed && typeof parsed === 'object') {
+              sizesArray = Object.keys(parsed);
             }
           } catch {
             sizesArray = ['S', 'M', 'L', 'XL'];
