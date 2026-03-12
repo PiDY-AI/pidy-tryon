@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface TryOnResult {
   images: string[];
   recommendedSize?: string;
+  size?: string;
   fitScore?: number;
   prompt?: string;
 }

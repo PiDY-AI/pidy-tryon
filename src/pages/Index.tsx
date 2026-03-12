@@ -279,8 +279,6 @@ const Index = () => {
 
       // Handle auth token from SDK (parent window cached token)
       if (type === 'pidy-auth-token' && access_token) {
-        console.log('[PIDY Widget] Received token from SDK');
-
         const { error } = await supabase.auth.setSession({
           access_token,
           refresh_token: refresh_token || ''
@@ -724,8 +722,9 @@ const Index = () => {
       });
 
       if (backendResult) {
+        console.log('[handleTryOn] Backend result received:', backendResult);
         const result: TryOnResultType = {
-          recommendedSize: backendResult.recommendedSize || sizeToUse,
+          recommendedSize: backendResult.recommendedSize || backendResult.size || sizeToUse,
           fitScore: backendResult.fitScore || 85,
           fitNotes: ['Based on your body scan'],
           images: backendResult.images,
