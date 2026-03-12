@@ -585,9 +585,44 @@ const PredictionDetailPage = () => {
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <pre className="mt-3 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto">
-                  {JSON.stringify(prediction.fit_calculations, null, 2)}
-                </pre>
+                <div className="mt-3 space-y-2">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-muted-foreground border-b border-border/50">
+                        <th className="text-left py-1.5 font-medium">Dimension</th>
+                        <th className="text-right py-1.5 font-medium">Garment</th>
+                        <th className="text-right py-1.5 font-medium">Body</th>
+                        <th className="text-right py-1.5 font-medium">Ease/Margin</th>
+                        <th className="text-left py-1.5 pl-3 font-medium">Best Match</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(prediction.fit_calculations as Record<string, any>).map(([dim, calc]: [string, any]) => (
+                        <tr key={dim} className="border-b border-border/20">
+                          <td className="py-1.5 text-foreground capitalize">{dim}</td>
+                          <td className="py-1.5 text-right text-muted-foreground">{calc.garment != null ? `${calc.garment} cm` : '-'}</td>
+                          <td className="py-1.5 text-right text-muted-foreground">{calc.body != null ? `${calc.body} cm` : '-'}</td>
+                          <td className={`py-1.5 text-right font-medium ${calc.ease != null ? (calc.ease >= 0 ? 'text-green-400' : 'text-red-400') : 'text-muted-foreground'}`}>
+                            {calc.ease != null ? `${calc.ease > 0 ? '+' : ''}${calc.ease.toFixed(1)} cm` : '-'}
+                          </td>
+                          <td className="py-1.5 pl-3 text-muted-foreground">{calc.bestMatch || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {Object.values(prediction.fit_calculations as Record<string, any>).some((c: any) => c.rows?.length) && (
+                    <Collapsible>
+                      <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                        Show fit rows detail...
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <pre className="mt-2 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto">
+                          {JSON.stringify(prediction.fit_calculations, null, 2)}
+                        </pre>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
               </CollapsibleContent>
             </div>
           </Collapsible>
@@ -635,6 +670,16 @@ const PredictionDetailPage = () => {
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </CollapsibleTrigger>
               <CollapsibleContent>
+                {prediction.category_layer_result.matched_fits && (
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    {Object.entries(prediction.category_layer_result.matched_fits).map(([dim, fit]) => (
+                      <div key={dim} className="flex justify-between">
+                        <span className="capitalize">{dim}</span>
+                        <span className="text-foreground">{fit}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <pre className="mt-3 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap">
                   {JSON.stringify(prediction.category_layer_result.prompt_rows, null, 2)}
                 </pre>
@@ -654,6 +699,25 @@ const PredictionDetailPage = () => {
               <CollapsibleContent>
                 <pre className="mt-3 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto">
                   {JSON.stringify(prediction.body_measurements, null, 2)}
+                </pre>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+        )}
+
+        {/* Garment Measurements */}
+        {prediction.product_size_data && (
+          <Collapsible>
+            <div className="glass-card rounded-xl p-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full">
+                <h3 className="text-small text-primary uppercase tracking-wider">
+                  Garment Measurements (Size {prediction.size})
+                </h3>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <pre className="mt-3 p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground overflow-x-auto">
+                  {JSON.stringify(prediction.product_size_data, null, 2)}
                 </pre>
               </CollapsibleContent>
             </div>

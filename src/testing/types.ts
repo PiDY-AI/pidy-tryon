@@ -20,7 +20,8 @@ export interface TryonPrediction {
     voters_skipped: string[];
   } | null;
   category_layer_result: {
-    prompt_rows: Record<string, string[]>;
+    prompt_rows: Record<string, Array<{fit_category: string; prompt_text: string; ease_min: number; ease_max: number}> | string[]>;
+    matched_fits?: Record<string, string>;
     fallback_used: boolean;
   } | null;
   notes: string | null;
