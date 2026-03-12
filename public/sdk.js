@@ -323,10 +323,13 @@
             break;
 
           case 'pidy-onboarding-complete':
-            // Onboarding completed in popup - store locally and relay to widget iframe
+            // Onboarding completed in popup or widget - store locally/centrally
             this._setOnboardingComplete(true);
             console.log('[PIDY SDK] Onboarding marked complete');
-            if (this._iframe && this._iframe.contentWindow) {
+
+            // Relay to widget iframe ONLY if it's NOT coming from the widget itself
+            const isFromWidget = this._iframe && event.source === this._iframe.contentWindow;
+            if (!isFromWidget && this._iframe && this._iframe.contentWindow) {
               this._iframe.contentWindow.postMessage({
                 type: 'pidy-onboarding-complete',
                 access_token: access_token,
@@ -336,6 +339,8 @@
                 is_new_user: payload.is_new_user
               }, PIDY_ORIGIN);
               console.log('[PIDY SDK] Relayed pidy-onboarding-complete to widget');
+            } else if (isFromWidget) {
+              console.log('[PIDY SDK] Onboarding complete received from widget, skipping relay');
             }
             if (access_token) {
               this._storeTokensCentral(access_token, refresh_token, 3600);

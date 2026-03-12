@@ -304,15 +304,17 @@ const Index = () => {
         // SDK sends token -> widget sends auth-success -> SDK stores -> triggers more events
         return;
       }
-
-      // Handle onboarding complete from popup
+      // Handle onboarding complete from popup or SDK relay
       if (type === 'pidy-onboarding-complete') {
-        console.log('[PIDY Widget] Onboarding complete from popup');
+        console.log('[PIDY Widget] Onboarding complete received');
         completeOnboarding();
 
-        // Forward to SDK (parent) so it can persist on brand domain
-        // This is safe - the SDK handler for this message just stores locally, no echo back
-        window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+        // Forward to SDK (parent) ONLY if it's not coming from the parent already.
+        // If it came from the parent, the parent already knows.
+        if (event.source !== window.parent) {
+          console.log('[PIDY Widget] Forwarding onboarding completion to parent SDK');
+          window.parent.postMessage({ type: 'pidy-onboarding-complete' }, '*');
+        }
 
         // If tokens were also sent, apply them
         if (access_token && refresh_token) {
